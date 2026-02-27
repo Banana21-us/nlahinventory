@@ -4,10 +4,14 @@ export default {
   content: [
     "./resources/**/*.blade.php",
     "./resources/**/*.js",
+    './resources/js/**/*.vue',
     "./app/Livewire/**/*.php",
+    './node_modules/flowbite/**/*.js'
   ],
   theme: {
     extend: {},
   },
-  plugins: [],
+  plugins: [
+    require('daisyui'),
+  ],
 }

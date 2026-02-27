@@ -87,6 +87,16 @@ Route::get('/dispense', \App\Livewire\DispenseMedicine::class)
     ->middleware(['auth', 'verified'])
     ->name('dispense');
 
+Route::middleware(['auth'])->group(function () {
+    Route::redirect('/checklist', '/checklist/profile')->name('checklist');
+    Route::livewire('/checklist/profile', 'pages::checklist.profile')->name('checklist.profile');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::livewire('/checklist/appearance', 'pages::checklist.appearance')->name('checklist.appearance');
+});
+
+
 Route::get('/patients/{id}', PatientDetail::class)->name('patient.details');
 
 require __DIR__.'/settings.php';

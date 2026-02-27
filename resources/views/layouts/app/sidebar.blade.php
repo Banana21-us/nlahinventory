@@ -42,6 +42,15 @@
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
+            <flux:sidebar.nav>
+                <flux:sidebar.group  class="grid">
+                    <flux:sidebar.item icon="home" :href="route('checklist')" :current="request()->routeIs('checklist*')" wire:navigate>
+                        {{ __('Checklist') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
+            </flux:sidebar.nav>
+            
+
             <flux:spacer />
 
             <flux:sidebar.nav>
