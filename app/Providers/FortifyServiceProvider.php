@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Illuminate\Support\Facades\Auth;
-
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 class FortifyServiceProvider extends ServiceProvider
 {
     /**
@@ -34,20 +34,28 @@ class FortifyServiceProvider extends ServiceProvider
 
         $this->app->singleton(RegisterResponseContract::class, function () {
         return new class implements RegisterResponseContract {
-            public function toResponse($request)
-            {
-                // Force logout any user the Fortify Controller just logged in
-                Auth::guard('web')->logout();
+        public function toResponse($request)
+        {
+            return redirect()->route('verification.notice');  // 👈 redirect to verify email page
+        }
+    };
+});
+    //     $this->app->singleton(RegisterResponseContract::class, function () {
+    //     return new class implements RegisterResponseContract {
+    //         public function toResponse($request)
+    //         {
+    //             // Force logout any user the Fortify Controller just logged in
+    //             Auth::guard('web')->logout();
 
-                // Clear the session to be safe
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
+    //             // Clear the session to be safe
+    //             $request->session()->invalidate();
+    //             $request->session()->regenerateToken();
 
-                return redirect()->route('login')
-                    ->with('status', 'Registration successful! Please log in.');
-            }
-        };
-    });
+    //             return redirect()->route('login')
+    //                 ->with('status', 'Registration successful! Please log in.');
+    //         }
+    //     };
+    // });
     }
 
     /**

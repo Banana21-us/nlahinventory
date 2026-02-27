@@ -9,12 +9,54 @@ use App\Livewire\Dashboard;
 use App\Livewire\Home;
 use App\Livewire\Services;
 use App\Livewire\Landing;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
+use App\Models\User;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Auth;
 // Route::get('/', function () {
 //     return view('welcome');
 // })->name('home');
 
+Route::get('/email/verify', function () {
+     return view('pages::auth.verify-email'); 
+})->middleware('auth')->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
+    $user = User::findOrFail($id);
+
+    // Validate the hash
+    if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+        abort(403);
+    }
+
+    // Validate the signature
+    if (! URL::hasValidSignature($request)) {
+        abort(403);
+    }
+
+    // Mark as verified if not already
+    if (! $user->hasVerifiedEmail()) {
+        $user->markEmailAsVerified();
+    }
+
+    return redirect()->route('login')->with('status', 'Email verified! Please log in.');
+})->middleware('signed')->name('verification.verify');
+
+Route::post('/email/resend', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('message', 'Verification link sent!');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
+});
+
+// Route::get('/', function () {
+//     return redirect()->route('nlah.home');
+// });
 Route::get('/', function () {
-    return view('home');
+    return redirect()->route('nlah.home');
 })->name('home');
 
 Route::get('/hpage', Landing::class)->name('hpage');
