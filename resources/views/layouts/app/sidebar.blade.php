@@ -20,7 +20,7 @@
 
             <flux:sidebar.nav>
                 <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="pill" :href="route('medicines')" :current="request()->routeIs('medicines')" wire:navigate>
+                    <flux:sidebar.item icon="home" :href="route('medicines')" :current="request()->routeIs('medicines')" wire:navigate>
                         {{ __('Medicines') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
@@ -28,7 +28,7 @@
             
             <flux:sidebar.nav>
                 <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="syringe" :href="route('dispense')" :current="request()->routeIs('dispense')" wire:navigate>
+                    <flux:sidebar.item icon="home" :href="route('dispense')" :current="request()->routeIs('dispense')" wire:navigate>
                         {{ __('Dispense Medicine') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
@@ -36,7 +36,7 @@
             
             <flux:sidebar.nav>
                 <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="users" :href="route('patients')" :current="request()->routeIs('patients')" wire:navigate>
+                    <flux:sidebar.item icon="home" :href="route('patients')" :current="request()->routeIs('patients')" wire:navigate>
                         {{ __('Patients') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
@@ -44,7 +44,7 @@
 
             <flux:sidebar.nav>
                 <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="clipboard-check" :href="route('Maintenance.checklist')" :current="request()->routeIs('Maintenance.checklist*')" wire:navigate>
+                    <flux:sidebar.item icon="home" :href="route('checklist')" :current="request()->routeIs('checklist*')" wire:navigate>
                         {{ __('Checklist') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
