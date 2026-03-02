@@ -44,7 +44,7 @@
 
             <flux:sidebar.nav>
                 <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="clipboard-check" :href="route('Maintenance.checklist')" :current="request()->routeIs('Maintenance.checklist*')" wire:navigate>
+                    <flux:sidebar.item icon="clipboard-check" :href="route('Maintenance.checklist')" :current="request()->routeIs('Maintenance.checklist')" wire:navigate>
                         {{ __('Checklist') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
