@@ -33,18 +33,18 @@ $currentYear = date('Y');
                     
                     <!-- Social Icons -->
                     <div class="flex justify-center sm:justify-start space-x-4 mt-5">
-                        <a href="#" class="text-gray-200 hover:text-white transition-colors">
+                        <!-- <a href="#" class="text-gray-200 hover:text-white transition-colors">
                             <i class="fab fa-linkedin text-lg sm:text-xl"></i>
                         </a>
                         <a href="#" class="text-gray-200 hover:text-white transition-colors">
                             <i class="fab fa-twitter text-lg sm:text-xl"></i>
-                        </a>
-                        <a href="https://www.facebook.com/nlahospitalinc" class="text-gray-200 hover:text-white transition-colors">
+                        </a> -->
+                        <!-- <a href="https://www.facebook.com/nlahospitalinc" class="text-gray-200 hover:text-white transition-colors">
                             <i class="fab fa-facebook text-lg sm:text-xl"></i>
-                        </a>
-                        <a href="#" class="text-gray-200 hover:text-white transition-colors">
+                        </a> -->
+                        <!-- <a href="#" class="text-gray-200 hover:text-white transition-colors">
                             <i class="fab fa-youtube text-lg sm:text-xl"></i>
-                        </a>
+                        </a> -->
                     </div>
                     
                     <!-- Desktop Back to Top Button -->
