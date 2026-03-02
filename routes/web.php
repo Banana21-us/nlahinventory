@@ -43,6 +43,37 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     return redirect()->route('login')->with('status', 'Email verified! Please log in.');
 })->middleware('signed')->name('verification.verify');
 
+// HR routes
+Route::middleware(['auth', 'verified', 'role:HR'])->prefix('hr')->name('hr.')->group(function () {
+    Route::get('/dashboard', fn() => view('pages.hr.dashboard'))->name('dashboard');
+    Route::get('/employees', fn() => view('pages.hr.employees'))->name('employees');
+    // add more HR routes
+});
+
+// Department Head routes
+Route::middleware(['auth', 'verified', 'role:Department_Head'])->prefix('department-head')->name('department-head.')->group(function () {
+    Route::get('/dashboard', fn() => view('pages.department-head.dashboard'))->name('dashboard');
+    // add more department head routes
+});
+
+// Staff routes
+Route::middleware(['auth', 'verified', 'role:Staff'])->prefix('staff')->name('staff.')->group(function () {
+    Route::get('/dashboard', fn() => view('pages.staff.dashboard'))->name('dashboard');
+    // add more staff routes
+});
+
+// Maintenance routes
+Route::middleware(['auth', 'verified', 'role:Maintenance'])->prefix('maintenance')->name('maintenance.')->group(function () {
+    Route::get('/dashboard', fn() => view('pages.maintenance.dashboard'))->name('dashboard');
+    // add more maintenance routes
+});
+
+// Inspector routes
+Route::middleware(['auth', 'verified', 'role:Inspector'])->prefix('inspector')->name('inspector.')->group(function () {
+    Route::get('/dashboard', fn() => view('pages.inspector.dashboard'))->name('dashboard');
+    // add more inspector routes
+});
+
 Route::post('/email/resend', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
     return back()->with('message', 'Verification link sent!');
