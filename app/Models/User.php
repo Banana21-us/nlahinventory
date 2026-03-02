@@ -23,8 +23,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
-        'employee_number',
-        'role',
     ];
 
     /**
@@ -62,28 +60,5 @@ class User extends Authenticatable implements MustVerifyEmail
             ->take(2)
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
-    }
-
-    public function isAdmin(): bool
-    {
-        return $this->role === 'HR';
-    }
-
-    public function isStaff(): bool
-    {
-        return $this->role === 'Staff';
-    }
-
-    public function isDepartmentHead(): bool
-    {
-        return $this->role === 'Department_Head';
-    }
-    public function isMaintenance(): bool
-    {
-        return $this->role === 'Maintenance';
-    }
-    public function isInspector(): bool
-    {
-        return $this->role === 'Inspector';
     }
 }

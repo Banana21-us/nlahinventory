@@ -182,4 +182,3 @@
         </div>
     </div>
   </section>
-  <livewire:footer/>
