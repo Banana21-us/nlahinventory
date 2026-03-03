@@ -44,13 +44,19 @@
         style="display:none;"
         class="absolute top-8 left-0 w-44 bg-white border border-zinc-200/60 rounded-xl shadow-lg overflow-hidden z-50 py-1"
     >
-        <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">View</a>
-        <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Transfer</a>
-        <div class="my-1 border-t border-zinc-100"></div>
-        <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Publish</a>
-        <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Share</a>
-        <div class="my-1 border-t border-zinc-100"></div>
-        <a href="#" class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">Delete</a>
+        <ul class="flex flex-col">
+            <li>
+                <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Leave Application</a>
+            </li>
+            <li>
+                <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Pay-Off Application</a>
+            </li>
+            <li><hr class="my-1 border-zinc-100"></li>
+            <li>
+                <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Overtime/On-call Application</a>
+            </li>
+            
+        </ul>
     </div>
 </div>
 
@@ -135,13 +141,28 @@
             {{-- Options Accordion --}}
             <div>
                 <button onclick="toggleOptions()"
-                    class="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
-                    <span>HR Corner</span>
+                    class="w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
+                    <span class="flex items-center gap-1">
+                        
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                             stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg>
+                        HR Corner
+                    </span>
                 </button>
+                
                 <div id="options-body" style="display:none;" class="ml-4 mb-1 flex flex-col border-l-2 border-zinc-100 pl-3">
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">Leave Application</a>
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">Pay-Off Application</a>
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">Overtime/On-call Application</a>
+                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                        <li class="list-disc">Leave Application</li>
+                    </a>
+                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                        <li class="list-disc">Pay-Off Application</li>
+                    </a>
+                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                        <li class="list-disc">Overtime/On-call Application</li>
+                    </a>
                 </div>
             </div>
 
@@ -218,14 +239,41 @@
                     </svg>
                 </button>
 
-                <div id="options-body" style="display:none;" class="ml-4 mb-1 flex flex-col border-l-2 border-zinc-100 pl-3">
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">View</a>
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">Transfer</a>
-                    <div class="my-1 border-t border-zinc-100"></div>
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">Publish</a>
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">Share</a>
-                    <div class="my-1 border-t border-zinc-100"></div>
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors">Delete</a>
+                <div id="options-body" style="display:none;" class="ml-4 mb-1 border-l-2 border-zinc-100 pl-3">
+                    <ul class="flex flex-col gap-1">
+                        <li>
+                            <a href="#"
+                               class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                                View
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#"
+                               class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                                Transfer
+                            </a>
+                        </li>
+                        <li><hr class="my-1 border-zinc-100"></li>
+                        <li>
+                            <a href="#"
+                               class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                                Publish
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#"
+                               class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                                Share
+                            </a>
+                        </li>
+                        <li><hr class="my-1 border-zinc-100"></li>
+                        <li>
+                            <a href="#"
+                               class="px-3 py-2.5 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors">
+                                Delete
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </div>
 

@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
@@ -23,6 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'employee_number',
+        'role',
     ];
 
     /**
@@ -60,5 +62,28 @@ class User extends Authenticatable
             ->take(2)
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'HR';
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === 'Staff';
+    }
+
+    public function isDepartmentHead(): bool
+    {
+        return $this->role === 'Department_Head';
+    }
+    public function isMaintenance(): bool
+    {
+        return $this->role === 'Maintenance';
+    }
+    public function isInspector(): bool
+    {
+        return $this->role === 'Inspector';
     }
 }

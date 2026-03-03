@@ -11,7 +11,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
-
+use Illuminate\Support\Facades\Auth;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 class FortifyServiceProvider extends ServiceProvider
 {
     /**
@@ -32,10 +33,40 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
 
         $this->app->singleton(RegisterResponseContract::class, function () {
-            return new class implements RegisterResponseContract {
+        return new class implements RegisterResponseContract {
+            public function toResponse($request)
+            {   
+                $request->user()->sendEmailVerificationNotification();
+                // Force logout any user the Fortify Controller just logged in
+                Auth::guard('web')->logout();
+
+                // Clear the session to be safe
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                   return redirect()->route('login')
+                ->with('status', 'Registration successful! Please check your email to verify your account before logging in.');
+            }
+        };
+    });
+    $this->app->singleton(LoginResponseContract::class, function () {
+            return new class implements LoginResponseContract {
                 public function toResponse($request)
                 {
-                    return redirect()->intended(route('dashboard', absolute: false));
+                    $user = Auth::user();
+
+                    if (! $user->hasVerifiedEmail()) {
+                        return redirect()->route('verification.notice');
+                    }
+
+                    return match($user->role) {
+                        'HR'              => redirect()->route('hr.dashboard'),
+                        'Department_Head' => redirect()->route('department-head.dashboard'),
+                        'Staff'           => redirect()->route('staff.dashboard'),
+                        'Maintenance'     => redirect()->route('maintenance.dashboard'),
+                        'Inspector'       => redirect()->route('inspector.dashboard'),
+                        default           => redirect()->route('dashboard'),
+                    };
                 }
             };
         });
