@@ -62,7 +62,7 @@ class FortifyServiceProvider extends ServiceProvider
                     return match($user->role) {
                         'HR'              => redirect()->route('hr.dashboard'),
                         'Department_Head' => redirect()->route('department-head.dashboard'),
-                        'Staff'           => redirect()->route('staff.dashboard'),
+                        'Staff'           => redirect()->route('medmission.dashboard'),
                         'Maintenance'     => redirect()->route('maintenance.dashboard'),
                         'Inspector'       => redirect()->route('inspector.dashboard'),
                         default           => redirect()->route('dashboard'),

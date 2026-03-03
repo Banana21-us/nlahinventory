@@ -17,7 +17,7 @@ class PatientDetail extends Component
 
     public function render()
     {
-        return view('livewire.patient-detail', [
+        return view('pages.medmission.patient-detail', [
             'history' => $this->patient->dispensings()->latest()->get()
         ])->layout('layouts.app');
     }

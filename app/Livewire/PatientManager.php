@@ -42,7 +42,7 @@ class PatientManager extends Component
 }
     public function render()
     {
-        return view('livewire.patient-manager', [
+        return view('pages.medmission.patient-manager', [
             'patients' => Patient::where('full_name', 'like', '%'.$this->search.'%')
                 ->orWhere('patient_number', 'like', '%'.$this->search.'%')
                 ->latest()
