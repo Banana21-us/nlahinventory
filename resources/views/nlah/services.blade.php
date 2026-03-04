@@ -1,8 +1,8 @@
 @include('partials.head')
 <livewire:navigation/>
-<main class="max-w-7xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 md:pt-48 pb-16 sm:pb-20">
-    <div class="w-full mx-auto">
-        <div class="text-center mt-10 mb-16">
+<main class="max-w-7xl mx-auto px-6 pt-32 md:pt-48 pb-20">
+    <div class="w-full mx-auto mt-1">
+        <div class="text-center mb-16">
             <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">OUR SERVICES</h2>
             <p class="max-w-4xl mx-auto">
                 <span class="font-semibold">Northern Luzon Adventist Hospital</span> (NLAH) in Sison, Pangasinan, is a Level 1 accredited facility providing 24/7 emergency care, clinical laboratory services, and 18-bed inpatient care, including specialized OB/GYN and operating rooms
