@@ -27,11 +27,12 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
-            'two_factor_secret' => null,
-            'two_factor_recovery_codes' => null,
-            'two_factor_confirmed_at' => null,
+            'password' => bcrypt('password'), 
+            'remember_token' => \Illuminate\Support\Str::random(10),
+            
+            // ADD THESE TWO LINES TO MATCH YOUR TABLE:
+            'employee_number' => fake()->unique()->numerify('EMP-#####'), 
+            'role' => fake()->randomElement(['Staff', 'HR', 'Department_Head', 'Maintenance', 'Inspector']),
         ];
     }
 
