@@ -6,11 +6,16 @@
     <nav class="flex items-center justify-between w-full max-w-4xl h-14 px-4 bg-white/70 backdrop-blur-xl border border-zinc-200/50 rounded-full shadow-sm">
 
         {{-- Logo --}}
-        <div class="flex items-center gap-2 pl-2">
-            <div class="w-5 h-5 bg-black rounded-full flex items-center justify-center">
-                <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
-            </div>
-            <span class="font-bold tracking-tight text-sm md:text-base">NLAH</span>
+       <div class="flex items-center gap-2 pl-2">
+            <a href="{{ route('nlah.home') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <img src="/image/logo.png" 
+                    class="w-8 h-8 rounded-full object-cover" 
+                    alt="NLAH Logo">
+                
+                <span class="font-bold tracking-tight text-sm md:text-base text-gray-900">
+                    NLAH
+                </span>
+            </a>
         </div>
 
         {{-- Desktop Nav --}}

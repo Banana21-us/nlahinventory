@@ -23,7 +23,10 @@ return new class extends Migration
             $table->string('verifier_name')->nullable();
             $table->text('comments')->nullable();
 
-            $table->unique(['location_area_part_id', 'period_type', 'cleaning_date', 'shift', 'remarks']);
+            $table->unique(
+                            ['location_area_part_id', 'period_type', 'cleaning_date', 'shift'],
+                            'records_unique_combo'
+                        );
         });
     }
 

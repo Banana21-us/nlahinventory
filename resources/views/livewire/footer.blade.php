@@ -25,7 +25,7 @@ $currentYear = date('Y');
                             alt="Northern Luzon Adventist Hospital logo"
                             class="h-20 w-20 rounded-full object-cover border border-white/30"
                         >
-                        <h2 class="text-xl sm:text-2xl font-bold">NORTHERN LUZON ADVENTIST HOSPITAL</h2>
+                        <h2 class="text-xl sm:text-2xl font-bold w-full">NORTHERN LUZON ADVENTIST HOSPITAL</h2>
                     </div>
                     <p class="text-gray-200 text-xs sm:text-sm leading-relaxed max-w-md mx-auto sm:mx-0">
                         Empowering physicians with advanced multi-modal tools to improve treatment selection and patient outcomes.
