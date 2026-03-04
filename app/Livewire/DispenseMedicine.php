@@ -54,7 +54,7 @@ class DispenseMedicine extends Component
 
     public function render()
     {
-        return view('livewire.dispense-medicine', [
+        return view('pages.medmission.dispense-medicine', [
             // Filter patients based on name or patient number
             'patients' => Patient::where('full_name', 'like', '%' . $this->searchPatient . '%')
                 ->orWhere('patient_number', 'like', '%' . $this->searchPatient . '%')

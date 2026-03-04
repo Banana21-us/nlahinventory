@@ -6,41 +6,36 @@
     <body class="min-h-screen bg-white dark:bg-zinc-800">
         <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.header>
-                <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
+                <x-app-logo :sidebar="true" href="{{ route('medmission.dashboard') }}" wire:navigate />
                 <flux:sidebar.collapse class="lg:hidden" />
             </flux:sidebar.header>
-
-            <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')" class="grid">
-                    <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
+            
+            <flux:sidebar.group icon="home" expandable heading="Medical Mission" class="grid">
+                <flux:sidebar.item :heading="__('Platform')" class="grid">
+                    <flux:sidebar.item  :href="route('medmission.dashboard')" :current="request()->routeIs('medmission.dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
+                </flux:sidebar.item>
 
-            <flux:sidebar.nav>
-                <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="pill" :href="route('medicines')" :current="request()->routeIs('medicines')" wire:navigate>
+                <flux:sidebar.item  class="grid">
+                    <flux:sidebar.item  :href="route('medicines')" :current="request()->routeIs('medicines')" wire:navigate>
                         {{ __('Medicines') }}
                     </flux:sidebar.item>
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
-            
-            <flux:sidebar.nav>
-                <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="syringe" :href="route('dispense')" :current="request()->routeIs('dispense')" wire:navigate>
+                </flux:sidebar.item>
+
+                <flux:sidebar.item  class="grid">
+                    <flux:sidebar.item  :href="route('dispense')" :current="request()->routeIs('dispense')" wire:navigate>
                         {{ __('Dispense Medicine') }}
                     </flux:sidebar.item>
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
-            
-            <flux:sidebar.nav>
-                <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="users" :href="route('patients')" :current="request()->routeIs('patients')" wire:navigate>
+                </flux:sidebar.item>
+
+                <flux:sidebar.item  class="grid">
+                    <flux:sidebar.item :href="route('patients')" :current="request()->routeIs('patients')" wire:navigate>
                         {{ __('Patients') }}
                     </flux:sidebar.item>
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
+                </flux:sidebar.item>
+                
+            </flux:sidebar.group>
 
             <flux:sidebar.nav>
                 <flux:sidebar.group  class="grid">

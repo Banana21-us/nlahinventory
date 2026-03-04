@@ -60,7 +60,7 @@ public function delete()
 }
 public function render()
 {
-    return view('livewire.medicines', [
+    return view('pages.medmission.medicines', [
         'medicines' => Medicine::latest()->get()
     ])->layout('layouts.app');
 }

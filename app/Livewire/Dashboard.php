@@ -27,7 +27,7 @@ class Dashboard extends Component
             Medicine::where('status', 'inactive')->count(),
         ];
 
-        return view('livewire.dashboard', [
+        return view('pages.Medmission.dashboard', [
             'stats' => $stats,
             'statusData' => $statusData,
             'lowStockItems' => Medicine::where('reorder_level', '>', 0)->take(5)->get()
