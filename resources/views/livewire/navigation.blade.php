@@ -69,6 +69,11 @@
                 class="{{ request()->routeIs('nlah.about') ? 'text-black font-semibold' : 'hover:text-black transition-colors' }}">
                 {{ __('About Us') }}
             </a>
+
+             <a href="{{ route('nlah.about') }}"
+                class="{{ request()->routeIs('nlah.about') ? 'text-black font-semibold' : 'hover:text-black transition-colors' }}">
+                {{ __('About me') }}
+            </a>
         </div>
 
         {{-- Right Side --}}
@@ -177,12 +182,7 @@
                 onclick="closeMobileMenu()">
                 About Us
             </a>
-             <a href="{{ route('nlah.about') }}"
-                class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
-                    {{ request()->routeIs('nlah.about') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
-                onclick="closeMobileMenu()">
-                About messssage
-            </a>
+             
         </div>
 
         @if (Route::has('login'))
