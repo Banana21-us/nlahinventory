@@ -91,7 +91,7 @@ $currentYear = date('Y');
             <!-- Bottom Bar with Copyright and Mobile Back to Top -->
             <div class="border-t border-green-700/50 pt-6 mt-10 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <p class="text-gray-300 text-xs sm:text-sm text-center sm:text-left px-2">
-                    © Northern Luzon Adventist Hospital Inc. All rights reserved.
+                    © {{ date('Y') }} Northern Luzon Adventist Hospital Inc. All rights reserved.
                 </p>
                 
                 <!-- Mobile Back to Top Button (hidden on desktop) -->
