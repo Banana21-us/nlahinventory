@@ -70,10 +70,7 @@
                 {{ __('About Us') }}
             </a>
 
-             <a href="{{ route('nlah.about') }}"
-                class="{{ request()->routeIs('nlah.about') ? 'text-black font-semibold' : 'hover:text-black transition-colors' }}">
-                {{ __('About me') }}
-            </a>
+            
         </div>
 
         {{-- Right Side --}}
