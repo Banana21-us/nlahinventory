@@ -292,7 +292,7 @@
                 class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
                     {{ request()->routeIs('nlah.about') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
                 onclick="closeMobileMenu()">
-                About me
+                About messssage
             </a>
         </div>
 
