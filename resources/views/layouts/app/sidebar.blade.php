@@ -39,8 +39,13 @@
 
             <flux:sidebar.nav>
                 <flux:sidebar.group  class="grid">
+<<<<<<< Updated upstream
                     <flux:sidebar.item icon="clipboard-check" :href="route('Maintenance.checklist')" :current="request()->routeIs('Maintenance.checklist')" wire:navigate>
                         {{ __('Checklist') }}
+=======
+                    <flux:sidebar.item icon="clipboard-check" :href="route('Maintenance.checklist')" :current="request()->routeIs('Maintenance.checklist*')" wire:navigate>
+                        {{ __('Maintenance') }}
+>>>>>>> Stashed changes
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
