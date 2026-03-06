@@ -47,5 +47,7 @@
         @livewireScripts
         @fluxScripts
         <livewire:navigation/>
+
+        
     </body>
 </html>

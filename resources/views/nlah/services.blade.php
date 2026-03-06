@@ -233,30 +233,6 @@
         </div>
     </div>
 </main>
-
-<div id="serviceModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 opacity-0" aria-hidden="true" id="overlay"></div>
-    <div class="fixed inset-0 flex items-center justify-center p-4 rounded-2xl" id="modalContainer">
-        <div id="modalPanel" class="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-95 opacity-0 absolute max-h-[90vh] overflow-y-auto">
-            <div class="px-6 py-8">
-                <div class="flex flex-col items-center justify-center">
-                        <img id="modalIcon" src="" class="w-10 h-10 hidden mb-5" alt="">
-                        <i id="modalIconFont" class="fas text-3xl text-blue-600 hidden"></i>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-4 text-center" id="modalTitle">
-                        Service Title
-                    </h3>
-                    <div class="mt-2 w-full">
-                        <p class="text-gray-600 leading-relaxed text-center" id="modalDescription">
-                            Service description will appear here.
-                        </p>
-                    </div>
-                    <flux:button type="button" id="closeModalBtn" class=" w-full sm:w-auto px-8 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 rounded-none mt-5 bg-gray-500">Close</flux:button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <livewire:footer/>
 
 <style>
