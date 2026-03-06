@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Volt;
 use App\Http\Controllers\NewsEventController;
+use App\Livewire\HR;
 // Route::get('/', function () {
 //     return view('welcome');
 // })->name('home');
@@ -69,7 +70,8 @@ Route::post('/email/resend', function (Request $request) {
 Route::middleware(['auth', 'verified'])->prefix('medmission')->name('medmission.')->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
 });
-
+// hr
+Route::get('/HR/userlist', HR::class)->middleware(['auth', 'verified'])->name('HR.userlist'); 
 
 // Route::get('/medmission/dashboard', Dashboard::class)->middleware(['auth', 'verified'])->name('dashboard');
 Route::get('/medmission/dispense', DispenseMedicine::class)->middleware(['auth', 'verified'])->name('dispense');

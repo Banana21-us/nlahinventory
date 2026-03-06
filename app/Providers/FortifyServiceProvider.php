@@ -13,6 +13,9 @@ use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+
 class FortifyServiceProvider extends ServiceProvider
 {
     /**
@@ -27,7 +30,24 @@ class FortifyServiceProvider extends ServiceProvider
      * Bootstrap any application services.
      */
     public function boot(): void
-    {
+    {   
+        Fortify::createUsersUsing(CreateNewUser::class);
+        Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+
+        // Block disabled users at login
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = User::where('email', $request->email)->first();
+
+            if ($user && Hash::check($request->password, $user->password)) {
+                if ($user->role === 'Disable') {
+                    return null; // Reject login silently, shows auth.failed message
+                }
+                return $user;
+            }
+
+            return null;
+        });
+
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
@@ -60,12 +80,11 @@ class FortifyServiceProvider extends ServiceProvider
                     }
 
                     return match($user->role) {
-                        'HR'              => redirect()->route('hr.dashboard'),
-                        'Department_Head' => redirect()->route('department-head.dashboard'),
+                        'HR'              => redirect()->route('HR.userlist'),
                         'Staff'           => redirect()->route('medmission.dashboard'),
                         'Maintenance'     => redirect()->route('maintenance.dashboard'),
                         'Inspector'       => redirect()->route('inspector.dashboard'),
-                        default           => redirect()->route('dashboard'),
+                        default           => redirect()->route('login')->withErrors(['email' => 'Your account is disabled. Please contact the administrator.']),
                     };
                 }
             };
