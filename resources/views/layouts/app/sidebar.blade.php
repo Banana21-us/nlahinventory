@@ -44,6 +44,14 @@
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
+
+            <flux:sidebar.nav>
+                <flux:sidebar.group  class="grid">
+                    <flux:sidebar.item icon="clipboard-check" :href="route('NewsPage.newshr')" :current="request()->routeIs('NewsPage.newshr')" wire:navigate>
+                        {{ __('News') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
+            </flux:sidebar.nav>
             
 
             <flux:spacer />

@@ -3,8 +3,8 @@
 
 <main class="max-w-7xl mx-auto px-6 pt-32 md:pt-48 pb-20">
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">News & Events</h1>
-        <p class="text-gray-600 mt-2">Stay updated with the latest happenings at Northern Luzon Adventist Hospital</p>
+        <h1 class="text-3xl font-bold">News & Events</h1>
+        <p class=" mt-2">Stay updated with the latest happenings at Northern Luzon Adventist Hospital</p>
     </div>
     
     <!-- News & Events Grid -->
@@ -12,7 +12,7 @@
         @forelse($newsEvents as $item)
         <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition group">
             <div class="relative h-48 overflow-hidden">
-                <img src="{{ asset('image/' . $item->image) }}" 
+                <img src="{{ asset('storage/news/' . $item->image) }}" 
                      alt="{{ $item->title }}" 
                      class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                 <div class="absolute top-4 right-4">
