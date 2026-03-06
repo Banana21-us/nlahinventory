@@ -49,6 +49,8 @@
                 <flux:sidebar.group  class="grid">
                     <flux:sidebar.item icon="clipboard-check" :href="route('NewsPage.newshr')" :current="request()->routeIs('NewsPage.newshr')" wire:navigate>
                         {{ __('News') }}
+                    <flux:sidebar.item icon="clipboard-check" :href="route('HR.userlist')" :current="request()->routeIs('HR.userlist')" wire:navigate>
+                        {{ __('HR Corner') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>

@@ -16,9 +16,9 @@ return new class extends Migration
             $table->integer('location_area_part_id');
             $table->date('cleaning_date');
             $table->enum('period_type', ['daily', 'weekly', 'monthly']);
-            $table->enum('shift', ['AM', 'PM']);
+            $table->enum('shift', ['AM', 'PM'])->nullable();
             $table->enum('status', ['YES', 'NO']);
-            $table->string('remarks')->nullable();
+            $table->string('remarks');
             $table->string('proof')->nullable();
             $table->string('verifier_name')->nullable();
             $table->text('comments')->nullable();

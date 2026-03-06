@@ -32,8 +32,6 @@
             <flux:select name="role" :label="__('Role')" required>
                 <option value="" disabled selected>{{ __('Select your role') }}</option>
                 <option value="staff" {{ old('role') == 'staff' ? 'selected' : '' }}>{{ __('Staff') }}</option>
-                <option value="hr" {{ old('role') == 'hr' ? 'selected' : '' }}>{{ __('HR') }}</option>
-                <option value="department_head" {{ old('role') == 'department_head' ? 'selected' : '' }}>{{ __('Department Head') }}</option>
                 <option value="maintenance" {{ old('role') == 'maintenance' ? 'selected' : '' }}>{{ __('Maintenance') }}</option>
                 <option value="inspector" {{ old('role') == 'inspector' ? 'selected' : '' }}>{{ __('Inspector') }}</option>
             </flux:select>

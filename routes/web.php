@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Volt;
 use App\Http\Controllers\NewsEventController;
+use App\Livewire\HR;
+// Route::get('/', function () {
+//     return view('welcome');
+// })->name('home');
 
 // Email verification routes
 Route::get('/email/verify', function () {
@@ -54,6 +58,8 @@ Route::middleware(['auth', 'verified'])->prefix('medmission')->name('medmission.
 
 // HR News route - This is the Livewire component route
 Route::get('/HR/news', News::class)->middleware(['auth', 'verified'])->name('NewsPage.newshr');
+// hr
+Route::get('/HR/userlist', HR::class)->middleware(['auth', 'verified'])->name('HR.userlist'); 
 
 Route::get('/medmission/dispense', DispenseMedicine::class)->middleware(['auth', 'verified'])->name('dispense');
 Route::get('/medmission/medicines', Medicines::class)->middleware(['auth', 'verified'])->name('medicines');  

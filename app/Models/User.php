@@ -73,11 +73,6 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->role === 'Staff';
     }
-
-    public function isDepartmentHead(): bool
-    {
-        return $this->role === 'Department_Head';
-    }
     public function isMaintenance(): bool
     {
         return $this->role === 'Maintenance';
@@ -85,5 +80,9 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isInspector(): bool
     {
         return $this->role === 'Inspector';
+    }
+    public function isDisabled(): bool
+    {
+        return $this->role === 'Disable';
     }
 }

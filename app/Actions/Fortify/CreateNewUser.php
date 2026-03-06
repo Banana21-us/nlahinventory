@@ -22,6 +22,17 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            'employee_number' => [
+                'required',
+                'string',
+                // Must exist in the employee table first
+                'exists:employee,employee_number',
+                // Must not already be registered in users
+                'unique:users,employee_number',
+            ],
+        ], [
+            'employee_number.exists' => 'This employee number was not found. Please contact HR.',
+            'employee_number.unique' => 'This employee number is already registered.',
         ])->validate();
 
         return User::create([
