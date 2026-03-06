@@ -6,7 +6,7 @@
     <nav class="flex items-center justify-between w-full max-w-4xl h-14 px-4 bg-white/70 backdrop-blur-xl border border-zinc-200/50 rounded-full shadow-sm">
 
         {{-- Logo --}}
-       <div class="flex items-center gap-2 pl-2">
+        <div class="flex items-center gap-2 pl-2">
             <a href="{{ route('nlah.home') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 <img src="/image/logo.png" 
                     class="w-8 h-8 rounded-full object-cover" 
@@ -29,48 +29,49 @@
                 {{ __('Services') }}
             </a>
 
-           {{-- Desktop Options Dropdown --}}
-<div class="relative" id="desktop-options-wrapper">
-    <button
-        onclick="toggleDesktopOptions()"
-        class="flex ps-4 pe-4 items-center gap-1 text-[13px] font-medium text-zinc-600 hover:text-black transition-colors"
-    >
-        HR Corner
-        <svg id="desktop-options-chevron"
-            class="w-3.5 h-3.5 text-zinc-400 transition-transform duration-200"
-            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-        </svg>
-    </button>
+            {{-- Desktop Options Dropdown --}}
+            <div class="relative" id="desktop-options-wrapper">
+                <button
+                    onclick="toggleDesktopOptions()"
+                    class="flex ps-4 pe-4 items-center gap-1 text-[13px] font-medium text-zinc-600 hover:text-black transition-colors"
+                >
+                    HR Corner
+                    <svg id="desktop-options-chevron"
+                        class="w-3.5 h-3.5 text-zinc-400 transition-transform duration-200"
+                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
 
-    <div
-        id="desktop-options-menu"
-        style="display:none;"
-        class="absolute top-8 left-0 w-44 bg-white border border-zinc-200/60 rounded-xl shadow-lg overflow-hidden z-50 py-1"
-    >
-        <ul class="flex flex-col">
-            <li>
-                <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Leave Application</a>
-            </li>
-            <li>
-                <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Pay-Off Application</a>
-            </li>
-            <li><hr class="my-1 border-zinc-100"></li>
-            <li>
-                <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Overtime/On-call Application</a>
-            </li>
-            
-        </ul>
-    </div>
-</div>
+                <div
+                    id="desktop-options-menu"
+                    style="display:none;"
+                    class="absolute top-8 left-0 w-44 bg-white border border-zinc-200/60 rounded-xl shadow-lg overflow-hidden z-50 py-1"
+                >
+                    <ul class="flex flex-col">
+                        <li>
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Leave Application</a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Pay-Off Application</a>
+                        </li>
+                        <li><hr class="my-1 border-zinc-100"></li>
+                        <li>
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors">Overtime/On-call Application</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
 
             <a href="{{ route('nlah.about') }}"
                 class="{{ request()->routeIs('nlah.about') ? 'text-black font-semibold' : 'hover:text-black transition-colors' }}">
                 {{ __('About Us') }}
             </a>
-
-            
+            <a href="{{ route('nlah.news') }}"
+                class="{{ request()->routeIs('nlah.news') ? 'text-black font-semibold' : 'hover:text-black transition-colors' }}">
+                {{ __('News & Events') }}
+            </a>
         </div>
 
         {{-- Right Side --}}
@@ -103,224 +104,114 @@
                 </svg>
             </a>
 
-            {{-- Mobile Toggle Button --}}
-            {{-- REPLACE WITH: wrap button + panel together --}}
-<div class="md:hidden" wire:ignore>
-    <button
-        id="mobile-menu-btn"
-        class="p-1.5 text-zinc-500 hover:text-black transition-colors"
-        aria-label="Toggle menu"
-        onclick="toggleMobileMenu()"
-    >
-        <svg id="icon-hamburger" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" x2="20" y1="6" y2="6"/>
-            <line x1="4" x2="20" y1="12" y2="12"/>
-            <line x1="4" x2="20" y1="18" y2="18"/>
-        </svg>
-        <svg id="icon-close" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-    </button>
-
-    {{-- Mobile Menu Panel -- now a sibling inside relative wrapper --}}
-    <div
-        id="mobile-menu"
-        style="display:none; width:100%;"
-        class="absolute mt-3 top-12 right-0  bg-white border border-zinc-200/60 rounded-2xl shadow-xl overflow-hidden z-50"
-    >
-        <div class="flex flex-col p-2">
-            <a href="{{ route('nlah.home') }}"
-                class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
-                    {{ request()->routeIs('nlah.home') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
-                onclick="closeMobileMenu()">
-                Home
-            </a>
-            <a href="{{ route('nlah.services') }}"
-                class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
-                    {{ request()->routeIs('nlah.services') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
-                onclick="closeMobileMenu()">
-                Services
-            </a>
-
-            {{-- Options Accordion --}}
-            <div>
-                <button onclick="toggleOptions()"
-                    class="w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
-                    <span class="flex items-center gap-1">
-                        
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                             stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                        </svg>
-                        HR Corner
-                    </span>
-                </button>
-                
-                <div id="options-body" style="display:none;" class="ml-4 mb-1 flex flex-col border-l-2 border-zinc-100 pl-3">
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
-                        <li class="list-disc">Leave Application</li>
-                    </a>
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
-                        <li class="list-disc">Pay-Off Application</li>
-                    </a>
-                    <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
-                        <li class="list-disc">Overtime/On-call Application</li>
-                    </a>
-                </div>
-            </div>
-
-            <a href="{{ route('nlah.about') }}"
-                class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
-                    {{ request()->routeIs('nlah.about') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
-                onclick="closeMobileMenu()">
-                About Us
-            </a>
-             
-        </div>
-
-        @if (Route::has('login'))
-            <div class="border-t border-zinc-100 p-2">
-                @auth
-                    <a href="{{ url('/dashboard') }}" onclick="closeMobileMenu()"
-                        class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
-                        Dashboard
-                    </a>
-                @else
-                    <div class="flex flex-col gap-1">
-                        <a href="{{ route('login') }}" onclick="closeMobileMenu()"
-                            class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
-                            Log in
-                        </a>
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" onclick="closeMobileMenu()"
-                                class="flex items-center justify-center px-4 py-3 rounded-xl text-sm font-semibold bg-black text-white hover:bg-zinc-800 transition-colors">
-                                Register
-                            </a>
-                        @endif
-                    </div>
-                @endauth
-            </div>
-        @endif
-    </div>
-</div>
-        </div>
-    </nav>
-
-    {{-- Mobile Menu Panel --}}
-    <div
-        id="mobile-menu"
-        style="display:none;"
-        class="md:hidden absolute top-[4.5rem] right-4 w-full bg-white border border-zinc-200/60 rounded-2xl shadow-xl overflow-hidden"
-    >
-        <div class="flex flex-col p-2">
-
-            <a href="{{ route('nlah.home') }}"
-                class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
-                    {{ request()->routeIs('nlah.home') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
-                onclick="closeMobileMenu()">
-                Home
-            </a>
-
-            <a href="{{ route('nlah.services') }}"
-                class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
-                    {{ request()->routeIs('nlah.services') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
-                onclick="closeMobileMenu()">
-                Services
-            </a>
-
-            {{-- Options Accordion --}}
-            <div>
+            {{-- Mobile Menu --}}
+            <div class="md:hidden" wire:ignore>
                 <button
-                    onclick="toggleOptions()"
-                    class="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors"
+                    id="mobile-menu-btn"
+                    class="p-1.5 text-zinc-500 hover:text-black transition-colors"
+                    aria-label="Toggle menu"
+                    onclick="toggleMobileMenu()"
                 >
-                    <span>HR Corner</span>
-                    <svg id="options-chevron"
-                        class="w-4 h-4 text-zinc-400 transition-transform duration-200"
-                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9"/>
+                    <svg id="icon-hamburger" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" x2="20" y1="6" y2="6"/>
+                        <line x1="4" x2="20" y1="12" y2="12"/>
+                        <line x1="4" x2="20" y1="18" y2="18"/>
+                    </svg>
+                    <svg id="icon-close" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                 </button>
 
-                <div id="options-body" style="display:none;" class="ml-4 mb-1 border-l-2 border-zinc-100 pl-3">
-                    <ul class="flex flex-col gap-1">
-                        <li>
-                            <a href="#"
-                               class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
-                                View
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#"
-                               class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
-                                Transfer
-                            </a>
-                        </li>
-                        <li><hr class="my-1 border-zinc-100"></li>
-                        <li>
-                            <a href="#"
-                               class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
-                                Publish
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#"
-                               class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
-                                Share
-                            </a>
-                        </li>
-                        <li><hr class="my-1 border-zinc-100"></li>
-                        <li>
-                            <a href="#"
-                               class="px-3 py-2.5 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors">
-                                Delete
-                            </a>
-                        </li>
-                    </ul>
+                {{-- Mobile Menu Panel --}}
+                <div
+                    id="mobile-menu"
+                    style="display:none;"
+                    class="absolute mt-3 top-12 right-4 w-64 bg-white border border-zinc-200/60 rounded-2xl shadow-xl overflow-hidden z-50"
+                >
+                    <div class="flex flex-col p-2">
+                        <a href="{{ route('nlah.home') }}"
+                            class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
+                                {{ request()->routeIs('nlah.home') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
+                            onclick="closeMobileMenu()">
+                            Home
+                        </a>
+                        <a href="{{ route('nlah.services') }}"
+                            class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
+                                {{ request()->routeIs('nlah.services') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
+                            onclick="closeMobileMenu()">
+                            Services
+                        </a>
+
+                        {{-- Options Accordion --}}
+                        <div>
+                            <button onclick="toggleOptions()"
+                                class="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
+                                <span>HR Corner</span>
+                                <svg id="options-chevron"
+                                    class="w-4 h-4 text-zinc-400 transition-transform duration-200"
+                                    xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </button>
+                            
+                            <div id="options-body" style="display:none;" class="ml-4 mb-1 flex flex-col border-l-2 border-zinc-100 pl-3">
+                                <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                                    Leave Application
+                                </a>
+                                <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                                    Pay-Off Application
+                                </a>
+                                <a href="#" class="px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors">
+                                    Overtime/On-call Application
+                                </a>
+                            </div>
+                        </div>
+
+                        <a href="{{ route('nlah.about') }}"
+                            class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
+                                {{ request()->routeIs('nlah.about') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
+                            onclick="closeMobileMenu()">
+                            About Us
+                        </a>
+                        <a href="{{ route('nlah.news') }}"
+                            class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
+                                {{ request()->routeIs('nlah.news') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
+                            onclick="closeMobileMenu()">
+                            News & Events
+                        </a>
+                    </div>
+
+                    @if (Route::has('login'))
+                        <div class="border-t border-zinc-100 p-2">
+                            @auth
+                                <a href="{{ url('/dashboard') }}" onclick="closeMobileMenu()"
+                                    class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
+                                    Dashboard
+                                </a>
+                            @else
+                                <div class="flex flex-col gap-1">
+                                    <a href="{{ route('login') }}" onclick="closeMobileMenu()"
+                                        class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
+                                        Log in
+                                    </a>
+                                    @if (Route::has('register'))
+                                        <a href="{{ route('register') }}" onclick="closeMobileMenu()"
+                                            class="flex items-center justify-center px-4 py-3 rounded-xl text-sm font-semibold bg-black text-white hover:bg-zinc-800 transition-colors">
+                                            Register
+                                        </a>
+                                    @endif
+                                </div>
+                            @endauth
+                        </div>
+                    @endif
                 </div>
             </div>
-
-            <a href="{{ route('nlah.about') }}"
-                class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
-                    {{ request()->routeIs('nlah.about') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}"
-                onclick="closeMobileMenu()">
-                About Us
-            </a>
-           
         </div>
-
-        @if (Route::has('login'))
-            <div class="border-t border-zinc-100 p-2">
-                @auth
-                    <a href="{{ url('/dashboard') }}"
-                        onclick="closeMobileMenu()"
-                        class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
-                        Dashboard
-                    </a>
-                @else
-                    <div class="flex flex-col gap-1">
-                        <a href="{{ route('login') }}"
-                            onclick="closeMobileMenu()"
-                            class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
-                            Log in
-                        </a>
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}"
-                                onclick="closeMobileMenu()"
-                                class="flex items-center justify-center px-4 py-3 rounded-xl text-sm font-semibold bg-black text-white hover:bg-zinc-800 transition-colors">
-                                Register
-                            </a>
-                        @endif
-                    </div>
-                @endauth
-            </div>
-        @endif
-    </div>
+    </nav>
 </header>
 
 <script>
@@ -335,14 +226,17 @@
         close.style.display = isOpen ? 'none' : 'block';
 
         // Close options accordion when closing menu
-        if (isOpen) {
+        if (!isOpen) {
             document.getElementById('options-body').style.display = 'none';
             document.getElementById('options-chevron').style.transform = '';
         }
     }
 
     function closeMobileMenu() {
-        document.getElementById('mobile-menu').style.display = 'none';
+        const menu = document.getElementById('mobile-menu');
+        if (menu) {
+            menu.style.display = 'none';
+        }
         document.getElementById('icon-hamburger').style.display = 'block';
         document.getElementById('icon-close').style.display = 'none';
         document.getElementById('options-body').style.display = 'none';
@@ -358,36 +252,31 @@
         chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
     }
 
-    // Close menu when clicking outside
+    function toggleDesktopOptions() {
+        const menu = document.getElementById('desktop-options-menu');
+        const chevron = document.getElementById('desktop-options-chevron');
+        const isOpen = menu.style.display === 'block';
+        menu.style.display = isOpen ? 'none' : 'block';
+        chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+    }
+
+    // Close menus when clicking outside
     document.addEventListener('click', function(e) {
         const header = document.querySelector('header');
         if (!header.contains(e.target)) {
             closeMobileMenu();
+            
+            const desktopWrapper = document.getElementById('desktop-options-wrapper');
+            if (desktopWrapper && !desktopWrapper.contains(e.target)) {
+                const desktopMenu = document.getElementById('desktop-options-menu');
+                const desktopChevron = document.getElementById('desktop-options-chevron');
+                if (desktopMenu) {
+                    desktopMenu.style.display = 'none';
+                }
+                if (desktopChevron) {
+                    desktopChevron.style.transform = '';
+                }
+            }
         }
     });
-</script>
-<script>
-    function toggleDesktopOptions() {
-    const menu = document.getElementById('desktop-options-menu');
-    const chevron = document.getElementById('desktop-options-chevron');
-    const isOpen = menu.style.display === 'block';
-    menu.style.display = isOpen ? 'none' : 'block';
-    chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
-}
-
-// Update the existing outside-click listener to also close desktop dropdown
-document.addEventListener('click', function(e) {
-    // Close mobile menu
-    const header = document.querySelector('header');
-    if (!header.contains(e.target)) {
-        closeMobileMenu();
-    }
-
-    // Close desktop options if clicking outside it
-    const desktopWrapper = document.getElementById('desktop-options-wrapper');
-    if (desktopWrapper && !desktopWrapper.contains(e.target)) {
-        document.getElementById('desktop-options-menu').style.display = 'none';
-        document.getElementById('desktop-options-chevron').style.transform = '';
-    }
-});
 </script>

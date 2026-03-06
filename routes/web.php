@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Volt\Volt;
+use App\Http\Controllers\NewsEventController;
 // Route::get('/', function () {
 //     return view('welcome');
 // })->name('home');
@@ -76,11 +78,17 @@ Route::get('/medmission/patients',PatientManager::class)->middleware(['auth', 'v
 Route::get('/medmission/patients/{id}', PatientDetail::class)->middleware(['auth', 'verified'])->name('patient.details');
 
 Route::get('/', function () {return redirect()->route('nlah.home');})->name('home');
-Route::prefix('nlah')->name('nlah.')->group(function () {
+// Replace your existing nlah route group with this:
+    Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::view('/home', 'nlah.home')->name('home');
     Route::view('/about', 'nlah.about')->name('about');
     Route::view('/services', 'nlah.services')->name('services');
-
+    
+    // News routes using NewsEventController
+    Route::get('/news', [NewsEventController::class, 'index'])->name('news');
+    Route::get('/news/{id}', [NewsEventController::class, 'show'])->name('news.detail');
+    Route::get('/news/category/{category}', [NewsEventController::class, 'byCategory'])->name('news.category');
+    Route::get('/news/type/{type}', [NewsEventController::class, 'byType'])->name('news.type');
 });
 
 Route::view('reports', 'reports')
