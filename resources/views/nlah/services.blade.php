@@ -233,6 +233,8 @@
         </div>
     </div>
 </main>
+
+
 <livewire:footer/>
 
 <script>
