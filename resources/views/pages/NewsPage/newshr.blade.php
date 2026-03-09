@@ -6,14 +6,18 @@
     </div>
     @endif
 
-    <!-- Collapsible Form for Adding News -->
+    <!-- Collapsible Form for Adding/Editing News -->
     <div class="bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden mb-8" x-data="{ open: @entangle('showForm') }">
-        <button @click="open = !open" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition">
+        <button @click="open = !open; if(!open) @this.cancelForm()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition">
             <span class="font-bold text-gray-700">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
-                Add News / Event
+                @if($isEditing)
+                    Edit News / Event
+                @else
+                    Add News / Event
+                @endif
             </span>
             <svg class="w-5 h-5 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -70,14 +74,20 @@
 
                     <!-- Image Upload -->
                     <div>
-                        <label class="text-xs font-bold uppercase text-gray-500">Image *</label>
+                        <label class="text-xs font-bold uppercase text-gray-500">Image {{ $isEditing ? '(Leave empty to keep current)' : '*' }}</label>
                         <input type="file" wire:model="image" class="w-full mt-1 rounded-md border-gray-300 p-2 border focus:ring-2 focus:ring-blue-500" accept="image/*">
                         @error('image') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         
                         <!-- Image Preview -->
                         @if ($image)
                         <div class="mt-2">
+                            <p class="text-xs text-gray-500 mb-1">New Image:</p>
                             <img src="{{ $image->temporaryUrl() }}" class="h-20 w-20 object-cover rounded-lg">
+                        </div>
+                        @elseif($oldImage && $isEditing)
+                        <div class="mt-2">
+                            <p class="text-xs text-gray-500 mb-1">Current Image:</p>
+                            <img src="{{ asset('storage/news/' . $oldImage) }}" class="h-20 w-20 object-cover rounded-lg">
                         </div>
                         @endif
                     </div>
@@ -92,14 +102,16 @@
 
                 <!-- Form Actions -->
                 <div class="flex justify-end gap-2 mt-6">
-                    <button type="button" @click="open = false" class="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium">
+                    <button type="button" @click="open = false; @this.cancelForm()" class="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium">
                         Cancel
                     </button>
-                    <!-- <button type="submit" class=" px-6 py-2 rounded-md font-bold bg-blue-600 transition flex items-center">
-                        Publish News/Event
-                    </button> -->
-
-                    <flux:button type="submit" class=" px-6 py-2 rounded-md font-bold transition flex items-center" variant="primary" color="blue">Publish</flux:button>
+                    <flux:button type="submit" class="px-6 py-2 rounded-md font-bold transition flex items-center" variant="primary" color="blue">
+                        @if($isEditing)
+                            Update
+                        @else
+                            Publish
+                        @endif
+                    </flux:button>
                 </div>
             </form>
         </div>
@@ -137,15 +149,45 @@
                         {{ $item->category }}
                     </span>
                 </div>
-                <h2 class="text-xl font-semibold text-gray-800 mb-2 line-clamp-2">{{ $item->title }}</h2>
-                <p class="text-gray-600 mb-3 line-clamp-2">{{ $item->description }}</p>
-                <p class="text-sm text-gray-500 mb-4">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    {{ $item->location }}
-                </p>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xl font-bold text-gray-800">{{ $item->title }}</span>
+                    <span class="text-xs bg-gray-100 text-black px-4 py-1 rounded">
+                        <i class="fas fa-map-marker-alt"></i> {{ $item->location }}
+                    </span> 
+                </div>
+
+                <details class="mb-4 group">
+                    <summary class="flex items-center justify-between cursor-pointer text-sm list-none">
+                        <p class="text-gray-600 line-clamp-2">
+                            {{ \Str::words($item->description, 5, '...') }}
+                        </p>
+                        <svg class="w-5 h-5 transition-transform group-open:rotate-180 text-gray-600 bg-gray-100 rounded-xl" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </summary>
+                    <div class="mt-3 p-3 bg-gray-50 rounded-md text-sm text-gray-600">
+                        @if($item->type == 'Event')
+                            <p><strong>Date:</strong> {{ \Carbon\Carbon::parse($item->date)->format('F d, Y h:i A') }}</p>
+                            <p><strong>Location:</strong> {{ $item->location }}</p>
+                            <p class="mt-2"><strong>Full Description:</strong> {{ $item->description }}</p>
+                        @else
+                            <p>{{ $item->description }}</p>
+                        @endif
+                    </div>
+                </details>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end gap-2 mt-5">
+                    <button wire:click="edit({{ $item->id }})" 
+                            class="text-small bg-blue-100 text-blue-600 px-4 py-1 rounded hover:bg-blue-200 transition">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                    </button>
+                    <button wire:click="delete({{ $item->id }})" 
+                            wire:confirm="Are you sure you want to delete this item?" 
+                            class="text-small bg-gray-100 text-red-600 px-4 py-1 rounded hover:bg-red-100 transition">
+                        <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                </div>
             </div>
         </div>
         @empty

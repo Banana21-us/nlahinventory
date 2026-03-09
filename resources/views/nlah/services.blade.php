@@ -232,6 +232,52 @@
             </div>
         </div>
     </div>
+
+    <!-- Service Details Modal -->
+    <div id="serviceModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div id="overlay" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+
+        <div id="modalContainer" class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div id="modalPanel" class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg scale-95 opacity-0 transition-all duration-300">
+                    
+                    <!-- Close button (top right) -->
+                    <div class="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
+                        <button id="closeModalIconBtn" type="button" class="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2">
+                            <span class="sr-only">Close</span>
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Modal content -->
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <!-- Icon container -->
+                            <div class="mx-auto flex h-12 w-20 flex-shrink-0 items-center justify-center rounded-full bg-gray-500 sm:mx-0 sm:h-10 sm:w-10">
+                                <img id="modalIcon" src="" class="h-10 w-12 hidden" alt="Service icon">
+                                <span id="modalIconFont" class="text-3xl text-cyan-600 hidden"></span>
+                            </div>
+                            
+                            <!-- Text content -->
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-base font-semibold leading-6 bg-teal-700" id="modalTitle">Service Title</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500" id="modalDescription">Service description will appear here.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal footer with close button -->
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button id="closeModalBtn" type="button" class="inline-flex w-full justify-center rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-black shadow-sm hover:bg-cyan-500 sm:ml-3 sm:w-auto">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 <livewire:footer/>
 
@@ -269,7 +315,10 @@ main {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Get all service cards
     const serviceCards = document.querySelectorAll('.service-card');
+    
+    // Get modal elements
     const modal = document.getElementById('serviceModal');
     const modalTitle = document.getElementById('modalTitle');
     const modalDescription = document.getElementById('modalDescription');
@@ -280,11 +329,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const overlay = document.getElementById('overlay');
     const modalContainer = document.getElementById('modalContainer');
     const modalPanel = document.getElementById('modalPanel');
-    
-    // Service counter
-    const counterElement = document.getElementById('service-counter');
-    if (counterElement) {
-        counterElement.textContent = `${serviceCards.length} medical services available`;
+
+    // Check if modal exists before proceeding
+    if (!modal) {
+        console.error('Modal element not found');
+        return;
     }
 
     // Open modal when service card is clicked
@@ -294,18 +343,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const description = this.dataset.description;
             const icon = this.dataset.icon;
             
-            modalTitle.textContent = service;
-            modalDescription.textContent = description;
+            if (modalTitle) modalTitle.textContent = service;
+            if (modalDescription) modalDescription.textContent = description;
             
             // Handle icon display
             if (icon.startsWith('fas')) {
-                modalIcon.classList.add('hidden');
-                modalIconFont.className = icon + ' text-3xl text-blue-600';
-                modalIconFont.classList.remove('hidden');
+                if (modalIcon) modalIcon.classList.add('hidden');
+                if (modalIconFont) {
+                    modalIconFont.className = icon + ' text-3xl text-blue-600';
+                    modalIconFont.classList.remove('hidden');
+                }
             } else {
-                modalIconFont.classList.add('hidden');
-                modalIcon.src = icon;
-                modalIcon.classList.remove('hidden');
+                if (modalIconFont) modalIconFont.classList.add('hidden');
+                if (modalIcon) {
+                    modalIcon.src = icon;
+                    modalIcon.classList.remove('hidden');
+                }
             }
             
             // Show modal with animation
@@ -337,9 +390,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Hide modal after animation completes
         setTimeout(() => {
-            modal.classList.add('hidden');
+            if (modal) modal.classList.add('hidden');
             document.body.classList.remove('modal-open');
-        }, 300); // Match transition duration
+        }, 300);
     }
 
     // Close modal when close button is clicked
@@ -355,10 +408,9 @@ document.addEventListener('DOMContentLoaded', function() {
         overlay.addEventListener('click', closeModal);
     }
 
-    // Close modal when clicking on the modal container (but not on the modal panel)
+    // Close modal when clicking on the modal container
     if (modalContainer) {
         modalContainer.addEventListener('click', function(e) {
-            // If the click target is the container itself (not the modal panel)
             if (e.target === modalContainer) {
                 closeModal();
             }
@@ -367,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Close modal with Escape key
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
             closeModal();
         }
     });
