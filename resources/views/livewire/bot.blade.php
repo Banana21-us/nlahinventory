@@ -250,7 +250,7 @@
 
 <script>
 (function () {
-  const API_KEY = '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';
+  const API_KEY = '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';
   const MODEL   = 'meta-llama/llama-4-scout-17b-16e-instruct';
   const SYSTEM  = `You are a warm, friendly, and professional virtual assistant for Northern Luzon Adventist Hospital (NLAH), located at Artacho, Sison, Pangasinan. You speak in a caring, approachable tone — like a helpful hospital staff member.
 
