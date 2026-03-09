@@ -403,20 +403,34 @@ new class extends Component {
             return;
         }
 
+        $recordId = $this->verifyRecordId;
+        $verifierComment = trim($this->verifyComment) !== '' ? trim($this->verifyComment) : null;
+        $slotKey = collect($this->slotRecordIds)
+            ->search(fn ($existingRecordId) => (int) $existingRecordId === $recordId);
+
         try {
             DB::table('records')
-                ->where('id', $this->verifyRecordId)
+                ->where('id', $recordId)
                 ->update([
                     'verifier_status' => 'YES',
                     'verifier_name' => Auth::user()?->name,
-                    'verifier_comments' => trim($this->verifyComment) !== '' ? trim($this->verifyComment) : null,
+                    'verifier_comments' => $verifierComment,
                 ]);
         } catch (\Throwable) {
             // Keep verify page usable even if DB update fails.
         }
 
+        if (is_string($slotKey) && $slotKey !== '') {
+            $this->selectedSlots[$slotKey] = true;
+
+            if ($verifierComment !== null) {
+                $this->slotVerifierComments[$slotKey] = $verifierComment;
+            } else {
+                unset($this->slotVerifierComments[$slotKey]);
+            }
+        }
+
         $this->closeVerifyModal();
-        $this->loadExistingSlots();
     }
 
     private function buildProofPreviewUrl(string $path): string
@@ -672,6 +686,7 @@ new class extends Component {
                     continue;
                 }
                 $proofPath = $this->slotProofs[$key] ?? null;
+                $commentValue = $this->slotComments[$key] ?? null;
                 $payload = [
                     'location_area_part_id' => (int) $partId,
                     'cleaning_date' => $cleaningDate,
@@ -680,19 +695,20 @@ new class extends Component {
                     'status' => 'YES',
                     'remarks' => 'Checked',
                     'maintenance_name' => Auth::user()?->name,
+                    'maintenance_comments' => $commentValue,
                     'verifier_name' => null,
                     'verifier_status' => 'NO',
                     'verifier_comments' => null,
-                    'maintenance_comments' => $this->slotComments[$key] ?? null,
                 ];
 
                 if ($this->hasProofColumn) {
                     $payload['proof'] = $proofPath;
                 } elseif (is_string($proofPath) && $proofPath !== '') {
-                    $existingComment = is_string($payload['maintenance_comments'] ?? null) ? trim((string) $payload['maintenance_comments']) : '';
-                    $payload['maintenance_comments'] = $existingComment !== ''
+                    $existingComment = is_string($commentValue) ? trim($commentValue) : '';
+                    $proofComment = $existingComment !== ''
                         ? $existingComment."\n".'proof:'.$proofPath
                         : 'proof:'.$proofPath;
+                    $payload['maintenance_comments'] = $proofComment;
                 }
 
                 DB::table('records')->insert($payload);
@@ -853,6 +869,7 @@ new class extends Component {
                     'monthly' => ($monthlyPeriods['m1']['label'] ?? __('Current Month')),
                     default => \Carbon\Carbon::parse($selectedDate)->format('M d, Y'),
                 };
+                $sectionLabel = __('Verify Checklist');
                 $checklistUrl = route('Maintenance.checklist.verify', array_filter([
                     'period' => $periodType,
                     'location' => $selectedLocationId,
@@ -870,9 +887,9 @@ new class extends Component {
                 <div class="min-w-0 flex-1 mt-1">
                     <flux:breadcrumbs>
                         @if ($periodType === 'daily' && $showDailyChecklist)
-                            <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ __('Checklist') }}</flux:breadcrumbs.item>
+                            <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $sectionLabel }}</flux:breadcrumbs.item>
                         @else
-                            <flux:breadcrumbs.item href="{{ $checklistUrl }}" wire:navigate>{{ __('Checklist') }}</flux:breadcrumbs.item>
+                            <flux:breadcrumbs.item href="{{ $checklistUrl }}" wire:navigate>{{ $sectionLabel }}</flux:breadcrumbs.item>
                         @endif
                         @if ($periodType === 'daily' && $showDailyChecklist)
                             <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodLabel }}</flux:breadcrumbs.item>

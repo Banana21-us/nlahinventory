@@ -40,13 +40,13 @@
 
             <flux:sidebar.group icon="home" expandable heading="Checklist" class="grid">
                 <flux:sidebar.item :heading="__('Platform')" class="grid">
-                    <flux:sidebar.item  :href="route('Maintenance.checklist')" :current="request()->routeIs('Maintenance.checklist')" wire:navigate>
+                    <flux:sidebar.item  :href="route('Maintenance.checklist.check')" :current="request()->routeIs('Maintenance.checklist.check')" wire:navigate>
                         {{ __('Maintenance') }}
                     </flux:sidebar.item>
                 </flux:sidebar.item>
 
                 <flux:sidebar.item  class="grid">
-                    <flux:sidebar.item  :href="route('Maintenance.verify')" :current="request()->routeIs('Maintenance.verify')" wire:navigate>
+                    <flux:sidebar.item  :href="route('Maintenance.checklist.verify')" :current="request()->routeIs('Maintenance.checklist.verify')" wire:navigate>
                         {{ __('Verify') }}
                     </flux:sidebar.item>
                 </flux:sidebar.item>

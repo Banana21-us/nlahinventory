@@ -552,7 +552,7 @@ new class extends Component {
                 ]);
             }
 
-            $selectColumns = ['location_area_part_id', 'cleaning_date', 'shift', 'comments'];
+            $selectColumns = ['location_area_part_id', 'cleaning_date', 'shift', 'maintenance_comments'];
             if ($this->hasProofColumn) {
                 $selectColumns[] = 'proof';
             }
@@ -573,12 +573,12 @@ new class extends Component {
                 $this->selectedSlots[$key] = true;
                 $proofPath = $this->hasProofColumn
                     ? ($record->proof ?? null)
-                    : $this->extractProofPathFromComments($record->comments ?? null);
+                    : $this->extractProofPathFromComments($record->maintenance_comments ?? null);
                 if (is_string($proofPath) && $proofPath !== '') {
                     $this->slotProofs[$key] = $proofPath;
                 }
-                if (is_string($record->comments ?? null) && trim($record->comments) !== '') {
-                    $this->slotComments[$key] = trim($record->comments);
+                if (is_string($record->maintenance_comments ?? null) && trim($record->maintenance_comments) !== '') {
+                    $this->slotComments[$key] = trim($record->maintenance_comments);
                 }
             }
         } catch (\Throwable) {
@@ -639,6 +639,7 @@ new class extends Component {
                     continue;
                 }
                 $proofPath = $this->slotProofs[$key] ?? null;
+                $commentValue = $this->slotComments[$key] ?? null;
                 $payload = [
                     'location_area_part_id' => (int) $partId,
                     'cleaning_date' => $cleaningDate,
@@ -646,17 +647,21 @@ new class extends Component {
                     'shift' => $shift,
                     'status' => 'YES',
                     'remarks' => 'Checked',
-                    'verifier_name' => Auth::user()?->name,
-                    'comments' => $this->slotComments[$key] ?? null,
+                    'maintenance_name' => Auth::user()?->name,
+                    'verifier_name' => null,
+                    'verifier_status' => 'NO',
+                    'verifier_comments' => null,
+                    'maintenance_comments' => $commentValue,
                 ];
 
                 if ($this->hasProofColumn) {
                     $payload['proof'] = $proofPath;
                 } elseif (is_string($proofPath) && $proofPath !== '') {
-                    $existingComment = is_string($payload['comments'] ?? null) ? trim((string) $payload['comments']) : '';
-                    $payload['comments'] = $existingComment !== ''
+                    $existingComment = is_string($commentValue) ? trim($commentValue) : '';
+                    $proofComment = $existingComment !== ''
                         ? $existingComment."\n".'proof:'.$proofPath
                         : 'proof:'.$proofPath;
+                    $payload['maintenance_comments'] = $proofComment;
                 }
 
                 DB::table('records')->insert($payload);
@@ -800,6 +805,7 @@ new class extends Component {
 
     <x-pages::Maintenance.checklist.layout
         :wide="true"
+        route-name="Maintenance.checklist.check"
         :locationId="$selectedLocationId"
         :locationName="$selectedLocation"
         :selectedPeriod="$periodType"
@@ -816,6 +822,7 @@ new class extends Component {
                     'monthly' => ($monthlyPeriods['m1']['label'] ?? __('Current Month')),
                     default => \Carbon\Carbon::parse($selectedDate)->format('M d, Y'),
                 };
+                $sectionLabel = __('Maintenance Checklist');
                 $checklistUrl = route('Maintenance.checklist.check', array_filter([
                     'period' => $periodType,
                     'location' => $selectedLocationId,
@@ -833,9 +840,9 @@ new class extends Component {
                 <div class="min-w-0 flex-1 mt-1">
                     <flux:breadcrumbs>
                         @if ($periodType === 'daily' && $showDailyChecklist)
-                            <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ __('Checklist') }}</flux:breadcrumbs.item>
+                            <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $sectionLabel }}</flux:breadcrumbs.item>
                         @else
-                            <flux:breadcrumbs.item href="{{ $checklistUrl }}" wire:navigate>{{ __('Checklist') }}</flux:breadcrumbs.item>
+                            <flux:breadcrumbs.item href="{{ $checklistUrl }}" wire:navigate>{{ $sectionLabel }}</flux:breadcrumbs.item>
                         @endif
                         @if ($periodType === 'daily' && $showDailyChecklist)
                             <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodLabel }}</flux:breadcrumbs.item>
