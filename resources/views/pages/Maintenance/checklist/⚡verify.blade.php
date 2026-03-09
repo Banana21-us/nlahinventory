@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Illuminate\Support\Str;
 
 new class extends Component {
     public array $selectedSlots = [];
@@ -48,6 +49,119 @@ new class extends Component {
     ];
     public array $shifts = ['AM', 'PM'];
     public array $weekDates = [];
+
+    public function exportToPdf()
+    {
+        if (!$this->selectedLocationId) {
+            $this->dispatch('notify', message: __('Please select a location first.'), type: 'error');
+            return;
+        }
+
+        if ($this->periodType === 'daily' && !$this->showDailyChecklist) {
+            $this->dispatch('notify', message: __('Please select a date first.'), type: 'error');
+            return;
+        }
+
+        // Get location details
+        $location = DB::table('locations')
+            ->where('id', $this->selectedLocationId)
+            ->first();
+
+        if (!$location) {
+            $this->dispatch('notify', message: __('Location not found.'), type: 'error');
+            return;
+        }
+
+        // Get area parts for this location with the selected frequency
+        $areaParts = DB::table('location_area_parts as lap')
+            ->join('area_parts as ap', 'ap.id', '=', 'lap.area_part_id')
+            ->where('lap.location_id', $this->selectedLocationId)
+            ->where('lap.frequency', $this->periodType)
+            ->orderBy('ap.name')
+            ->select('ap.*', 'lap.id as location_area_part_id')
+            ->get();
+
+        if ($areaParts->isEmpty()) {
+            $this->dispatch('notify', message: __('No area parts found for this location.'), type: 'error');
+            return;
+        }
+
+        // Get records for this period
+        $partIds = $areaParts->pluck('location_area_part_id')->toArray();
+        $recordsQuery = DB::table('records')
+            ->whereIn('location_area_part_id', $partIds)
+            ->where('period_type', $this->periodType)
+            ->where('status', 'YES');
+
+        if ($this->periodType === 'daily') {
+            $recordsQuery->whereDate('cleaning_date', $this->selectedDate);
+        } elseif ($this->periodType === 'weekly') {
+            $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? null;
+            $weekEnd = $this->weeklyWeeks['w1']['end_date'] ?? null;
+            if ($weekStart && $weekEnd) {
+                $recordsQuery->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+            }
+        } elseif ($this->periodType === 'monthly') {
+            $monthStart = $this->monthlyPeriods['m1']['start_date'] ?? null;
+            $monthEnd = $this->monthlyPeriods['m1']['end_date'] ?? null;
+            if ($monthStart && $monthEnd) {
+                $recordsQuery->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+            }
+        }
+
+        $records = $recordsQuery->get();
+
+        // Prepare data for the view
+        $data = [
+            'location' => $location,
+            'areaParts' => $areaParts,
+            'records' => $records,
+            'periodType' => $this->periodType,
+            'selectedDate' => $this->selectedDate,
+            'generatedAt' => now('Asia/Manila')->format('F j, Y g:i A'),
+        ];
+
+        // For weekly/monthly views, add date ranges
+        if ($this->periodType === 'weekly') {
+            $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? null;
+            $weekEnd = $this->weeklyWeeks['w1']['end_date'] ?? null;
+            $data['weekRange'] = $weekStart && $weekEnd 
+                ? Carbon::parse($weekStart)->format('M d') . ' - ' . Carbon::parse($weekEnd)->format('M d, Y')
+                : null;
+        } elseif ($this->periodType === 'monthly') {
+            $monthStart = $this->monthlyPeriods['m1']['start_date'] ?? null;
+            $monthEnd = $this->monthlyPeriods['m1']['end_date'] ?? null;
+            $data['monthRange'] = $monthStart && $monthEnd
+                ? Carbon::parse($monthStart)->format('F Y')
+                : null;
+        }
+
+        // Generate PDF
+        try {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.daily-checklist', $data);
+            
+            // Set paper size and orientation
+            $pdf->setPaper('A4', 'landscape');
+            
+            // Generate filename
+            $filename = sprintf(
+                'cleaning-checklist-%s-%s-%s.pdf',
+                preg_replace('/[^a-z0-9]+/', '-', strtolower($location->name)),
+                $this->periodType,
+                now('Asia/Manila')->format('Y-m-d-His')
+            );
+            
+            // Return PDF download
+            return response()->streamDownload(
+                fn () => print($pdf->output()),
+                $filename
+            );
+            
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: __('Error generating PDF: ') . $e->getMessage(), type: 'error');
+            return;
+        }
+    }
 
     public function mount(): void
     {
@@ -912,13 +1026,13 @@ new class extends Component {
                             list="location-options"
                             wire:model.live="selectedLocation"
                             placeholder="{{ __('Search location...') }}"
-                            class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                            class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                         />
                         @if ($selectedLocation !== '')
                             <button
                                 type="button"
                                 wire:click="clearSelectedLocation"
-                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                                 aria-label="{{ __('Clear location') }}"
                             >
                                 &times;
@@ -930,6 +1044,42 @@ new class extends Component {
                             <option value="{{ $location['display_name'] }}"></option>
                         @endforeach
                     </datalist>
+                    
+                    {{-- Export PDF Button - Pure inline styles for guaranteed visibility --}}
+                    <div class="flex justify-end pt-1">
+                        <button
+                            type="button"
+                            wire:click="exportToPdf"
+                            @if (!$selectedLocationId || ($periodType === 'daily' && !$showDailyChecklist))
+                                disabled
+                            @endif
+                            style="
+                                display: inline-flex;
+                                width: 100%;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 0.5rem;
+                                border-radius: 0.375rem;
+                                padding: 0.5rem 1rem;
+                                font-size: 0.875rem;
+                                font-weight: 500;
+                                transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+                                transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+                                transition-duration: 150ms;
+                                {{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) 
+                                    ? 'background-color: #2563eb; color: white; border: 1px solid #1e40af;' 
+                                    : 'background-color: #d1d5db; color: #374151; border: 1px solid #9ca3af; cursor: not-allowed; opacity: 0.5;' 
+                                }}
+                            "
+                            onmouseover="{{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) ? 'this.style.backgroundColor=\'#1d4ed8\'' : '' }}"
+                            onmouseout="{{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) ? 'this.style.backgroundColor=\'#2563eb\'' : '' }}"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                            </svg>
+                            <span>{{ __('Export PDF') }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
