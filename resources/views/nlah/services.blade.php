@@ -226,7 +226,7 @@
                     </div>
                     <div>
                         <h4 class="font-semibold">DIALYSIS CENTER</h4>
-                        <p class="text-sm">Coming soon</p>
+                        <p class="text-sm">Coming sooooon</p>
                     </div>
                 </div>
             </div>
