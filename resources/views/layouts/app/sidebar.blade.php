@@ -38,7 +38,7 @@
             </flux:sidebar.group>
 
 
-            <flux:sidebar.group icon="home" expandable heading="Checklist" class="grid">
+            <flux:sidebar.group icon="clipboard-check" expandable heading="Checklist" class="grid">
                 <flux:sidebar.item :heading="__('Platform')" class="grid">
                     <flux:sidebar.item  :href="route('Maintenance.checklist.check')" :current="request()->routeIs('Maintenance.checklist.check')" wire:navigate>
                         {{ __('Maintenance') }}
