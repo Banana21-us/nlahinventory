@@ -37,13 +37,21 @@
                 
             </flux:sidebar.group>
 
-            <flux:sidebar.nav>
-                <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="clipboard-check" :href="route('Maintenance.checklist')" :current="request()->routeIs('Maintenance.checklist')" wire:navigate>
-                        {{ __('Checklist') }}
+
+            <flux:sidebar.group icon="home" expandable heading="Checklist" class="grid">
+                <flux:sidebar.item :heading="__('Platform')" class="grid">
+                    <flux:sidebar.item  :href="route('Maintenance.checklist')" :current="request()->routeIs('Maintenance.checklist')" wire:navigate>
+                        {{ __('Maintenance') }}
                     </flux:sidebar.item>
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
+                </flux:sidebar.item>
+
+                <flux:sidebar.item  class="grid">
+                    <flux:sidebar.item  :href="route('Maintenance.verify')" :current="request()->routeIs('Maintenance.verify')" wire:navigate>
+                        {{ __('Verify') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
+                
+            </flux:sidebar.group>
 
             <flux:sidebar.nav>
                 <flux:sidebar.group  class="grid">
