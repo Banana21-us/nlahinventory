@@ -94,7 +94,10 @@ new class extends Component {
             ->where('status', 'YES');
 
         if ($this->periodType === 'daily') {
-            $recordsQuery->whereDate('cleaning_date', $this->selectedDate);
+            // MODIFIED: Get the whole week (Monday to Sunday) based on the selected date
+            $startOfWeek = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY);
+            $endOfWeek = Carbon::parse($this->selectedDate)->endOfWeek(Carbon::SUNDAY);
+            $recordsQuery->whereBetween('cleaning_date', [$startOfWeek, $endOfWeek]);
         } elseif ($this->periodType === 'weekly') {
             $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? null;
             $weekEnd = $this->weeklyWeeks['w1']['end_date'] ?? null;
