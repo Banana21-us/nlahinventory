@@ -226,7 +226,7 @@
                     </div>
                     <div>
                         <h4 class="font-semibold">DIALYSIS CENTER</h4>
-                        <p class="text-sm">Coming soon</p>
+                        <p class="text-sm">Coming sooooon</p>
                     </div>
                 </div>
             </div>
@@ -239,7 +239,7 @@
 
         <div id="modalContainer" class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-center justify-center p-4 text-center sm:items-center sm:p-0">
-                <div id="modalPanel" class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg scale-95 opacity-0 transition-all duration-300 items-center">
+                <div id="modalPanel" class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg scale-95 opacity-0 transition-all duration-300">
                     
                     <!-- Close button (top right) -->
                     <div class="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">

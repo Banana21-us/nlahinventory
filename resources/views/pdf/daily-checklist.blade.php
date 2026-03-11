@@ -5,7 +5,7 @@
     <title>Cleaning Checklist - {{ $location->name }}</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
             margin: 20px;
         }
@@ -85,7 +85,7 @@
         }
         
         .ok-mark {
-            font-size: 12px;
+            font-size: 30px;
             font-weight: bold;
             color: #000000;
         }
@@ -346,13 +346,17 @@
                         @endphp
                         
                         {{-- AM Cell --}}
-                        <td class="{{ $hasAmRecord ? 'ok-mark' : 'blank-cell' }}">
-                            @if($hasAmRecord) OK @endif
+                        <td class="{{ $hasAmRecord ? 'ok-mark' : 'blank-cell' }}" align="center">
+                            @if($hasAmRecord)
+                                ✓
+                            @endif
                         </td>
-                        
+
                         {{-- PM Cell --}}
-                        <td class="{{ $hasPmRecord ? 'ok-mark' : 'blank-cell' }}">
-                            @if($hasPmRecord) OK @endif
+                        <td class="{{ $hasPmRecord ? 'ok-mark' : 'blank-cell' }}" align="center">
+                            @if($hasPmRecord)
+                                ✓
+                            @endif
                         </td>
                     @endforeach
                 </tr>
@@ -556,7 +560,7 @@
                                 }
                             @endphp
                             <td class="{{ $hasRecord ? 'ok-mark' : 'blank-cell' }}">
-                                @if($hasRecord) OK @endif
+                                @if($hasRecord) X @endif
                             </td>
                         @endforeach
                     </tr>

@@ -337,7 +337,7 @@
 
 <script>
 (function () {
-  const API_KEY = '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';
+  const API_KEY = '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';
   const MODEL   = 'meta-llama/llama-4-scout-17b-16e-instruct';
   const SYSTEM  = `You are a friendly virtual assistant for Northern Luzon Adventist Hospital. Keep responses brief and helpful.`;
 
