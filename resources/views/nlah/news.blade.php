@@ -70,7 +70,7 @@
             </div>
         </div>
         @empty
-        <div class="col-span-3 text-center py-12">
+        <div class="col-span-3 text-center py-12 flext justify-center tex">
             <i class="far fa-newspaper text-gray-400 text-6xl mb-4"></i>
             <p class="text-gray-500 text-lg">No news or events found.</p>
             <p class="text-gray-400">Check back later for updates.</p>

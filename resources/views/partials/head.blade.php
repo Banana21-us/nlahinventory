@@ -12,3 +12,7 @@
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @fluxAppearance
+
+<head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>

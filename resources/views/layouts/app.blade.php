@@ -3,3 +3,6 @@
         {{ $slot }}
     </flux:main>
 </x-layouts::app.sidebar>
+
+
+<meta name="csrf-token" content="{{ csrf_token() }}">

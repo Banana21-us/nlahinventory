@@ -51,22 +51,23 @@
     </div>
   </main>
 
+<!-- FEEDBACKS SECTION - TESTIMONIAL STYLE -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 mb-20">
     <div class="flex items-center justify-between mb-8">
-        <flux:heading size="xl" level="2">Our Facilities</flux:heading>
+        <flux:heading size="xl" level="2">Feedbacks</flux:heading>
         
         <div class="flex gap-2">
             <button 
-                onclick="document.getElementById('facilities-scroll').scrollBy({ left: -320, behavior: 'smooth' })"
-                class="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-100 transition-colors cursor-pointer"
+                onclick="document.getElementById('testimonials-scroll').scrollBy({ left: -320, behavior: 'smooth' })"
+                class="p-2 rounded-3xl border border-gray-500 hover:bg-zinc-100 transition-colors cursor-pointer"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
             </button>
             <button 
-                onclick="document.getElementById('facilities-scroll').scrollBy({ left: 320, behavior: 'smooth' })"
-                class="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-100 transition-colors cursor-pointer"
+                onclick="document.getElementById('testimonials-scroll').scrollBy({ left: 320, behavior: 'smooth' })"
+                class="p-2 rounded-3xl border border-gray-500 hover:bg-zinc-100 transition-colors cursor-pointer"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -75,111 +76,77 @@
         </div>
     </div>
 
+    @php
+        use Illuminate\Support\Facades\DB;
+        $feedbacks = DB::table('feedbacks')
+        ->orderBy('id', 'desc')
+        ->get()
+        ->map(function($f) {
+            $f->formatted_date = \Carbon\Carbon::parse($f->feedback_date)->format('M d, Y');
+            return $f;
+        });
+    @endphp
+
+    @if($feedbacks->isEmpty())
+    <div class="w-full text-center py-12 bg-zinc-50 rounded-2xl">
+        <flux:subheading>No feedbacks yet. Be the first to share your experience!</flux:subheading>
+    </div>
+    @else
     <div 
-        id="facilities-scroll"
-        class="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory pb-4"
+        id="testimonials-scroll"
+        class="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-6"
         style="scrollbar-width: none; -ms-overflow-style: none;"
     >
-        {{-- Slide 1 --}}
-        <div class="snap-start shrink-0 w-[80vw] sm:w-[360px] lg:w-[400px] space-y-3">
-            <div class="h-48 sm:h-56 w-full overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-100">
-                <img 
-                    src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200" 
-                    class="w-full h-full object-cover" 
-                    alt="Hospital Interior"
-                >
-            </div>
-            <div>
-                <flux:heading size="lg">Modern Facilities</flux:heading>
-                <flux:subheading>High-quality healthcare environments designed for patient comfort.</flux:subheading>
-            </div>
-        </div>
+        @foreach($feedbacks as $feedback)
+        <div class="snap-start shrink-0 w-[320px] sm:w-[380px] bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <div class="p-6">
+                <!-- Header with name and rating -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <!-- Avatar/Initials -->
+                        <div class="w-12 h-12 rounded-full bg-[#e8dec9] flex items-center justify-center text-[#5a4e3a] font-semibold text-lg">
+                            {{ strtoupper(substr($feedback->name, 0, 1)) }}
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg text-zinc-800">{{ $feedback->name }}</h3>
+                            <div class="flex items-center gap-1 mt-1">
+                                @for($i = 1; $i <= 5; $i++)
+                                    @if($i <= $feedback->rating)
+                                        <svg class="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                                        </svg>
+                                    @else
+                                        <svg class="w-4 h-4 text-gray-300 fill-current" viewBox="0 0 20 20">
+                                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                                        </svg>
+                                    @endif
+                                @endfor
+                                <span class="text-sm text-zinc-500 ml-1">({{ $feedback->rating }}/5)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Date -->
+                    <div class="text-xs text-zinc-400">
+                        {{ \Carbon\Carbon::parse($feedback->feedback_date)->format('M d, Y') }}
+                    </div>
+                </div>
 
-        {{-- Slide 2 --}}
-        <div class="snap-start shrink-0 w-[80vw] sm:w-[360px] lg:w-[400px] space-y-3">
-            <div class="h-48 sm:h-56 w-full overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-100">
-                <img 
-                    src="https://images.unsplash.com/photo-1581594658210-c5c85ad9a0e5?auto=format&fit=crop&q=80&w=800" 
-                    class="w-full h-full object-cover" 
-                    alt="Diagnostic Center"
-                >
-            </div>
-            <div>
-                <flux:heading size="lg">Diagnostic Center</flux:heading>
-                <flux:subheading>Advanced laboratory and imaging services.</flux:subheading>
-            </div>
-        </div>
+                <!-- Comment -->
+                <div class="relative">
+                    <p class="text-zinc-600 leading-relaxed pl-4 italic">
+                        "{{ $feedback->comment }}"
+                    </p>
+                </div>
 
-        {{-- Slide 3 --}}
-        <div class="snap-start shrink-0 w-[80vw] sm:w-[360px] lg:w-[400px] space-y-3">
-            <div class="h-48 sm:h-56 w-full overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-100">
-                <img 
-                    src="https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=800" 
-                    class="w-full h-full object-cover" 
-                    alt="Emergency"
-                >
-            </div>
-            <div>
-                <flux:heading size="lg">24/7 Emergency</flux:heading>
-                <flux:subheading>Ready to serve you at any hour of the day.</flux:subheading>
+                <!-- Bottom decoration -->
+                <!-- <div class="mt-4 pt-4 border-t border-zinc-100 flex justify-between items-center text-xs text-zinc-400">
+                    <span>Verified Patient</span>
+                    <span>✓</span>
+                </div> -->
             </div>
         </div>
-
-        <div class="snap-start shrink-0 w-[80vw] sm:w-[360px] lg:w-[400px] space-y-3">
-            <div class="h-48 sm:h-56 w-full overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-100">
-                <img 
-                    src="https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=800" 
-                    class="w-full h-full object-cover" 
-                    alt="Emergency"
-                >
-            </div>
-            <div>
-                <flux:heading size="lg">24/7 Emergency</flux:heading>
-                <flux:subheading>Ready to serve you at any hour of the day.</flux:subheading>
-            </div>
-        </div>
-
-        <div class="snap-start shrink-0 w-[80vw] sm:w-[360px] lg:w-[400px] space-y-3">
-            <div class="h-48 sm:h-56 w-full overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-100">
-                <img 
-                    src="https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=800" 
-                    class="w-full h-full object-cover" 
-                    alt="Emergency"
-                >
-            </div>
-            <div>
-                <flux:heading size="lg">24/7 Emergency</flux:heading>
-                <flux:subheading>Ready to serve you at any hour of the day.</flux:subheading>
-            </div>
-        </div>
-
-        <div class="snap-start shrink-0 w-[80vw] sm:w-[360px] lg:w-[400px] space-y-3">
-            <div class="h-48 sm:h-56 w-full overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-100">
-                <img 
-                    src="https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=800" 
-                    class="w-full h-full object-cover" 
-                    alt="Emergency"
-                >
-            </div>
-            <div>
-                <flux:heading size="lg">24/7 Emergency</flux:heading>
-                <flux:subheading>Ready to serve you at any hour of the day.</flux:subheading>
-            </div>
-        </div>
-
-        <div class="snap-start shrink-0 w-[80vw] sm:w-[360px] lg:w-[400px] space-y-3">
-            <div class="h-48 sm:h-56 w-full overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-100">
-                <img 
-                    src="https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=800" 
-                    class="w-full h-full object-cover" 
-                    alt="Emergency"
-                >
-            </div>
-            <div>
-                <flux:heading size="lg">24/7 Emergency</flux:heading>
-                <flux:subheading>Ready to serve you at any hour of the day.</flux:subheading>
-            </div>
-        </div>
+        @endforeach
     </div>
-  </section>
-  <livewire:footer/>
+    @endif
+</section>
+<livewire:footer/>

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "74b0029de780ecc438e3cd1984a8374f",
+    "content-hash": "11e884bc414d8de0e76f8e710e6b2749",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -844,6 +844,39 @@
                 }
             ],
             "time": "2025-03-06T22:45:56+00:00"
+        },
+        {
+            "name": "flux/flux",
+            "version": "v0.0.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/fluxef/flux.git",
+                "reference": "96ea526724b7cbd6c1b4ddabc11716c5ea7f209d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/fluxef/flux/zipball/96ea526724b7cbd6c1b4ddabc11716c5ea7f209d",
+                "reference": "96ea526724b7cbd6c1b4ddabc11716c5ea7f209d",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.0"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": " Flux initial empty Package. Please stay tuned.",
+            "keywords": [
+                "flux",
+                "library"
+            ],
+            "support": {
+                "issues": "https://github.com/fluxef/flux/issues",
+                "source": "https://github.com/fluxef/flux/tree/v0.0.3"
+            },
+            "time": "2021-09-28T09:06:00+00:00"
         },
         {
             "name": "fruitcake/php-cors",

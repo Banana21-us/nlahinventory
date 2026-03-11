@@ -238,8 +238,8 @@
         <div id="overlay" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
 
         <div id="modalContainer" class="fixed inset-0 z-10 overflow-y-auto">
-            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div id="modalPanel" class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg scale-95 opacity-0 transition-all duration-300">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:items-center sm:p-0">
+                <div id="modalPanel" class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg scale-95 opacity-0 transition-all duration-300 items-center">
                     
                     <!-- Close button (top right) -->
                     <div class="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
@@ -253,15 +253,15 @@
 
                     <!-- Modal content -->
                     <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
+                        <div class="sm:flex sm:items-center">
                             <!-- Icon container -->
-                            <div class="mx-auto flex h-12 w-20 flex-shrink-0 items-center justify-center rounded-full bg-gray-500 sm:mx-0 sm:h-10 sm:w-10">
+                            <div class="mx-auto flex h-12 w-20 flex-shrink-0 items-center justify-center rounded-full bg-gray-500 sm:mx-0 sm:h-10 sm:w-10 items-center">
                                 <img id="modalIcon" src="" class="h-10 w-12 hidden" alt="Service icon">
                                 <span id="modalIconFont" class="text-3xl text-cyan-600 hidden"></span>
                             </div>
                             
                             <!-- Text content -->
-                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-center">
                                 <h3 class="text-base font-semibold leading-6 bg-teal-700" id="modalTitle">Service Title</h3>
                                 <div class="mt-2">
                                     <p class="text-sm text-gray-500" id="modalDescription">Service description will appear here.</p>

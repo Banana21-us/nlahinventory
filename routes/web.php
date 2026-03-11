@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Volt;
 use App\Http\Controllers\NewsEventController;
 use App\Livewire\HR;
+use App\Http\Controllers\FeedbackController;
 // Route::get('/', function () {
 //     return view('welcome');
 // })->name('home');
@@ -79,6 +80,10 @@ Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::get('/news/{id}', [NewsEventController::class, 'show'])->name('news.detail');
     Route::get('/news/category/{category}', [NewsEventController::class, 'byCategory'])->name('news.category');
     Route::get('/news/type/{type}', [NewsEventController::class, 'byType'])->name('news.type');
+
+    // Feedback route
+    Route::get('/feedbacks', [App\Http\Controllers\FeedbackController::class, 'getFeedbacks'])->name('feedbacks');
+    Route::post('/feedback/submit', [App\Http\Controllers\FeedbackController::class, 'submit'])->name('feedback.submit');
 });
 
 Route::view('reports', 'reports')
