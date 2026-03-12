@@ -83,7 +83,7 @@ class FortifyServiceProvider extends ServiceProvider
                         'HR'              => redirect()->route('HR.userlist'),
                         'Staff'           => redirect()->route('medmission.dashboard'),
                         'Maintenance'     => redirect()->route('Maintenance.checklist.check'),
-                        'Inspector'       => redirect()->route('inspector.checklist.check'),
+                        'Inspector'       => redirect()->route('Maintenance.checklist.verify'),
                         default           => redirect()->route('logout')->withErrors(['email' => 'Your account is disabled. Please contact the administrator.']),
                     };
                 }

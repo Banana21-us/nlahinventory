@@ -21,10 +21,6 @@ use App\Http\Controllers\NewsEventController;
 use App\Livewire\HR;
 use App\Http\Controllers\FeedbackController;
 
-// Route::get('/', function () {
-//     return view('welcome');
-// })->name('home');
-
 // Email verification routes
 Route::get('/email/verify', function () {
      return view('pages::auth.verify-email'); 
@@ -69,18 +65,15 @@ Route::middleware('can:access-hr-only')->group(function () {
         Route::get('/HR/userlist', HR::class)->name('HR.userlist');
     });
 // Maintenance routes
-
 Route::middleware(['auth','can:access-maintenance'])->group(function () {
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');
-    Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
+// Verify
 Route::middleware(['auth','can:access-verify'])->group(function () {
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
-
-
 // Public NLAH routes
 Route::get('/', function () {return redirect()->route('nlah.home');})->name('home');
 Route::prefix('nlah')->name('nlah.')->group(function () {
@@ -94,12 +87,5 @@ Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::get('/feedbacks', [FeedbackController::class, 'getFeedbacks'])->name('feedbacks');
     Route::post('/feedback/submit', [FeedbackController::class, 'submit'])->name('feedback.submit');
 });
-
-
-
-
-
-
-
 
 require __DIR__.'/settings.php';
