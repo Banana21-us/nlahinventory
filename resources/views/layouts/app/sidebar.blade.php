@@ -4,71 +4,69 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
+        
         <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:sidebar.header>
-                <x-app-logo :sidebar="true" href="{{ route('medmission.dashboard') }}" wire:navigate />
-                <flux:sidebar.collapse class="lg:hidden" />
-            </flux:sidebar.header>
+         
+        {{-- 1. MEDICAL MISSION --}}
+@can('access-medical')
+    <flux:sidebar.header>
+        <x-app-logo :sidebar="true" href="{{ route('medmission.dashboard') }}" wire:navigate />
+        <flux:sidebar.collapse class="lg:hidden" />
+    </flux:sidebar.header>
+    
+    <flux:sidebar.group icon="home" expandable heading="Medical Mission" class="grid">
+        <flux:sidebar.item :href="route('medmission.dashboard')" :current="request()->routeIs('medmission.dashboard')" wire:navigate>
+            {{ __('Dashboard') }}
+        </flux:sidebar.item>
+        <flux:sidebar.item :href="route('medmission.medicines')" :current="request()->routeIs('medmission.medicines')" wire:navigate>
+            {{ __('Medicines') }}
+        </flux:sidebar.item>
+        <flux:sidebar.item :href="route('medmission.dispense')" :current="request()->routeIs('medmission.dispense')" wire:navigate>
+            {{ __('Dispense Medicine') }}
+        </flux:sidebar.item>
+        <flux:sidebar.item :href="route('medmission.patients')" :current="request()->routeIs('medmission.patients')" wire:navigate>
+            {{ __('Patients') }}
+        </flux:sidebar.item>
+    </flux:sidebar.group>
+@endcan
+
+{{-- 2. CHECKLIST --}}
+{{-- Visible if user is Maintenance, Inspector, OR HR --}}
+@if(Gate::allows('access-maintenance') || Gate::allows('access-verify'))
+    <flux:sidebar.group icon="clipboard-check" expandable heading="Checklist" class="grid">
+        @can('access-maintenance')
+            <flux:sidebar.item :href="route('Maintenance.checklist.check')" :current="request()->routeIs('Maintenance.checklist.check')" wire:navigate>
+                {{ __('Maintenance') }}
+            </flux:sidebar.item>
+        @endcan
+
+        @can('access-verify')
+            <flux:sidebar.item :href="route('Maintenance.checklist.verify')" :current="request()->routeIs('Maintenance.checklist.verify')" wire:navigate>
+                {{ __('Verify') }}
+            </flux:sidebar.item>
+        @endcan
+    </flux:sidebar.group>
+@endif
+
+{{-- 3. NEWS & HR CORNER --}}
+@can('access-hr-only')
+    <flux:sidebar.nav>
+        <flux:sidebar.group class="grid">
+            <flux:sidebar.item icon="newspaper" :href="route('NewsPage.newshr')" :current="request()->routeIs('NewsPage.newshr')" wire:navigate>
+                {{ __('News') }}
+            </flux:sidebar.item>
             
-            <flux:sidebar.group icon="home" expandable heading="Medical Mission" class="grid">
-                <flux:sidebar.item :heading="__('Platform')" class="grid">
-                    <flux:sidebar.item  :href="route('medmission.dashboard')" :current="request()->routeIs('medmission.dashboard')" wire:navigate>
-                        {{ __('Dashboard') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.item>
+            <flux:sidebar.item icon="users" :href="route('HR.userlist')" :current="request()->routeIs('HR.userlist')" wire:navigate>
+                {{ __('HR Corner') }}
+            </flux:sidebar.item>
 
-                <flux:sidebar.item  class="grid">
-                    <flux:sidebar.item  :href="route('medicines')" :current="request()->routeIs('medicines')" wire:navigate>
-                        {{ __('Medicines') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.item>
-
-                <flux:sidebar.item  class="grid">
-                    <flux:sidebar.item  :href="route('dispense')" :current="request()->routeIs('dispense')" wire:navigate>
-                        {{ __('Dispense Medicine') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.item>
-
-                <flux:sidebar.item  class="grid">
-                    <flux:sidebar.item :href="route('patients')" :current="request()->routeIs('patients')" wire:navigate>
-                        {{ __('Patients') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.item>
-                
-            </flux:sidebar.group>
-
-
-            <flux:sidebar.group icon="clipboard-check" expandable heading="Checklist" class="grid">
-                <flux:sidebar.item :heading="__('Platform')" class="grid">
-                    <flux:sidebar.item  :href="route('Maintenance.checklist.check')" :current="request()->routeIs('Maintenance.checklist.check')" wire:navigate>
-                        {{ __('Maintenance') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.item>
-
-                <flux:sidebar.item  class="grid">
-                    <flux:sidebar.item  :href="route('Maintenance.checklist.verify')" :current="request()->routeIs('Maintenance.checklist.verify')" wire:navigate>
-                        {{ __('Verify') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.item>
-                
-            </flux:sidebar.group>
-
-            <flux:sidebar.nav>
-                <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="clipboard-check" :href="route('NewsPage.newshr')" :current="request()->routeIs('NewsPage.newshr')" wire:navigate>
-                        {{ __('News') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
-
-            <flux:sidebar.nav>
-                <flux:sidebar.group  class="grid">
-                    <flux:sidebar.item icon="clipboard-check" :href="route('HR.userlist')" :current="request()->routeIs('HR.userlist')" wire:navigate>
-                        {{ __('HR Corner') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
-            
+            <flux:sidebar.item icon="shopping-cart" href="http://192.168.2.200:3777/medical.online" target="_blank">
+                {{ __('Medical Records') }}
+            </flux:sidebar.item>
+        </flux:sidebar.group>
+    </flux:sidebar.nav>
+@endcan
+             
 
             <flux:spacer />
 

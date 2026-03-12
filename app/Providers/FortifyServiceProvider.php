@@ -82,9 +82,9 @@ class FortifyServiceProvider extends ServiceProvider
                     return match($user->role) {
                         'HR'              => redirect()->route('HR.userlist'),
                         'Staff'           => redirect()->route('medmission.dashboard'),
-                        'Maintenance'     => redirect()->route('maintenance.dashboard'),
-                        'Inspector'       => redirect()->route('inspector.dashboard'),
-                        default           => redirect()->route('login')->withErrors(['email' => 'Your account is disabled. Please contact the administrator.']),
+                        'Maintenance'     => redirect()->route('Maintenance.checklist.check'),
+                        'Inspector'       => redirect()->route('inspector.checklist.check'),
+                        default           => redirect()->route('logout')->withErrors(['email' => 'Your account is disabled. Please contact the administrator.']),
                     };
                 }
             };

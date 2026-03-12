@@ -183,7 +183,8 @@
                         </a>
                         <a
                             href="{{ route('nlah.news') }}"
-                            class="{{ request()->routeIs('nlah.news') ? 'text-black font-semibold' : 'hover:text-black transition-colors' }}">
+                            class="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors
+                    {{ request()->routeIs('nlah.news') ? 'bg-zinc-100 text-black' : 'text-zinc-700 hover:bg-zinc-50 hover:text-black' }}">
                             {{ __('Events') }}
                         </a>
                         {{-- Options Accordion --}}
@@ -235,12 +236,12 @@
                     @if (Route::has('login'))
                     <div class="border-t border-zinc-100 p-2">
                         @auth
-                        <a
-                            href="{{ url('/dashboard') }}"
-                            onclick="closeMobileMenu()"
-                            class="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:text-black transition-colors">
-                            Dashboard
-                        </a>
+                        <form method="POST" action="{{ route('logout') }}" class="w-full">
+                            @csrf
+                            <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full cursor-pointer">
+                                {{ __('Log Out') }}
+                            </flux:menu.item>
+                        </form>
                         @else
                         <div class="flex flex-col gap-1">
                             <a

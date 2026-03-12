@@ -105,6 +105,7 @@
     transition: background 0.15s;
     font-family: 'DM Sans', sans-serif;
     margin-left: auto;
+    margin-left: auto;
   }
   .nlah-feedback-btn:hover {
     background: rgba(255,255,255,0.3);
@@ -226,7 +227,7 @@
     background: white;
     border-radius: 12px;
     padding: 1.2rem;
-    margin: 0.5rem;
+    margin-bottom: 900px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
   .nlah-feedback-title {
@@ -482,8 +483,9 @@
     
     feedbackContainer.style.display = 'block';
     feedbackContainer.innerHTML = `
-      <div class="nlah-feedback-form" style="width: 100%; max-width: 100%; height:100%; max-height: 100%;">
-        <div class="nlah-feedback-title" style="width: 100%;">Share Your Feedback</div>
+      <div class="nlah-feedback-form" style="width: 100%; max-width: 100%; height:100%; max-height: 100%; ">
+
+        <div class="nlah-feedback-title" style="width: 100%; ">Share Your Feedback</div>
         
         <div class="nlah-star-rating" id="star-rating" style="width: 100%; text-align: center;">
           <span class="nlah-star" onclick="setRating(1)" style="font-size: 2rem; cursor: pointer; margin: 0 5px;">★</span>

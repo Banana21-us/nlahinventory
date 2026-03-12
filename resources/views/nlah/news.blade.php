@@ -13,8 +13,8 @@
         <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition group">
             <div class="relative h-48 overflow-hidden">
                 <img src="{{ asset('storage/news/' . $item->image) }}" 
-                     alt="{{ $item->title }}" 
-                     class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+     alt="{{ $item->title }}" 
+     class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                 <div class="absolute top-4 right-4">
                     <span class="text-xs font-semibold {{ $item->type == 'News' ? 'bg-green-500' : 'bg-blue-500' }} text-white px-3 py-1 rounded-full">
                         {{ $item->type }}

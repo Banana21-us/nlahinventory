@@ -15,7 +15,7 @@ class HR extends Component
     public $selectedId;
 
     // Form fields
-    public $employee_number, $name, $email, $password, $password_confirmation, $role = 'Staff';
+    public $employee_number, $name, $email, $password, $password_confirmation,$email_verified_at, $role = 'Staff';
 
     public function mount()
     {
@@ -51,6 +51,7 @@ class HR extends Component
             'email'           => $this->email,
             'password'        => Hash::make($this->password),
             'role'            => $this->role,
+            'email_verified_at' => now(),
         ]);
 
         $this->reset(['employee_number', 'name', 'email', 'password', 'password_confirmation', 'role']);
