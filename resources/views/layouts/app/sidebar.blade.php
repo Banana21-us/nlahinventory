@@ -5,8 +5,7 @@
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
         
-        <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-         
+         <flux:sidebar sticky collapsible class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
         {{-- 1. MEDICAL MISSION --}}
 @can('access-medical')
     <flux:sidebar.header>
@@ -46,25 +45,28 @@
             </flux:sidebar.item>
         @endcan
     </flux:sidebar.group>
+    
 @endif
 
 {{-- 3. NEWS & HR CORNER --}}
 @can('access-hr-only')
-    <flux:sidebar.nav>
-        <flux:sidebar.group class="grid">
+        <flux:sidebar.group class="grid" icon="newspaper" expandable heading="News" >
             <flux:sidebar.item icon="newspaper" :href="route('NewsPage.newshr')" :current="request()->routeIs('NewsPage.newshr')" wire:navigate>
                 {{ __('News') }}
             </flux:sidebar.item>
-            
+        </flux:sidebar.group>
+
+        <flux:sidebar.group class="grid" icon="users" expandable heading="HR Corner" >
             <flux:sidebar.item icon="users" :href="route('HR.userlist')" :current="request()->routeIs('HR.userlist')" wire:navigate>
                 {{ __('HR Corner') }}
             </flux:sidebar.item>
+        </flux:sidebar.group>
 
+        <flux:sidebar.group class="grid" icon="newspaper" expandable heading="Medical Records" >
             <flux:sidebar.item icon="shopping-cart" href="http://192.168.2.200:3777/medical.online" target="_blank">
                 {{ __('Medical Records') }}
             </flux:sidebar.item>
         </flux:sidebar.group>
-    </flux:sidebar.nav>
 @endcan
              
 
@@ -85,8 +87,8 @@
 
 
         <!-- Mobile User Menu -->
-        <flux:header class="lg:hidden">
-    <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+        <flux:header>
+    <flux:sidebar.toggle icon="bars-2" inset="left" />
     <flux:spacer />
 
     {{-- Only show the profile dropdown if the user is logged in --}}

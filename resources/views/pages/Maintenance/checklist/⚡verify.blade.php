@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 new class extends Component {
     public array $selectedSlots = [];
@@ -143,7 +144,7 @@ new class extends Component {
 
         // Generate PDF
         try {
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.daily-checklist', $data);
+            $pdf = Pdf::loadView('pdf.daily-checklist', $data);
             
             // Set paper size and orientation
             $pdf->setPaper('A4', 'landscape');
