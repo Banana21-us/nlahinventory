@@ -10,6 +10,7 @@
         'period' => $period,
         'location' => $currentLocationId,
         'location_name' => $currentLocationName,
+        'prefill_location' => $currentLocationId ? 1 : null,
     ], fn ($value) => $value !== null && $value !== ''));
 @endphp
 

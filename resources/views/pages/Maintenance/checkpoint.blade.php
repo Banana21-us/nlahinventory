@@ -4,18 +4,16 @@
         'selectedLocation' => '',
         'selectedDate' => null,
         'periodType' => 'daily',
-        'activePeriodKey' => 'selected',
     ])
 
     @php
-        $dayKey = $periodType === 'daily' ? 'selected' : $activePeriodKey;
+        $dayKey = $periodType === 'daily' ? 'selected' : '';
         
         // Debug - remove after fixing
         $hasAreaParts = count($areaParts) > 0;
         $areaPartsCount = count($areaParts);
         $defaultProofPayload = [
             'frequency' => $periodType,
-            'dayKey' => $dayKey,
             'dateLabel' => $selectedDate ? \Carbon\Carbon::parse($selectedDate)->format('M d, Y') . ' | ' . \Carbon\Carbon::now('Asia/Manila')->format('H:i') : '',
             'location' => $selectedLocation,
             'capturedBy' => auth()->user()?->name ?? '',
@@ -36,14 +34,10 @@
                         <div id="proofCurrentAreaName" class="flex-1 rounded-md border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-300 truncate">
                             —
                         </div>
-                        @if ($periodType === 'daily')
-                            <div class="flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-0.5 text-[11px] dark:border-zinc-700 dark:bg-zinc-900 shrink-0" role="group" aria-label="{{ __('Shift') }}" data-shift-group>
-                                <button type="button" class="js-shift-toggle rounded-full px-2 py-0.5 font-semibold bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800" data-shift="AM" aria-pressed="false">AM</button>
-                                <button type="button" class="js-shift-toggle rounded-full px-2 py-0.5 font-semibold bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800" data-shift="PM" aria-pressed="false">PM</button>
-                            </div>
-                        @else
-                            <div class="hidden" role="group" aria-label="{{ __('Shift') }}" data-shift-group></div>
-                        @endif
+                        <div class="flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-0.5 text-[11px] dark:border-zinc-700 dark:bg-zinc-900 shrink-0" role="group" aria-label="{{ __('Shift') }}">
+                            <button type="button" class="js-shift-toggle rounded-full px-2 py-0.5 font-semibold bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800" data-shift="AM" aria-pressed="false">AM</button>
+                            <button type="button" class="js-shift-toggle rounded-full px-2 py-0.5 font-semibold bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800" data-shift="PM" aria-pressed="false">PM</button>
+                        </div>
                     </div>
 
                     {{-- Step indicator — 5 per row --}}
@@ -70,7 +64,7 @@
                                 class="js-proof-area-item flex flex-col items-center gap-1"
                                 style="width: calc(20% - 0.4rem)"
                                 data-part-id="{{ $part['id'] }}"
-                                data-day-key="{{ $dayKey }}"
+                                data-day-key="{{ $periodType === 'daily' ? 'selected' : '' }}"
                                 data-has-am="{{ $amChecked ? '1' : '0' }}"
                                 data-has-pm="{{ $pmChecked ? '1' : '0' }}"
                                 data-area-part="{{ $part['display_name'] }}"
@@ -330,7 +324,7 @@
 
         // Show/hide AM/PM toggle based on frequency
         const freq = (payload?.frequency ?? DEFAULT_PROOF_PAYLOAD.frequency ?? '').toLowerCase();
-        const shiftToggleGroup = modal.querySelector('[data-shift-group]');
+        const shiftToggleGroup = modal.querySelector('[role="group"]');
         if (shiftToggleGroup) shiftToggleGroup.classList.toggle('hidden', freq !== 'daily');
 
         // Update AM/PM button visuals only — no queue reset here
@@ -382,7 +376,7 @@
         const sy = Math.floor((video.videoHeight - ss) / 2);
 
         const isDaily = item.dataset.frequency === 'daily';
-        const shift   = isDaily ? activeShift : 'AM';
+        const shift   = isDaily ? activeShift : '';
 
         const now = new Date();
         const hours   = String(now.getHours()).padStart(2, '0');
@@ -426,16 +420,6 @@
                 comment
             );
             capturedMap[item.dataset.partId] = true;
-            // Persist progress in DOM so reopening the modal keeps completed steps.
-            if (isDaily) {
-                if (activeShift === 'PM') {
-                    item.dataset.hasPm = '1';
-                } else {
-                    item.dataset.hasAm = '1';
-                }
-            } else {
-                item.dataset.hasAm = '1';
-            }
             if (commentInput) commentInput.value = '';
 
             // Re-apply UI after Livewire re-render settles
@@ -447,8 +431,6 @@
                     btn.classList.add(...(isActive ? SHIFT_ACTIVE_CLASSES : SHIFT_INACTIVE_CLASSES));
                     btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
                 });
-                const currentShiftGroup = modal?.querySelector('[data-shift-group]');
-                if (currentShiftGroup) currentShiftGroup.classList.toggle('hidden', (item.dataset.frequency || '').toLowerCase() !== 'daily');
                 goToIndex(currentIndex + 1);
                 refreshAreaListUI();
             });
@@ -569,16 +551,7 @@
         const shiftBtn    = e.target.closest('.js-shift-toggle');
         const dailyOpenBtn = e.target.closest('#openDailyCameraBtn');
         if (shiftBtn)     setActiveShift(shiftBtn.getAttribute('data-shift'));
-        if (dailyOpenBtn) {
-            const payload = {
-                frequency: dailyOpenBtn.dataset.frequency || DEFAULT_PROOF_PAYLOAD.frequency,
-                dayKey: dailyOpenBtn.dataset.dayKey || DEFAULT_PROOF_PAYLOAD.dayKey,
-                dateLabel: dailyOpenBtn.dataset.dateLabel || DEFAULT_PROOF_PAYLOAD.dateLabel,
-                location: dailyOpenBtn.dataset.location || DEFAULT_PROOF_PAYLOAD.location,
-                capturedBy: dailyOpenBtn.dataset.capturedBy || DEFAULT_PROOF_PAYLOAD.capturedBy,
-            };
-            openModal(payload);
-        }
+        if (dailyOpenBtn) openModal(DEFAULT_PROOF_PAYLOAD);
     });
 
     document.addEventListener('livewire:init', () => {
@@ -589,3 +562,4 @@
 })();
 </script>
 @endonce
+{{-- properly working daily shit --}}

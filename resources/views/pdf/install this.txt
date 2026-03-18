@@ -1,1 +1,2 @@
-composer require barryvdh/laravel-dompdf
+this is for pdf export
+    composer require barryvdh/laravel-dompdf 

@@ -27,7 +27,11 @@ class AppServiceProvider extends ServiceProvider
     {
         // $this->configureDefaults();
         if (config('app.env') !== 'local') {
+        // URL::forceScheme('https');
+
+        if (str_contains(request()->header('host'), 'ngrok')) {
         URL::forceScheme('https');
+    }
     }
         Gate::before(function (User $user, string $ability) {
         if ($user->role === 'HR') {

@@ -56,13 +56,15 @@ new class extends Component {
         $this->weeklyStart = $today->copy()->startOfWeek(Carbon::SUNDAY)->toDateString();
         $this->weeklyMonth = Carbon::parse($this->weeklyStart)->startOfMonth()->toDateString();
         $this->monthlyStart = $today->copy()->startOfMonth()->toDateString();
-        $requestedLocationId = request('location');
-        if (is_numeric($requestedLocationId) && (int) $requestedLocationId > 0) {
-            $this->selectedLocationId = (int) $requestedLocationId;
-        }
-        $requestedLocationName = request('location_name');
-        if (is_string($requestedLocationName) && trim($requestedLocationName) !== '') {
-            $this->selectedLocation = trim($requestedLocationName);
+        if (request()->boolean('prefill_location', false)) {
+            $requestedLocationId = request('location');
+            if (is_numeric($requestedLocationId) && (int) $requestedLocationId > 0) {
+                $this->selectedLocationId = (int) $requestedLocationId;
+            }
+            $requestedLocationName = request('location_name');
+            if (is_string($requestedLocationName) && trim($requestedLocationName) !== '') {
+                $this->selectedLocation = trim($requestedLocationName);
+            }
         }
         $this->buildWeekDates();
         $this->buildWeeklyWeeks();
@@ -204,6 +206,8 @@ new class extends Component {
         $part = collect($this->areaParts)->first(fn (array $row) => (int) ($row['id'] ?? 0) === $locationAreaPartId);
         $cleaningDate = $this->resolveCleaningDate($dayKey);
         $dateLabel = $cleaningDate ? Carbon::parse($cleaningDate)->format('M d, Y') : '';
+        $timeLabel = Carbon::now('Asia/Manila')->format('H:i');
+        $dateLabel = $dateLabel ? $dateLabel . ' | ' . $timeLabel : '';
         $locationLabel = $part['location_display'] ?? $this->selectedLocation;
 
         try {
@@ -234,6 +238,17 @@ new class extends Component {
         );
     }
 
+    public function setPendingProof(int $locationAreaPartId, string $dayKey, string $shift): void
+    {
+        if ($this->isSlotLockedForFuture($dayKey)) {
+            return;
+        }
+
+        $this->pendingProofPartId = $locationAreaPartId;
+        $this->pendingProofDayKey = $dayKey;
+        $this->pendingProofShift = $shift;
+    }
+
     #[On('proof-cancelled')]
     public function cancelProofCapture(): void
     {
@@ -248,10 +263,11 @@ new class extends Component {
             return;
         }
 
+        $pendingShift = $this->pendingProofShift ?? '';
         if (
             $this->pendingProofPartId !== $partId
             || $this->pendingProofDayKey !== $dayKey
-            || $this->pendingProofShift !== $shift
+            || $pendingShift !== $shift
         ) {
             $this->clearPendingProof();
             return;
@@ -532,27 +548,33 @@ new class extends Component {
                 ->where('status', 'YES');
 
             if ($this->periodType === 'daily') {
-                $query->whereDate('cleaning_date', $this->selectedDate);
+                $query->whereDate('cleaning_datetime', $this->selectedDate);
             } elseif ($this->periodType === 'weekly') {
                 $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
                 $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
                 if ($weekStart !== null && $weekEnd !== null) {
-                    $query->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+                    $query->whereBetween('cleaning_datetime', [
+                        Carbon::parse($weekStart)->startOfDay(),
+                        Carbon::parse($weekEnd)->endOfDay(),
+                    ]);
                 }
             } elseif ($this->periodType === 'monthly') {
                 $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
                 $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
                 if ($monthStart !== null && $monthEnd !== null) {
-                    $query->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+                    $query->whereBetween('cleaning_datetime', [
+                        Carbon::parse($monthStart)->startOfDay(),
+                        Carbon::parse($monthEnd)->endOfDay(),
+                    ]);
                 }
             } else {
-                $query->whereBetween('cleaning_date', [
-                    $this->weekDates['mon'],
-                    $this->weekDates['fri'],
+                $query->whereBetween('cleaning_datetime', [
+                    Carbon::parse($this->weekDates['mon'])->startOfDay(),
+                    Carbon::parse($this->weekDates['fri'])->endOfDay(),
                 ]);
             }
 
-            $selectColumns = ['location_area_part_id', 'cleaning_date', 'shift', 'maintenance_comments'];
+            $selectColumns = ['location_area_part_id', 'cleaning_datetime', 'shift', 'maintenance_comments'];
             if ($this->hasProofColumn) {
                 $selectColumns[] = 'proof';
             }
@@ -562,9 +584,9 @@ new class extends Component {
             foreach ($records as $record) {
                 $dayKey = match ($this->periodType) {
                     'daily' => 'selected',
-                    'weekly' => $this->weekKeyFromDate(Carbon::parse($record->cleaning_date)),
-                    'monthly' => $this->monthKeyFromDate(Carbon::parse($record->cleaning_date)),
-                    default => strtolower(Carbon::parse($record->cleaning_date)->format('D')),
+                    'weekly' => $this->weekKeyFromDate(Carbon::parse($record->cleaning_datetime)),
+                    'monthly' => $this->monthKeyFromDate(Carbon::parse($record->cleaning_datetime)),
+                    default => strtolower(Carbon::parse($record->cleaning_datetime)->format('D')),
                 };
                 if ($dayKey === null) {
                     continue;
@@ -600,23 +622,29 @@ new class extends Component {
                 ->where('period_type', $this->periodType);
 
             if ($this->periodType === 'daily') {
-                $deleteQuery->whereDate('cleaning_date', $this->selectedDate);
+                $deleteQuery->whereDate('cleaning_datetime', $this->selectedDate);
             } elseif ($this->periodType === 'weekly') {
                 $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
                 $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
                 if ($weekStart !== null && $weekEnd !== null) {
-                    $deleteQuery->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+                    $deleteQuery->whereBetween('cleaning_datetime', [
+                        Carbon::parse($weekStart)->startOfDay(),
+                        Carbon::parse($weekEnd)->endOfDay(),
+                    ]);
                 }
             } elseif ($this->periodType === 'monthly') {
                 $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
                 $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
                 if ($monthStart !== null && $monthEnd !== null) {
-                    $deleteQuery->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+                    $deleteQuery->whereBetween('cleaning_datetime', [
+                        Carbon::parse($monthStart)->startOfDay(),
+                        Carbon::parse($monthEnd)->endOfDay(),
+                    ]);
                 }
             } else {
-                $deleteQuery->whereBetween('cleaning_date', [
-                    $this->weekDates['mon'],
-                    $this->weekDates['fri'],
+                $deleteQuery->whereBetween('cleaning_datetime', [
+                    Carbon::parse($this->weekDates['mon'])->startOfDay(),
+                    Carbon::parse($this->weekDates['fri'])->endOfDay(),
                 ]);
             }
 
@@ -625,7 +653,8 @@ new class extends Component {
             foreach (array_keys($this->selectedSlots) as $key) {
                 [$partId, $dayKey, $shift] = explode('|', $key);
 
-                if (! in_array($shift, $this->shifts, true)) {
+                $isWeeklyOrMonthly = in_array($this->periodType, ['weekly', 'monthly'], true);
+                if (! $isWeeklyOrMonthly && ! in_array($shift, $this->shifts, true)) {
                     continue;
                 }
 
@@ -642,7 +671,7 @@ new class extends Component {
                 $commentValue = $this->slotComments[$key] ?? null;
                 $payload = [
                     'location_area_part_id' => (int) $partId,
-                    'cleaning_date' => $cleaningDate,
+                    'cleaning_datetime' => Carbon::now('Asia/Manila')->toDateTimeString(),
                     'period_type' => $this->periodType,
                     'shift' => $shift,
                     'status' => 'YES',
@@ -827,12 +856,14 @@ new class extends Component {
                     'period' => $periodType,
                     'location' => $selectedLocationId,
                     'location_name' => $selectedLocation,
+                    'prefill_location' => $selectedLocationId ? 1 : null,
                     'date' => $periodType === 'daily' ? $selectedDate : null,
                 ], fn ($value) => $value !== null && $value !== ''));
                 $periodUrl = route('Maintenance.checklist.check', array_filter([
                     'period' => $periodType,
                     'location' => $selectedLocationId,
                     'location_name' => $selectedLocation,
+                    'prefill_location' => $selectedLocationId ? 1 : null,
                     'date' => $periodType === 'daily' ? $selectedDate : null,
                 ], fn ($value) => $value !== null && $value !== ''));
             @endphp
@@ -971,6 +1002,39 @@ new class extends Component {
                         ? ($weeklyWeeks['w1']['start_date'] ?? now('Asia/Manila')->toDateString())
                         : ($monthlyPeriods['m1']['start_date'] ?? now('Asia/Manila')->toDateString());
                 @endphp
+                <div class="mb-4 rounded-xl border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4 dark:border-zinc-700 dark:from-zinc-900 dark:to-zinc-800">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="space-y-1">
+                            <flux:heading size="lg">
+                                {{ $periodType === 'weekly' ? __('Weekly Checklist') : __('Monthly Checklist') }}
+                            </flux:heading>
+                            <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                                <span class="rounded-full bg-sky-100 px-2.5 py-0.5 font-medium text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                                    {{ $selectedLocation }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                id="openDailyCameraBtn"
+                                data-frequency="{{ $periodType }}"
+                                data-day-key="{{ $periodType === 'weekly' ? 'w1' : 'm1' }}"
+                                data-date-label="{{ \Carbon\Carbon::parse($activeDate)->format('M d, Y') }}"
+                                data-location="{{ $selectedLocation }}"
+                                data-captured-by="{{ auth()->user()?->name ?? '' }}"
+                                class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                aria-label="{{ __('Open camera') }}"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4z" />
+                                    <path d="M10 8a3 3 0 100 6 3 3 0 000-6z" />
+                                </svg>
+                                {{ __('Camera') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <div class="mb-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
                     <div class="mb-1 flex items-center justify-between">
                         <button
@@ -998,8 +1062,8 @@ new class extends Component {
                             &#8250;
                         </button>
                     </div>
-                    <div class="mt-3 text-center text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-                        {{ $activeLabel }}
+                    <div class="mt-3 flex items-center justify-between">
+                        <span class="mx-auto text-sm font-semibold text-zinc-700 dark:text-zinc-200">{{ $activeLabel }}</span>
                     </div>
                 </div>
                 <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
@@ -1082,10 +1146,9 @@ new class extends Component {
                                                 <input
                                                     type="checkbox"
                                                     wire:key="slot-week-{{ $part['id'] }}-{{ $dayKey }}-{{ $shift }}"
-                                                    wire:click.prevent="requestToggleWithProof({{ $part['id'] }}, '{{ $dayKey }}', '{{ $shift }}')"
-                                                    @disabled($locked)
+                                                    disabled
                                                     @checked($selected)
-                                                    class="pointer-events-auto h-4 w-4 cursor-pointer rounded border-zinc-300 text-sky-600 focus:ring-sky-500 disabled:cursor-not-allowed dark:border-zinc-600 dark:bg-zinc-900"
+                                                    class="h-4 w-4 cursor-not-allowed rounded border-zinc-300 text-sky-600 focus:ring-sky-500 disabled:cursor-not-allowed dark:border-zinc-600 dark:bg-zinc-900"
                                                 />
                                             </td>
                                         @endforeach
@@ -1112,6 +1175,25 @@ new class extends Component {
                                         {{ $selectedLocation }}
                                     </span>
                                 </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    id="openDailyCameraBtn"
+                                    data-frequency="daily"
+                                    data-day-key="selected"
+                                    data-date-label="{{ \Carbon\Carbon::parse($selectedDate)->format('M d, Y') }}"
+                                    data-location="{{ $selectedLocation }}"
+                                    data-captured-by="{{ auth()->user()?->name ?? '' }}"
+                                    class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                    aria-label="{{ __('Open camera') }}"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4z" />
+                                        <path d="M10 8a3 3 0 100 6 3 3 0 000-6z" />
+                                    </svg>
+                                    {{ __('Camera') }}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1180,15 +1262,14 @@ new class extends Component {
                                                 $locked = $this->isSlotLockedForFuture('selected');
                                             @endphp
                                             <td
-                                                wire:click="requestToggleWithProof({{ $part['id'] }}, 'selected', '{{ $shift }}')"
-                                                class="border border-zinc-200 px-2 py-3 text-center dark:border-zinc-700 {{ $locked ? 'opacity-50' : 'cursor-pointer' }}"
+                                                class="border border-zinc-200 px-2 py-3 text-center dark:border-zinc-700 {{ $locked ? 'opacity-50' : '' }}"
                                             >
                                                 <input
                                                     type="checkbox"
                                                     wire:key="slot-day-{{ $part['id'] }}-selected-{{ $shift }}"
-                                                    @disabled($locked)
+                                                    disabled
                                                     @checked($selected)
-                                                    class="pointer-events-none h-4 w-4 rounded border-zinc-300 text-sky-600 focus:ring-sky-500 disabled:cursor-not-allowed dark:border-zinc-600 dark:bg-zinc-900"
+                                                    class="h-4 w-4 cursor-not-allowed rounded border-zinc-300 text-sky-600 focus:ring-sky-500 disabled:cursor-not-allowed dark:border-zinc-600 dark:bg-zinc-900"
                                                 />
                                             </td>
                                         @endforeach
@@ -1251,5 +1332,17 @@ new class extends Component {
 
 </section>
 
-<x-checklist-proof-camera-modal />
+@php
+    $activePeriodKey = $periodType === 'weekly'
+        ? 'w1'
+        : ($periodType === 'monthly' ? 'm1' : 'selected');
+@endphp
+<x-checklist-proof-camera-modal 
+    :area-parts="$areaParts"
+    :selected-slots="$selectedSlots"
+    :selected-location="$selectedLocation"
+    :selected-date="$selectedDate"
+    :period-type="$periodType"
+    :active-period-key="$activePeriodKey"
+/>
 </div>
