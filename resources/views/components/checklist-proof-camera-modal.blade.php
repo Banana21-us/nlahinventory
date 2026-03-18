@@ -36,14 +36,10 @@
                         <div id="proofCurrentAreaName" class="flex-1 rounded-md border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-300 truncate">
                             —
                         </div>
-                        @if ($periodType === 'daily')
-                            <div class="flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-0.5 text-[11px] dark:border-zinc-700 dark:bg-zinc-900 shrink-0" role="group" aria-label="{{ __('Shift') }}" data-shift-group>
-                                <button type="button" class="js-shift-toggle rounded-full px-2 py-0.5 font-semibold bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800" data-shift="AM" aria-pressed="false">AM</button>
-                                <button type="button" class="js-shift-toggle rounded-full px-2 py-0.5 font-semibold bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800" data-shift="PM" aria-pressed="false">PM</button>
-                            </div>
-                        @else
-                            <div class="hidden" role="group" aria-label="{{ __('Shift') }}" data-shift-group></div>
-                        @endif
+                        <div class="hidden flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-0.5 text-[11px] dark:border-zinc-700 dark:bg-zinc-900 shrink-0" role="group" aria-label="{{ __('Shift') }}" data-shift-group>
+                            <button type="button" class="js-shift-toggle rounded-full px-2 py-0.5 font-semibold bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800" data-shift="AM" aria-pressed="false">AM</button>
+                            <button type="button" class="js-shift-toggle rounded-full px-2 py-0.5 font-semibold bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800" data-shift="PM" aria-pressed="false">PM</button>
+                        </div>
                     </div>
 
                     {{-- Step indicator — 5 per row --}}
@@ -332,6 +328,7 @@
         const freq = (payload?.frequency ?? DEFAULT_PROOF_PAYLOAD.frequency ?? '').toLowerCase();
         const shiftToggleGroup = modal.querySelector('[data-shift-group]');
         if (shiftToggleGroup) shiftToggleGroup.classList.toggle('hidden', freq !== 'daily');
+        // nightly uses AM shift but hides the toggle
 
         // Update AM/PM button visuals only — no queue reset here
         const normalized = activeShift.toUpperCase();
@@ -381,8 +378,8 @@
         const sx = Math.floor((video.videoWidth  - ss) / 2);
         const sy = Math.floor((video.videoHeight - ss) / 2);
 
-        const isDaily = item.dataset.frequency === 'daily';
-        const shift   = isDaily ? activeShift : 'AM';
+        const freq    = item.dataset.frequency;
+        const shift   = freq === 'daily' ? activeShift : (freq === 'nightly' ? 'PM' : 'AM');
 
         const now = new Date();
         const hours   = String(now.getHours()).padStart(2, '0');
@@ -427,7 +424,7 @@
             );
             capturedMap[item.dataset.partId] = true;
             // Persist progress in DOM so reopening the modal keeps completed steps.
-            if (isDaily) {
+            if (freq === 'daily') {
                 if (activeShift === 'PM') {
                     item.dataset.hasPm = '1';
                 } else {
