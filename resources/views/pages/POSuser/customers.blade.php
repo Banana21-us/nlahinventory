@@ -89,7 +89,6 @@
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Balance (₱)</label>
                     <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">₱</span>
                         <input type="number" wire:model="balance" step="0.01" placeholder="500"
                             class="block w-full pl-7 rounded-md border border-gray-300 shadow-sm focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2"/>
                     </div>
@@ -98,7 +97,6 @@
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Charges / Credit (₱)</label>
                     <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-red-400 text-sm font-semibold">₱</span>
                         <input type="number" wire:model="charges" min="0" step="0.01" placeholder="0"
                             class="block w-full pl-7 rounded-md border border-red-200 shadow-sm focus:ring-red-400 focus:border-red-400 sm:text-sm p-2 bg-red-50/30"/>
                     </div>
@@ -139,10 +137,8 @@
             </div>
             <div class="flex flex-wrap gap-2 items-center">
                 <div class="relative">
-                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search name or phone…"
+                   
+                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="    Search name or phone…"
                         class="pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-all w-52"/>
                 </div>
                 <select wire:model.live="filterStatus"
