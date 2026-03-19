@@ -318,7 +318,7 @@
   </div>
 
   <!-- Feedback Form Container -->
-  <div id="nlah-feedback-container" style="display: none;"></div>
+  <div id="nlah-feedback-container" style="display: none; position: absolute; top: 72px; left: 0; right: 0; bottom: 0; background: white; z-index: 1000; overflow-y: auto; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;"></div>
 
   <div class="nlah-suggestions" id="nlah-suggestions">
     <span class="nlah-chip">Our services</span>
@@ -481,27 +481,30 @@
     suggestionsDiv.style.display = 'none';
     document.querySelector('.nlah-input-area').style.display = 'none';
     
+    // Hide all messages
+    const messages = document.getElementById('nlah-messages');
+    messages.style.display = 'none';
+    
     feedbackContainer.style.display = 'block';
     feedbackContainer.innerHTML = `
-      <div class="nlah-feedback-form" style="width: 100%; max-width: 100%; height:100%; max-height: 100%; ">
-
-        <div class="nlah-feedback-title" style="width: 100%; ">Share Your Feedback</div>
+      <div style="height: 100%; display: flex; flex-direction: column; padding: 24px; background: white;">
+        <div style="font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 600; color: #0369a1; margin-bottom: 24px; text-align: center;">Share Your Feedback</div>
         
-        <div class="nlah-star-rating" id="star-rating" style="width: 100%; text-align: center;">
-          <span class="nlah-star" onclick="setRating(1)" style="font-size: 2rem; cursor: pointer; margin: 0 5px;">★</span>
-          <span class="nlah-star" onclick="setRating(2)" style="font-size: 2rem; cursor: pointer; margin: 0 5px;">★</span>
-          <span class="nlah-star" onclick="setRating(3)" style="font-size: 2rem; cursor: pointer; margin: 0 5px;">★</span>
-          <span class="nlah-star" onclick="setRating(4)" style="font-size: 2rem; cursor: pointer; margin: 0 5px;">★</span>
-          <span class="nlah-star" onclick="setRating(5)" style="font-size: 2rem; cursor: pointer; margin: 0 5px;">★</span>
+        <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 24px;">
+          <span class="nlah-star" onclick="setRating(1)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
+          <span class="nlah-star" onclick="setRating(2)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
+          <span class="nlah-star" onclick="setRating(3)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
+          <span class="nlah-star" onclick="setRating(4)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
+          <span class="nlah-star" onclick="setRating(5)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
         </div>
         
-        <input type="text" id="feedback-name" class="nlah-feedback-name" placeholder="Your name" value="Guest" style="width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box;">
+        <input type="text" id="feedback-name" placeholder="Your name (optional)" value="Guest" style="width: 100%; padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; margin-bottom: 16px; box-sizing: border-box;">
         
-        <textarea id="feedback-comment" class="nlah-feedback-input" rows="3" placeholder="Tell us about your experience..." style="width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box;"></textarea>
+        <textarea id="feedback-comment" rows="5" placeholder="Tell us about your experience..." style="width: 100%; padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; margin-bottom: 24px; box-sizing: border-box; resize: vertical; flex: 1; min-height: 120px;"></textarea>
         
-        <button class="nlah-feedback-submit" onclick="submitFeedback()" style="width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Submit Feedback</button>
+        <button onclick="submitFeedback()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #0e7490, #0369a1); color: white; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 1rem; cursor: pointer; margin-bottom: 12px;">Submit Feedback</button>
         
-        <span class="nlah-back-btn" onclick="hideFeedbackForm()" style="display: block; text-align: center; margin-top: 15px; cursor: pointer; color: #666;">← Back to chat</span>
+        <span onclick="hideFeedbackForm()" style="display: block; text-align: center; color: #6b7280; font-size: 0.9rem; cursor: pointer; text-decoration: underline; padding: 8px;">← Back to chat</span>
       </div>
     `;
     selectedRating = 0;
@@ -572,9 +575,14 @@
 
   window.hideFeedbackForm = function() {
     feedbackContainer.style.display = 'none';
+    feedbackContainer.innerHTML = '';
+    
+    // Show messages again
+    const messages = document.getElementById('nlah-messages');
+    messages.style.display = 'flex';
+    
     suggestionsDiv.style.display = 'flex';
     document.querySelector('.nlah-input-area').style.display = 'flex';
-    feedbackContainer.innerHTML = '';
-  };
+};
 })();
 </script>

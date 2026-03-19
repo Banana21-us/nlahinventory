@@ -11,6 +11,7 @@ use App\Livewire\DispenseMedicine;
 use App\Livewire\Home;
 use App\Livewire\Services;
 use App\Livewire\Landing;
+use App\Livewire\HRCorner;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use App\Models\User;
@@ -20,6 +21,11 @@ use Livewire\Volt\Volt;
 use App\Http\Controllers\NewsEventController;
 use App\Livewire\HR;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\POSDashboardController;
+use App\Http\Controllers\HRCorner\HrdashboardController;
+// Route::get('/', function () {
+//     return view('welcome');
+// })->name('home');
 
 use App\Livewire\PointofSale\Posdashboard;
 use App\Livewire\PointofSale\POS;
@@ -80,6 +86,24 @@ Route::middleware(['auth','can:access-verify'])->group(function () {
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
+
+// Route::get('/HR-Corner/hrdashboard', [HrdashboardController::class, 'index'])->name('HR-Corner.hrdashboard');
+// Route::post('/HR-Corner/approve-leave/{leaveId}', [HrdashboardController::class, 'approveLeave'])->name('HR-Corner.approve-leave');
+// Route::post('/HR-Corner/reject-leave/{leaveId}', [HrdashboardController::class, 'rejectLeave'])->name('HR-Corner.reject-leave');
+
+// HR News route - This is the Livewire component route
+Route::get('/HR/news', News::class)->middleware(['auth', 'verified'])->name('NewsPage.newshr');
+//HR Dashboard
+Route::get('/HRCorner/dashboard', HRCorner::class)->middleware(['auth', 'verified'])->name('HR.hrdashboard');
+// hr
+Route::get('/HR/userlist', HR::class)->middleware(['auth', 'verified'])->name('HR.userlist'); 
+
+Route::get('/medmission/dispense', DispenseMedicine::class)->middleware(['auth', 'verified'])->name('dispense');
+Route::get('/medmission/medicines', Medicines::class)->middleware(['auth', 'verified'])->name('medicines');  
+Route::get('/medmission/patients',PatientManager::class)->middleware(['auth', 'verified'])->name('patients');
+Route::get('/medmission/patients/{id}', PatientDetail::class)->middleware(['auth', 'verified'])->name('patient.details');
+Volt::route('POS/posproducts', 'POS/posproducts')->name('POS.posproducts');
+
 // Public NLAH routes
 Route::get('/', function () {return redirect()->route('nlah.home');})->name('home');
 Route::prefix('nlah')->name('nlah.')->group(function () {
@@ -94,17 +118,15 @@ Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::post('/feedback/submit', [FeedbackController::class, 'submit'])->name('feedback.submit');
 });
 
-// User POS routes  
-// Route::middleware(['auth', 'verified'])
-//     ->prefix('POS') 
-//     ->name('POS.')  
-//     ->group(function () {
-//         Route::get('/dashboard', Dashboard::class)->name('dashboard');
-//     });
-    Route::get('/pos/dashboard', Posdashboard::class)->name('pos.dashboard');
-    Route::get('/pos',POS::class)->name('pos.main');
-    Route::get('/pos/inventory', Posinventory::class)->name('pos.inventory');
-    Route::get('/pos/items', PosItems::class)->name('pos.items');
-    Route::get('/pos/sales', PosSales::class)->name('pos.sales');
-    Route::get('/pos/customers', PosCustomer::class)->name('pos.customers');
+Route::view('reports', 'reports')
+    ->middleware(['auth', 'verified'])
+    ->name('reports');    
+
+// Maintenance routes
+Route::middleware(['auth'])->group(function () {
+    Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
+    Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');
+    Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
+});
+
 require __DIR__.'/settings.php';
