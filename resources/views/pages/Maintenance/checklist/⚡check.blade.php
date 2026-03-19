@@ -190,14 +190,27 @@ new class extends Component {
 
         $key = $this->slotKey($locationAreaPartId, $dayKey, $shift);
 
+        // In requestToggleWithProof, replace the uncheck block:
         if (isset($this->selectedSlots[$key])) {
-            unset($this->selectedSlots[$key]);
-            unset($this->slotProofs[$key]);
-            unset($this->slotComments[$key]);
-            $this->clearPendingProof();
-            $this->saveChecklist();
-            return;
-        }
+    unset($this->selectedSlots[$key]);
+    unset($this->slotProofs[$key]);
+    unset($this->slotComments[$key]);
+    $this->clearPendingProof();
+
+    $normalizedShift  = in_array(strtoupper($shift), ['AM', 'PM'], true) ? strtoupper($shift) : null;
+    $normalizedPeriod = $this->periodType === 'nightly' ? 'daily' : $this->periodType;
+    try {
+        DB::table('records')
+            ->where('location_area_part_id', $locationAreaPartId)
+            ->where('period_type', $normalizedPeriod)
+            ->where('shift', $normalizedShift)
+            ->where('status', 'YES')
+            ->whereDate('cleaning_date', $this->selectedDate)
+            ->delete();
+    } catch (\Throwable) {}
+
+    return;
+}
 
         $this->pendingProofPartId = $locationAreaPartId;
         $this->pendingProofDayKey = $dayKey;
@@ -255,40 +268,69 @@ new class extends Component {
         $this->clearPendingProof();
     }
 
-    #[On('proof-captured')]
-    public function confirmToggleWithProof(int $partId, string $dayKey, string $shift, string $imageData, ?string $comment = null): void
-    {
-        if ($this->isSlotLockedForFuture($dayKey)) {
-            $this->clearPendingProof();
-            return;
-        }
-
-        $pendingShift   = $this->pendingProofShift ?? '';
-        $incomingShift  = $shift ?? '';
-        if (
-            $this->pendingProofPartId !== $partId
-            || $this->pendingProofDayKey !== $dayKey
-            || $pendingShift !== $incomingShift
-        ) {
-            $this->clearPendingProof();
-            return;
-        }
-
-        $proofPath = $this->storeProofImage($imageData, $partId, $dayKey, $shift);
-        if ($proofPath === null) {
-            $this->dispatch('proof-capture-error', message: __('Unable to save proof photo. Please try again.'));
-            $this->clearPendingProof();
-            return;
-        }
-
-        $key = $this->slotKey($partId, $dayKey, $shift);
-        $this->selectedSlots[$key] = true;
-        $this->slotProofs[$key] = $proofPath;
-        $this->slotComments[$key] = is_string($comment) ? trim($comment) : '';
-
+#[On('proof-captured')]
+public function confirmToggleWithProof(int $partId, string $dayKey, string $shift, string $imageData, ?string $comment = null): void
+{
+    if ($this->isSlotLockedForFuture($dayKey)) {
         $this->clearPendingProof();
-        $this->saveChecklist();
+        return;
     }
+
+    $proofPath = $this->storeProofImage($imageData, $partId, $dayKey, $shift);
+    if ($proofPath === null) {
+        $this->dispatch('proof-capture-error', message: __('Unable to save proof photo. Please try again.'));
+        $this->clearPendingProof();
+        return;
+    }
+
+    $cleaningDate = $this->resolveCleaningDate($dayKey);
+    if ($cleaningDate === null) {
+        $this->clearPendingProof();
+        return;
+    }
+
+    $normalizedShift    = in_array(strtoupper($shift), ['AM', 'PM'], true) ? strtoupper($shift) : null;
+    $normalizedPeriod   = $this->periodType === 'nightly' ? 'daily' : $this->periodType;
+    $commentValue       = is_string($comment) && trim($comment) !== '' ? trim($comment) : null;
+
+    try {
+        DB::table('records')
+            ->where('location_area_part_id', $partId)
+            ->where('period_type', $normalizedPeriod)
+            ->where('shift', $normalizedShift)
+            ->where('status', 'YES')
+            ->whereDate('cleaning_date', $cleaningDate)
+            ->delete();
+
+        DB::table('records')->insert([
+            'location_area_part_id' => $partId,
+            'cleaning_date'         => $cleaningDate,
+            'period_type'           => $normalizedPeriod,
+            'shift'                 => $normalizedShift,
+            'status'                => 'YES',
+            'remarks'               => 'Checked',
+            'proof'                 => $proofPath,
+            'maintenance_name'      => Auth::user()?->name,
+            'verifier_name'         => null,
+            'verifier_status'       => 'NO',
+            'verifier_comments'     => null,
+            'maintenance_comments'  => $commentValue,
+        ]);
+
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('confirmToggleWithProof DB error: ' . $e->getMessage());
+        $this->dispatch('proof-capture-error', message: __('Unable to save record. Please try again.'));
+        $this->clearPendingProof();
+        return;
+    }
+
+    $key = $this->slotKey($partId, $dayKey, $shift);
+    $this->selectedSlots[$key] = true;
+    $this->slotProofs[$key]    = $proofPath;
+    $this->slotComments[$key]  = $commentValue ?? '';
+
+    $this->clearPendingProof();
+}
 
     private function clearPendingProof(): void
     {
@@ -535,176 +577,218 @@ new class extends Component {
     }
 
     private function loadExistingSlots(): void
-    {
-        $this->selectedSlots = [];
-        $this->slotProofs = [];
-        $this->slotComments = [];
+{
+    $this->selectedSlots = [];
+    $this->slotProofs    = [];
+    $this->slotComments  = [];
 
-        if (empty($this->areaParts)) {
-            return;
-        }
-
-        try {
-            $partIds = array_column($this->areaParts, 'id');
-            $query = DB::table('records')
-                ->whereIn('location_area_part_id', $partIds)
-                ->where('period_type', $this->periodType)
-                ->where('status', 'YES');
-
-            if (in_array($this->periodType, ['daily', 'nightly'], true)) {
-                $query->whereDate('cleaning_datetime', $this->selectedDate);
-            } elseif ($this->periodType === 'weekly') {
-                $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
-                $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
-                if ($weekStart !== null && $weekEnd !== null) {
-                    $query->whereBetween('cleaning_datetime', [
-                        Carbon::parse($weekStart)->startOfDay(),
-                        Carbon::parse($weekEnd)->endOfDay(),
-                    ]);
-                }
-            } elseif ($this->periodType === 'monthly') {
-                $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
-                $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
-                if ($monthStart !== null && $monthEnd !== null) {
-                    $query->whereBetween('cleaning_datetime', [
-                        Carbon::parse($monthStart)->startOfDay(),
-                        Carbon::parse($monthEnd)->endOfDay(),
-                    ]);
-                }
-            } else {
-                $query->whereBetween('cleaning_datetime', [
-                    Carbon::parse($this->weekDates['mon'])->startOfDay(),
-                    Carbon::parse($this->weekDates['fri'])->endOfDay(),
-                ]);
-            }
-
-            $selectColumns = ['location_area_part_id', 'cleaning_datetime', 'shift', 'maintenance_comments'];
-            if ($this->hasProofColumn) {
-                $selectColumns[] = 'proof';
-            }
-
-            $records = $query->get($selectColumns);
-
-            foreach ($records as $record) {
-                $dayKey = match ($this->periodType) {
-                    'daily', 'nightly' => 'selected',
-                    'weekly' => $this->weekKeyFromDate(Carbon::parse($record->cleaning_datetime)),
-                    'monthly' => $this->monthKeyFromDate(Carbon::parse($record->cleaning_datetime)),
-                    default => strtolower(Carbon::parse($record->cleaning_datetime)->format('D')),
-                };
-                if ($dayKey === null) {
-                    continue;
-                }
-                $key = $this->slotKey((int) $record->location_area_part_id, $dayKey, $record->shift);
-                $this->selectedSlots[$key] = true;
-                $proofPath = $this->hasProofColumn
-                    ? ($record->proof ?? null)
-                    : $this->extractProofPathFromComments($record->maintenance_comments ?? null);
-                if (is_string($proofPath) && $proofPath !== '') {
-                    $this->slotProofs[$key] = $proofPath;
-                }
-                if (is_string($record->maintenance_comments ?? null) && trim($record->maintenance_comments) !== '') {
-                    $this->slotComments[$key] = trim($record->maintenance_comments);
-                }
-            }
-        } catch (\Throwable) {
-            // Keep UI usable even when table is not migrated yet.
-        }
+    if (empty($this->areaParts)) {
+        return;
     }
+
+    try {
+        $partIds        = array_column($this->areaParts, 'id');
+        $normalizedPeriod = $this->periodType === 'nightly' ? 'daily' : $this->periodType;
+
+        $query = DB::table('records')
+            ->whereIn('location_area_part_id', $partIds)
+            ->where('period_type', $normalizedPeriod)
+            ->where('status', 'YES');
+
+        if (in_array($this->periodType, ['daily', 'nightly'], true)) {
+            $query->whereDate('cleaning_date', $this->selectedDate);
+        } elseif ($this->periodType === 'weekly') {
+            $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
+            $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+            if ($weekStart && $weekEnd) {
+                $query->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+            }
+        } elseif ($this->periodType === 'monthly') {
+            $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
+            $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+            if ($monthStart && $monthEnd) {
+                $query->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+            }
+        }
+
+        $records = $query->get(['location_area_part_id', 'cleaning_date', 'shift', 'proof', 'maintenance_comments']);
+
+        foreach ($records as $record) {
+            $dayKey = match ($this->periodType) {
+                'daily', 'nightly' => 'selected',
+                'weekly'           => $this->weekKeyFromDate(Carbon::parse($record->cleaning_date)),
+                'monthly'          => $this->monthKeyFromDate(Carbon::parse($record->cleaning_date)),
+                default            => strtolower(Carbon::parse($record->cleaning_date)->format('D')),
+            };
+
+            if ($dayKey === null) {
+                continue;
+            }
+
+            $key = $this->slotKey((int) $record->location_area_part_id, $dayKey, $record->shift);
+            $this->selectedSlots[$key] = true;
+
+            if (is_string($record->proof) && $record->proof !== '') {
+                $this->slotProofs[$key] = $record->proof;
+            }
+
+            if (is_string($record->maintenance_comments) && trim($record->maintenance_comments) !== '') {
+                $this->slotComments[$key] = trim($record->maintenance_comments);
+            }
+        }
+    } catch (\Throwable) {
+        // Keep UI usable.
+    }
+}
 
     private function saveChecklist(): void
-    {
-        if (empty($this->areaParts)) {
-            return;
-        }
-
-        try {
-            $partIds = array_column($this->areaParts, 'id');
-
-            $deleteQuery = DB::table('records')
-                ->whereIn('location_area_part_id', $partIds)
-                ->where('period_type', $this->periodType);
-
-            if (in_array($this->periodType, ['daily', 'nightly'], true)) {
-                $deleteQuery->whereDate('cleaning_datetime', $this->selectedDate);
-            } elseif ($this->periodType === 'weekly') {
-                $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
-                $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
-                if ($weekStart !== null && $weekEnd !== null) {
-                    $deleteQuery->whereBetween('cleaning_datetime', [
-                        Carbon::parse($weekStart)->startOfDay(),
-                        Carbon::parse($weekEnd)->endOfDay(),
-                    ]);
-                }
-            } elseif ($this->periodType === 'monthly') {
-                $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
-                $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
-                if ($monthStart !== null && $monthEnd !== null) {
-                    $deleteQuery->whereBetween('cleaning_datetime', [
-                        Carbon::parse($monthStart)->startOfDay(),
-                        Carbon::parse($monthEnd)->endOfDay(),
-                    ]);
-                }
-            } else {
-                $deleteQuery->whereBetween('cleaning_datetime', [
-                    Carbon::parse($this->weekDates['mon'])->startOfDay(),
-                    Carbon::parse($this->weekDates['fri'])->endOfDay(),
-                ]);
-            }
-
-            $deleteQuery->delete();
-
-            foreach (array_keys($this->selectedSlots) as $key) {
-                [$partId, $dayKey, $shift] = explode('|', $key);
-
-                if (! in_array($this->periodType, ['daily', 'nightly', 'weekly', 'monthly'], true)) {
-                    continue;
-                }
-
-                $cleaningDate = match ($this->periodType) {
-                    'daily', 'nightly' => $this->selectedDate,
-                    'weekly' => Carbon::now('Asia/Manila')->toDateString(),
-                    'monthly' => Carbon::now('Asia/Manila')->toDateString(),
-                    default => $this->weekDates[$dayKey] ?? null,
-                };
-                if ($cleaningDate === null) {
-                    continue;
-                }
-                $proofPath = $this->slotProofs[$key] ?? null;
-                $commentValue = $this->slotComments[$key] ?? null;
-                $payload = [
-                    'location_area_part_id' => (int) $partId,
-                    'cleaning_datetime' => Carbon::now('Asia/Manila')->toDateTimeString(),
-                    'period_type' => $this->periodType,
-                    'shift' => in_array($shift, ['AM', 'PM'], true) ? $shift : null,
-                    'status' => 'YES',
-                    'remarks' => 'Checked',
-                    'maintenance_name' => Auth::user()?->name,
-                    'verifier_name' => null,
-                    'verifier_status' => 'NO',
-                    'verifier_comments' => null,
-                    'maintenance_comments' => $commentValue,
-                ];
-
-                if ($this->hasProofColumn) {
-                    $payload['proof'] = $proofPath;
-                } elseif (is_string($proofPath) && $proofPath !== '') {
-                    $existingComment = is_string($commentValue) ? trim($commentValue) : '';
-                    $proofComment = $existingComment !== ''
-                        ? $existingComment."\n".'proof:'.$proofPath
-                        : 'proof:'.$proofPath;
-                    $payload['maintenance_comments'] = $proofComment;
-                }
-
-                DB::table('records')->insert($payload);
-            }
-
-            $this->loadExistingSlots();
-        } catch (\Throwable) {
-            // Silently ignore DB write errors to avoid hard-crashing the page.
-        }
+{
+    if (empty($this->areaParts)) {
+        return;
     }
 
+    $normalizedPeriod = $this->periodType === 'nightly' ? 'daily' : $this->periodType;
+
+    try {
+        $partIds     = array_column($this->areaParts, 'id');
+        $deleteQuery = DB::table('records')
+            ->whereIn('location_area_part_id', $partIds)
+            ->where('period_type', $normalizedPeriod);
+
+        if (in_array($this->periodType, ['daily', 'nightly'], true)) {
+            $deleteQuery->whereDate('cleaning_date', $this->selectedDate);
+        } elseif ($this->periodType === 'weekly') {
+            $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
+            $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+            if ($weekStart && $weekEnd) {
+                $deleteQuery->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+            }
+        } elseif ($this->periodType === 'monthly') {
+            $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
+            $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+            if ($monthStart && $monthEnd) {
+                $deleteQuery->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+            }
+        }
+
+        $deleteQuery->delete();
+
+        foreach (array_keys($this->selectedSlots) as $key) {
+            [$partId, $dayKey, $shift] = explode('|', $key);
+
+            $cleaningDate = match ($this->periodType) {
+                'daily', 'nightly' => $this->selectedDate ?: null,
+                'weekly', 'monthly' => Carbon::now('Asia/Manila')->toDateString(),
+                default             => $this->weekDates[$dayKey] ?? null,
+            };
+
+            if ($cleaningDate === null) {
+                continue;
+            }
+
+            DB::table('records')->insert([
+                'location_area_part_id' => (int) $partId,
+                'cleaning_date'         => $cleaningDate,
+                'period_type'           => $normalizedPeriod,
+                'shift'                 => in_array($shift, ['AM', 'PM'], true) ? $shift : null,
+                'status'                => 'YES',
+                'remarks'               => 'Checked',
+                'proof'                 => $this->slotProofs[$key] ?? null,
+                'maintenance_name'      => Auth::user()?->name,
+                'verifier_name'         => null,
+                'verifier_status'       => 'NO',
+                'verifier_comments'     => null,
+                'maintenance_comments'  => $this->slotComments[$key] ?? null,
+            ]);
+        }
+
+        $this->loadExistingSlots();
+    } catch (\Throwable) {
+        //
+    }
+}
+
+    private function saveSlot(int $partId, string $dayKey, string $shift): void
+{
+    if (! in_array($this->periodType, ['daily', 'nightly', 'weekly', 'monthly'], true)) {
+        return;
+    }
+
+    $cleaningDate = match ($this->periodType) {
+        'daily', 'nightly' => $this->selectedDate !== '' ? $this->selectedDate : null,
+        'weekly'  => Carbon::now('Asia/Manila')->toDateString(),
+        'monthly' => Carbon::now('Asia/Manila')->toDateString(),
+        default   => $this->weekDates[$dayKey] ?? null,
+    };
+
+    if ($cleaningDate === null) {
+        return;
+    }
+
+    $key          = $this->slotKey($partId, $dayKey, $shift);
+    $proofPath    = $this->slotProofs[$key] ?? null;
+    $commentValue = $this->slotComments[$key] ?? null;
+
+    try {
+        // Delete only THIS slot's existing record (same part + date + shift + period)
+        $deleteQuery = DB::table('records')
+            ->where('location_area_part_id', $partId)
+            ->where('period_type', $this->periodType)
+            ->where('shift', in_array($shift, ['AM', 'PM'], true) ? $shift : null)
+            ->where('status', 'YES');
+
+        if (in_array($this->periodType, ['daily', 'nightly'], true)) {
+            $deleteQuery->whereDate('cleaning_datetime', $cleaningDate);
+        } elseif ($this->periodType === 'weekly') {
+            $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
+            $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+            if ($weekStart && $weekEnd) {
+                $deleteQuery->whereBetween('cleaning_datetime', [
+                    Carbon::parse($weekStart)->startOfDay(),
+                    Carbon::parse($weekEnd)->endOfDay(),
+                ]);
+            }
+        } elseif ($this->periodType === 'monthly') {
+            $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
+            $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+            if ($monthStart && $monthEnd) {
+                $deleteQuery->whereBetween('cleaning_datetime', [
+                    Carbon::parse($monthStart)->startOfDay(),
+                    Carbon::parse($monthEnd)->endOfDay(),
+                ]);
+            }
+        }
+
+        $deleteQuery->delete();
+
+        $payload = [
+            'location_area_part_id' => $partId,
+            'cleaning_datetime'     => Carbon::now('Asia/Manila')->toDateTimeString(),
+            'period_type'           => $this->periodType,
+            'shift'                 => in_array($shift, ['AM', 'PM'], true) ? $shift : null,
+            'status'                => 'YES',
+            'remarks'               => 'Checked',
+            'maintenance_name'      => Auth::user()?->name,
+            'verifier_name'         => null,
+            'verifier_status'       => 'NO',
+            'verifier_comments'     => null,
+            'maintenance_comments'  => $commentValue,
+        ];
+
+        if ($this->hasProofColumn) {
+            $payload['proof'] = $proofPath;
+        } elseif (is_string($proofPath) && $proofPath !== '') {
+            $existingComment = is_string($commentValue) ? trim($commentValue) : '';
+            $payload['maintenance_comments'] = $existingComment !== ''
+                ? $existingComment . "\n" . 'proof:' . $proofPath
+                : 'proof:' . $proofPath;
+        }
+
+        DB::table('records')->insert($payload);
+    } catch (\Throwable) {
+        // Silently ignore to avoid crashing the UI.
+    }
+}
     private function slotKey(int $partId, string $dayKey, string $shift): string
     {
         return $partId.'|'.$dayKey.'|'.$shift;

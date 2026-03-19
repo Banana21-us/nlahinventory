@@ -90,47 +90,39 @@ new class extends Component {
         // Get records for this period
         $partIds = $areaParts->pluck('location_area_part_id')->toArray();
         $recordsQuery = DB::table('records')
-            ->whereIn('location_area_part_id', $partIds)
-            ->where('period_type', $this->periodType)
-            ->where('status', 'YES')
-            ->select([
-                'location_area_part_id',
-                'cleaning_datetime',
-                'shift',
-                'maintenance_name',
-                'verifier_name',
-                'verifier_status',
-                'maintenance_comments',
-                'verifier_comments',
-            ]);
+    ->whereIn('location_area_part_id', $partIds)
+    ->where('period_type', $this->periodType)
+    ->where('status', 'YES')
+    ->select([
+        'location_area_part_id',
+        'cleaning_date',        // ← was cleaning_datetime
+        'shift',
+        'maintenance_name',
+        'verifier_name',
+        'verifier_status',
+        'maintenance_comments',
+        'verifier_comments',
+    ]);
 
-        if ($this->periodType === 'daily') {
-            // MODIFIED: Get the whole week (Monday to Sunday) based on the selected date
-            $startOfWeek = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY);
-            $endOfWeek = Carbon::parse($this->selectedDate)->endOfWeek(Carbon::SUNDAY);
-            $recordsQuery->whereBetween('cleaning_datetime', [
-                Carbon::parse($startOfWeek)->startOfDay(),
-                Carbon::parse($endOfWeek)->endOfDay(),
-            ]);
-        } elseif ($this->periodType === 'weekly') {
-            $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? null;
-            $weekEnd = $this->weeklyWeeks['w1']['end_date'] ?? null;
-            if ($weekStart && $weekEnd) {
-                $recordsQuery->whereBetween('cleaning_datetime', [
-                    Carbon::parse($weekStart)->startOfDay(),
-                    Carbon::parse($weekEnd)->endOfDay(),
-                ]);
-            }
-        } elseif ($this->periodType === 'monthly') {
-            $monthStart = $this->monthlyPeriods['m1']['start_date'] ?? null;
-            $monthEnd = $this->monthlyPeriods['m1']['end_date'] ?? null;
-            if ($monthStart && $monthEnd) {
-                $recordsQuery->whereBetween('cleaning_datetime', [
-                    Carbon::parse($monthStart)->startOfDay(),
-                    Carbon::parse($monthEnd)->endOfDay(),
-                ]);
-            }
-        }
+        // Replace all whereBetween/whereDate on cleaning_datetime in exportToPdf:
+
+if ($this->periodType === 'daily') {
+    $startOfWeek = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY)->toDateString();
+    $endOfWeek   = Carbon::parse($this->selectedDate)->endOfWeek(Carbon::SUNDAY)->toDateString();
+    $recordsQuery->whereBetween('cleaning_date', [$startOfWeek, $endOfWeek]);
+} elseif ($this->periodType === 'weekly') {
+    $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? null;
+    $weekEnd   = $this->weeklyWeeks['w1']['end_date'] ?? null;
+    if ($weekStart && $weekEnd) {
+        $recordsQuery->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+    }
+} elseif ($this->periodType === 'monthly') {
+    $monthStart = $this->monthlyPeriods['m1']['start_date'] ?? null;
+    $monthEnd   = $this->monthlyPeriods['m1']['end_date'] ?? null;
+    if ($monthStart && $monthEnd) {
+        $recordsQuery->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+    }
+}
 
         $records = $recordsQuery->get();
         $data = $this->buildPdfExportData($records);
@@ -170,21 +162,20 @@ new class extends Component {
     }
 
     private function buildPdfExportData(\Illuminate\Support\Collection $records): array
-    {
-        $normalizedRecords = $records->map(function ($record): array {
-            $cleaningDate = Carbon::parse($record->cleaning_datetime)->toDateString();
-
-            return [
-                'location_area_part_id' => (int) $record->location_area_part_id,
-                'cleaning_date' => $cleaningDate,
-                'shift' => in_array($record->shift, $this->shifts, true) ? $record->shift : 'AM',
-                'maintenance_name' => is_string($record->maintenance_name ?? null) ? trim($record->maintenance_name) : '',
-                'verifier_name' => is_string($record->verifier_name ?? null) ? trim($record->verifier_name) : '',
-                'verifier_status' => $record->verifier_status,
-                'maintenance_comments' => is_string($record->maintenance_comments ?? null) ? trim($record->maintenance_comments) : '',
-                'verifier_comments' => is_string($record->verifier_comments ?? null) ? trim($record->verifier_comments) : '',
-            ];
-        });
+{
+    $normalizedRecords = $records->map(function ($record): array {
+        return [
+            'location_area_part_id' => (int) $record->location_area_part_id,
+            'cleaning_date'         => $record->cleaning_date,  // ← was Carbon::parse(cleaning_datetime)
+            'shift'                 => in_array($record->shift, $this->shifts, true) ? $record->shift : 'AM',
+            'maintenance_name'      => is_string($record->maintenance_name ?? null) ? trim($record->maintenance_name) : '',
+            'verifier_name'         => is_string($record->verifier_name ?? null) ? trim($record->verifier_name) : '',
+            'verifier_status'       => $record->verifier_status,
+            'maintenance_comments'  => is_string($record->maintenance_comments ?? null) ? trim($record->maintenance_comments) : '',
+            'verifier_comments'     => is_string($record->verifier_comments ?? null) ? trim($record->verifier_comments) : '',
+        ];
+    });
+    // rest of method unchanged...
 
         $comments = [];
         foreach ($normalizedRecords as $record) {
@@ -565,16 +556,14 @@ new class extends Component {
     }
 
     private function resolveCleaningDate(string $dayKey): ?string
-    {
-        $today = Carbon::now('Asia/Manila')->toDateString();
-
-        return match ($this->periodType) {
-            'daily' => $this->selectedDate !== '' ? $this->selectedDate : null,
-            'weekly' => $today,
-            'monthly' => $today,
-            default => $this->weekDates[$dayKey] ?? null,
-        };
-    }
+{
+    return match ($this->periodType) {
+        'daily'   => $this->selectedDate !== '' ? $this->selectedDate : null,
+        'weekly'  => Carbon::now('Asia/Manila')->toDateString(),
+        'monthly' => Carbon::now('Asia/Manila')->toDateString(),
+        default   => $this->weekDates[$dayKey] ?? null,
+    };
+}
 
     private function extractProofPathFromComments(?string $comments): ?string
     {
@@ -823,186 +812,169 @@ new class extends Component {
     }
 
     private function loadExistingSlots(): void
-    {
-        $this->selectedSlots = [];
-        $this->slotProofs = [];
-        $this->slotComments = [];
-        $this->slotVerifierComments = [];
-        $this->slotRecordIds = [];
+{
+    $this->selectedSlots = [];
+    $this->slotProofs = [];
+    $this->slotComments = [];
+    $this->slotVerifierComments = [];
+    $this->slotRecordIds = [];
 
-        if (empty($this->areaParts)) {
-            return;
-        }
-
-        try {
-            $partIds = array_column($this->areaParts, 'id');
-            $query = DB::table('records')
-                ->whereIn('location_area_part_id', $partIds)
-                ->where('period_type', $this->periodType)
-                ->where('status', 'YES');
-
-            if ($this->periodType === 'daily') {
-                $query->whereDate('cleaning_datetime', $this->selectedDate);
-            } elseif ($this->periodType === 'weekly') {
-                $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
-                $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
-                if ($weekStart !== null && $weekEnd !== null) {
-                    $query->whereBetween('cleaning_datetime', [
-                        Carbon::parse($weekStart)->startOfDay(),
-                        Carbon::parse($weekEnd)->endOfDay(),
-                    ]);
-                }
-            } elseif ($this->periodType === 'monthly') {
-                $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
-                $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
-                if ($monthStart !== null && $monthEnd !== null) {
-                    $query->whereBetween('cleaning_datetime', [
-                        Carbon::parse($monthStart)->startOfDay(),
-                        Carbon::parse($monthEnd)->endOfDay(),
-                    ]);
-                }
-            } else {
-                $query->whereBetween('cleaning_datetime', [
-                    Carbon::parse($this->weekDates['mon'])->startOfDay(),
-                    Carbon::parse($this->weekDates['fri'])->endOfDay(),
-                ]);
-            }
-
-            $selectColumns = ['id', 'location_area_part_id', 'cleaning_datetime', 'shift', 'maintenance_comments', 'verifier_status', 'verifier_comments'];
-            if ($this->hasProofColumn) {
-                $selectColumns[] = 'proof';
-            }
-
-            $records = $query->get($selectColumns);
-
-            foreach ($records as $record) {
-                $dayKey = match ($this->periodType) {
-                    'daily' => 'selected',
-                    'weekly' => $this->weekKeyFromDate(Carbon::parse($record->cleaning_datetime)),
-                    'monthly' => $this->monthKeyFromDate(Carbon::parse($record->cleaning_datetime)),
-                    default => strtolower(Carbon::parse($record->cleaning_datetime)->format('D')),
-                };
-                if ($dayKey === null) {
-                    continue;
-                }
-                $effectiveShift = is_string($record->shift) && in_array($record->shift, $this->shifts, true)
-                    ? $record->shift
-                    : 'AM';
-                $key = $this->slotKey((int) $record->location_area_part_id, $dayKey, $effectiveShift);
-                $this->slotRecordIds[$key] = (int) $record->id;
-                if (($record->verifier_status ?? null) === 'YES') {
-                    $this->selectedSlots[$key] = true;
-                }
-                $proofPath = $this->hasProofColumn
-                    ? ($record->proof ?? null)
-                    : $this->extractProofPathFromComments($record->maintenance_comments ?? null);
-                if (is_string($proofPath) && $proofPath !== '') {
-                    $this->slotProofs[$key] = $proofPath;
-                }
-                if (is_string($record->maintenance_comments ?? null) && trim($record->maintenance_comments) !== '') {
-                    $this->slotComments[$key] = trim($record->maintenance_comments);
-                }
-                if (is_string($record->verifier_comments ?? null) && trim($record->verifier_comments) !== '') {
-                    $this->slotVerifierComments[$key] = trim($record->verifier_comments);
-                }
-            }
-        } catch (\Throwable) {
-            // Keep UI usable even when table is not migrated yet.
-        }
+    if (empty($this->areaParts)) {
+        return;
     }
+
+    try {
+        $partIds = array_column($this->areaParts, 'id');
+        $query = DB::table('records')
+            ->whereIn('location_area_part_id', $partIds)
+            ->where('period_type', $this->periodType)
+            ->where('status', 'YES');
+
+        if ($this->periodType === 'daily') {
+            $query->where('cleaning_date', $this->selectedDate);
+        } elseif ($this->periodType === 'weekly') {
+            $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
+            $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+            if ($weekStart && $weekEnd) {
+                $query->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+            }
+        } elseif ($this->periodType === 'monthly') {
+            $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
+            $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+            if ($monthStart && $monthEnd) {
+                $query->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+            }
+        }
+
+        $records = $query->get([
+            'id',
+            'location_area_part_id',
+            'cleaning_date',
+            'shift',
+            'proof',
+            'maintenance_comments',
+            'verifier_status',
+            'verifier_comments',
+        ]);
+
+        foreach ($records as $record) {
+            $dayKey = match ($this->periodType) {
+                'daily'   => 'selected',
+                'weekly'  => $this->weekKeyFromDate(Carbon::parse($record->cleaning_date)),
+                'monthly' => $this->monthKeyFromDate(Carbon::parse($record->cleaning_date)),
+                default   => strtolower(Carbon::parse($record->cleaning_date)->format('D')),
+            };
+
+            if ($dayKey === null) {
+                continue;
+            }
+
+            $effectiveShift = is_string($record->shift) && in_array($record->shift, $this->shifts, true)
+                ? $record->shift
+                : 'AM';
+
+            $key = $this->slotKey((int) $record->location_area_part_id, $dayKey, $effectiveShift);
+
+            $this->slotRecordIds[$key] = (int) $record->id;
+
+            if (($record->verifier_status ?? null) === 'YES') {
+                $this->selectedSlots[$key] = true;
+            }
+
+            // proof column exists directly on table
+            $proofPath = is_string($record->proof ?? null) && $record->proof !== ''
+                ? $record->proof
+                : $this->extractProofPathFromComments($record->maintenance_comments ?? null);
+
+            if (is_string($proofPath) && $proofPath !== '') {
+                $this->slotProofs[$key] = $proofPath;
+            }
+
+            if (is_string($record->maintenance_comments ?? null) && trim($record->maintenance_comments) !== '') {
+                $this->slotComments[$key] = trim($record->maintenance_comments);
+            }
+
+            if (is_string($record->verifier_comments ?? null) && trim($record->verifier_comments) !== '') {
+                $this->slotVerifierComments[$key] = trim($record->verifier_comments);
+            }
+        }
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('loadExistingSlots error: ' . $e->getMessage());
+    }
+}
 
     private function saveChecklist(): void
-    {
-        if (empty($this->areaParts)) {
-            return;
-        }
-
-        try {
-            $partIds = array_column($this->areaParts, 'id');
-
-            $deleteQuery = DB::table('records')
-                ->whereIn('location_area_part_id', $partIds)
-                ->where('period_type', $this->periodType);
-
-            if ($this->periodType === 'daily') {
-                $deleteQuery->whereDate('cleaning_datetime', $this->selectedDate);
-            } elseif ($this->periodType === 'weekly') {
-                $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
-                $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
-                if ($weekStart !== null && $weekEnd !== null) {
-                    $deleteQuery->whereBetween('cleaning_datetime', [
-                        Carbon::parse($weekStart)->startOfDay(),
-                        Carbon::parse($weekEnd)->endOfDay(),
-                    ]);
-                }
-            } elseif ($this->periodType === 'monthly') {
-                $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
-                $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
-                if ($monthStart !== null && $monthEnd !== null) {
-                    $deleteQuery->whereBetween('cleaning_datetime', [
-                        Carbon::parse($monthStart)->startOfDay(),
-                        Carbon::parse($monthEnd)->endOfDay(),
-                    ]);
-                }
-            } else {
-                $deleteQuery->whereBetween('cleaning_datetime', [
-                    Carbon::parse($this->weekDates['mon'])->startOfDay(),
-                    Carbon::parse($this->weekDates['fri'])->endOfDay(),
-                ]);
-            }
-
-            $deleteQuery->delete();
-
-            foreach (array_keys($this->selectedSlots) as $key) {
-                [$partId, $dayKey, $shift] = explode('|', $key);
-
-                if (! in_array($shift, $this->shifts, true)) {
-                    continue;
-                }
-
-                $cleaningDate = match ($this->periodType) {
-                    'daily' => $this->selectedDate,
-                    'weekly' => Carbon::now('Asia/Manila')->toDateString(),
-                    'monthly' => Carbon::now('Asia/Manila')->toDateString(),
-                    default => $this->weekDates[$dayKey] ?? null,
-                };
-                if ($cleaningDate === null) {
-                    continue;
-                }
-                $proofPath = $this->slotProofs[$key] ?? null;
-                $commentValue = $this->slotComments[$key] ?? null;
-                $payload = [
-                    'location_area_part_id' => (int) $partId,
-                    'cleaning_datetime' => Carbon::parse($cleaningDate, 'Asia/Manila')->startOfDay()->toDateTimeString(),
-                    'period_type' => $this->periodType,
-                    'shift' => $shift,
-                    'status' => 'YES',
-                    'remarks' => 'Checked',
-                    'maintenance_name' => Auth::user()?->name,
-                    'maintenance_comments' => $commentValue,
-                    'verifier_name' => null,
-                    'verifier_status' => 'NO',
-                    'verifier_comments' => null,
-                ];
-
-                if ($this->hasProofColumn) {
-                    $payload['proof'] = $proofPath;
-                } elseif (is_string($proofPath) && $proofPath !== '') {
-                    $existingComment = is_string($commentValue) ? trim($commentValue) : '';
-                    $proofComment = $existingComment !== ''
-                        ? $existingComment."\n".'proof:'.$proofPath
-                        : 'proof:'.$proofPath;
-                    $payload['maintenance_comments'] = $proofComment;
-                }
-
-                DB::table('records')->insert($payload);
-            }
-
-            $this->loadExistingSlots();
-        } catch (\Throwable) {
-            // Silently ignore DB write errors to avoid hard-crashing the page.
-        }
+{
+    if (empty($this->areaParts)) {
+        return;
     }
+
+    try {
+        $partIds     = array_column($this->areaParts, 'id');
+        $deleteQuery = DB::table('records')
+            ->whereIn('location_area_part_id', $partIds)
+            ->where('period_type', $this->periodType);
+
+        if ($this->periodType === 'daily') {
+            $deleteQuery->where('cleaning_date', $this->selectedDate);
+        } elseif ($this->periodType === 'weekly') {
+            $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
+            $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+            if ($weekStart && $weekEnd) {
+                $deleteQuery->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+            }
+        } elseif ($this->periodType === 'monthly') {
+            $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
+            $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+            if ($monthStart && $monthEnd) {
+                $deleteQuery->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+            }
+        }
+
+        $deleteQuery->delete();
+
+        foreach (array_keys($this->selectedSlots) as $key) {
+            [$partId, $dayKey, $shift] = explode('|', $key);
+
+            if (! in_array($shift, $this->shifts, true)) {
+                continue;
+            }
+
+            $cleaningDate = match ($this->periodType) {
+    'daily'   => $this->selectedDate ?: null,
+    'weekly'  => Carbon::now('Asia/Manila')->toDateString(),
+    'monthly' => Carbon::now('Asia/Manila')->toDateString(),
+    default   => $this->weekDates[$dayKey] ?? null,
+};
+
+            if ($cleaningDate === null) {
+                continue;
+            }
+
+            $proofPath    = $this->slotProofs[$key] ?? null;
+            $commentValue = $this->slotComments[$key] ?? null;
+
+            DB::table('records')->insert([
+                'location_area_part_id' => (int) $partId,
+                'cleaning_date'         => $cleaningDate,
+                'period_type'           => $this->periodType,
+                'shift'                 => $shift,
+                'status'                => 'YES',
+                'remarks'               => 'Checked',
+                'proof'                 => $proofPath,
+                'maintenance_name'      => Auth::user()?->name,
+                'maintenance_comments'  => $commentValue,
+                'verifier_name'         => null,
+                'verifier_status'       => 'NO',
+                'verifier_comments'     => null,
+            ]);
+        }
+
+        $this->loadExistingSlots();
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('saveChecklist error: ' . $e->getMessage());
+    }
+}
 
     private function slotKey(int $partId, string $dayKey, string $shift): string
     {
@@ -1131,607 +1103,576 @@ new class extends Component {
 }; ?>
 
 <div>
-<section class="w-full">
-    @include('partials.checklist-heading')
+    <section class="w-full">
+        @include('partials.checklist-heading')
 
-    <x-pages::Maintenance.checklist.layout
-        :wide="true"
-        route-name="Maintenance.checklist.verify"
-        :locationId="$selectedLocationId"
-        :locationName="$selectedLocation"
-        :selectedPeriod="$periodType"
-    >
-        <div class="space-y-4">
-            @php
-                $periodLabel = match ($periodType) {
-                    'weekly' => __('Weekly'),
-                    'monthly' => __('Monthly'),
-                    default => __('Daily'),
-                };
-                $periodContext = match ($periodType) {
-                    'weekly' => ($weeklyWeeks['w1']['label'] ?? __('Current Week')),
-                    'monthly' => ($monthlyPeriods['m1']['label'] ?? __('Current Month')),
-                    default => \Carbon\Carbon::parse($selectedDate)->format('M d, Y'),
-                };
-                $sectionLabel = __('Verify Checklist');
-                $checklistUrl = route('Maintenance.checklist.verify', array_filter([
-                    'period' => $periodType,
-                    'location' => $selectedLocationId,
-                    'location_name' => $selectedLocation,
-                    'date' => $periodType === 'daily' ? $selectedDate : null,
-                ], fn ($value) => $value !== null && $value !== ''));
-                $periodUrl = route('Maintenance.checklist.verify', array_filter([
-                    'period' => $periodType,
-                    'location' => $selectedLocationId,
-                    'location_name' => $selectedLocation,
-                    'date' => $periodType === 'daily' ? $selectedDate : null,
-                ], fn ($value) => $value !== null && $value !== ''));
-            @endphp
-            <div class="flex items-start justify-between gap-4 max-md:flex-col">
-                <div class="min-w-0 flex-1 mt-1">
-                    <flux:breadcrumbs>
-                        @if ($periodType === 'daily' && $showDailyChecklist)
-                            <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $sectionLabel }}</flux:breadcrumbs.item>
-                        @else
-                            <flux:breadcrumbs.item href="{{ $checklistUrl }}" wire:navigate>{{ $sectionLabel }}</flux:breadcrumbs.item>
-                        @endif
-                        @if ($periodType === 'daily' && $showDailyChecklist)
-                            <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodLabel }}</flux:breadcrumbs.item>
-                        @else
-                            <flux:breadcrumbs.item href="{{ $periodUrl }}" wire:navigate>{{ $periodLabel }}</flux:breadcrumbs.item>
-                        @endif
-                        @if ($periodType === 'daily' && $showDailyChecklist)
-                            <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodContext }}</flux:breadcrumbs.item>
-                        @else
-                            <flux:breadcrumbs.item>{{ $periodContext }}</flux:breadcrumbs.item>
-                        @endif
-                    </flux:breadcrumbs>
-                </div>
-
-                <div class="space-y-2 md:ms-auto md:w-[420px] md:shrink-0">
-                    <div class="flex items-center gap-2">
-                        <input
-                            id="selectedLocation"
-                            type="text"
-                            list="location-options"
-                            wire:model.live="selectedLocation"
-                            placeholder="{{ __('Search location...') }}"
-                            class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                        />
-                        @if ($selectedLocation !== '')
-                            <button
-                                type="button"
-                                wire:click="clearSelectedLocation"
-                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-                                aria-label="{{ __('Clear location') }}"
-                            >
-                                &times;
-                            </button>
-                        @endif
-                    </div>
-                    <datalist id="location-options">
-                        @foreach ($locations as $location)
-                            <option value="{{ $location['display_name'] }}"></option>
-                        @endforeach
-                    </datalist>
-                    
-                    {{-- Export PDF Button - Pure inline styles for guaranteed visibility --}}
-                    <div class="flex justify-end pt-1">
-                        <button
-                            type="button"
-                            wire:click="exportToPdf"
-                            @if (!$selectedLocationId || ($periodType === 'daily' && !$showDailyChecklist))
-                                disabled
-                            @endif
-                            style="
-                                display: inline-flex;
-                                width: 100%;
-                                align-items: center;
-                                justify-content: center;
-                                gap: 0.5rem;
-                                border-radius: 0.375rem;
-                                padding: 0.5rem 1rem;
-                                font-size: 0.875rem;
-                                font-weight: 500;
-                                transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-                                transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-                                transition-duration: 150ms;
-                                {{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) 
-                                    ? 'background-color: #2563eb; color: white; border: 1px solid #1e40af;' 
-                                    : 'background-color: #d1d5db; color: #374151; border: 1px solid #9ca3af; cursor: not-allowed; opacity: 0.5;' 
-                                }}
-                            "
-                            onmouseover="{{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) ? 'this.style.backgroundColor=\'#1d4ed8\'' : '' }}"
-                            onmouseout="{{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) ? 'this.style.backgroundColor=\'#2563eb\'' : '' }}"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                            </svg>
-                            <span>{{ __('Export PDF') }}</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            @if ($periodType === 'daily' && ! $showDailyChecklist)
+        <x-pages::maintenance.checklist.layout
+            :wide="true"
+            route-name="Maintenance.checklist.verify"
+            :locationId="$selectedLocationId"
+            :locationName="$selectedLocation"
+            :selectedPeriod="$periodType">
+            <div class="space-y-4">
                 @php
-                    $calendarBase = \Carbon\Carbon::parse($calendarMonth)->startOfMonth();
-                    $today = \Carbon\Carbon::now('Asia/Manila')->toDateString();
-                    $weekdayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                    $firstVisibleDate = $calendarBase->copy()->startOfWeek(\Carbon\Carbon::SUNDAY);
-                    $cellCount = 42;
-                @endphp
-                <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-                    <div class="mb-3 flex items-center justify-between">
-                        <button
-                            type="button"
-                            wire:click="previousCalendarMonth"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            aria-label="{{ __('Previous month') }}"
-                        >
-                            &#8249;
-                        </button>
-                        <div class="text-3xl font-extrabold leading-none">
-                            <span class="text-zinc-900 dark:text-zinc-100">{{ $calendarBase->format('F') }}</span>
-                            <span class="text-rose-500">{{ $calendarBase->format('Y') }}</span>
-                        </div>
-                        <button
-                            type="button"
-                            wire:click="nextCalendarMonth"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            aria-label="{{ __('Next month') }}"
-                        >
-                            &#8250;
-                        </button>
-                    </div>
-
-                    <div class="grid gap-y-2 text-center text-xs font-semibold uppercase tracking-wide text-zinc-400" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
-                        @foreach ($weekdayHeaders as $weekdayHeader)
-                            <div>{{ $weekdayHeader }}</div>
-                        @endforeach
-                    </div>
-
-                    <div class="mt-2 grid gap-y-2 text-center" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
-                        @for ($cell = 0; $cell < $cellCount; $cell++)
-                            @php
-                                $cellDateObj = $firstVisibleDate->copy()->addDays($cell);
-                                $cellDate = $cellDateObj->toDateString();
-                                $dayNumber = $cellDateObj->day;
-                                $isCurrentMonth = $cellDateObj->month === $calendarBase->month;
-                                $isSelected = $cellDate === $selectedDate;
-                                $isToday = $cellDate === $today;
-                                $isFuture = $cellDate > $today;
-                            @endphp
-
-                            <button
-                                type="button"
-                                wire:click="selectCalendarDate('{{ $cellDate }}')"
-                                @disabled($isFuture)
-                                class="group relative flex h-14 items-center justify-center rounded-md {{ $isSelected ? 'bg-zinc-200/80 dark:bg-zinc-700/60' : '' }} {{ $isFuture ? 'cursor-not-allowed opacity-40' : '' }}"
-                            >
-                                <span class="inline-flex h-9 w-9 items-center justify-center rounded-full text-3xl/[1] font-semibold transition {{ $isSelected ? 'bg-sky-500 text-white shadow-sm' : ($isCurrentMonth ? ($isFuture ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-100 dark:hover:bg-zinc-700') : ($isFuture ? 'text-zinc-300 dark:text-zinc-600' : 'text-zinc-300 hover:bg-zinc-200 dark:text-zinc-500 dark:hover:bg-zinc-700')) }}">
-                                    {{ $dayNumber }}
-                                </span>
-                                @if ($isToday && ! $isSelected)
-                                    <span class="absolute bottom-0.5 left-1/2 h-1.5 w-1.5 mt-10 -translate-x-1/2 rounded-full bg-sky-500"></span>
-                                @endif
-                            </button>
-                        @endfor
-                    </div>
-                </div>
-            @endif
-
-            @if ($selectedLocationId !== null && in_array($periodType, ['weekly', 'monthly'], true))
-                @php
-                    $dayColumns = match ($periodType) {
-                        'weekly' => $weeklyWeeks,
-                        'monthly' => $monthlyPeriods,
-                        default => $days,
+                    $periodLabel = match ($periodType) {
+                        'weekly' => __('Weekly'),
+                        'monthly' => __('Monthly'),
+                        default => __('Daily'),
                     };
-                    $periodShifts = $periodType === 'daily' ? $shifts : ['AM'];
-                    $totalColumns = 1 + (count($dayColumns) * count($periodShifts));
-                    $activeLabel = $periodType === 'weekly'
-                        ? ($weeklyWeeks['w1']['label'] ?? __('Current Week'))
-                        : ($monthlyPeriods['m1']['label'] ?? __('Current Month'));
-                    $periodCardTitle = $periodType === 'weekly' ? __('Checklist Week') : __('Checklist Month');
-                    $activeDate = $periodType === 'weekly'
-                        ? ($weeklyWeeks['w1']['start_date'] ?? now('Asia/Manila')->toDateString())
-                        : ($monthlyPeriods['m1']['start_date'] ?? now('Asia/Manila')->toDateString());
+                    $periodContext = match ($periodType) {
+                        'weekly' => ($weeklyWeeks['w1']['label'] ?? __('Current Week')),
+                        'monthly' => ($monthlyPeriods['m1']['label'] ?? __('Current Month')),
+                        default => \Carbon\Carbon::parse($selectedDate)->format('M d, Y'),
+                    };
+                    $sectionLabel = __('Verify Checklist');
+                    $checklistUrl = route('Maintenance.checklist.verify', array_filter([
+                        'period' => $periodType,
+                        'location' => $selectedLocationId,
+                        'location_name' => $selectedLocation,
+                        'date' => $periodType === 'daily' ? $selectedDate : null,
+                    ], fn ($value) => $value !== null && $value !== ''));
+                    $periodUrl = route('Maintenance.checklist.verify', array_filter([
+                        'period' => $periodType,
+                        'location' => $selectedLocationId,
+                        'location_name' => $selectedLocation,
+                        'date' => $periodType === 'daily' ? $selectedDate : null,
+                    ], fn ($value) => $value !== null && $value !== ''));
                 @endphp
-                <div class="mb-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-                    <div class="mb-1 flex items-center justify-between">
-                        <button
-                            type="button"
-                            wire:click="{{ $periodType === 'weekly' ? 'previousWeeklyPeriod' : 'previousMonthlyPeriod' }}"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            aria-label="{{ __('Previous period') }}"
-                        >
-                            &#8249;
-                        </button>
-                        <div class="text-3xl font-extrabold leading-none">
-                            <span class="text-zinc-900 dark:text-zinc-100">
-                                {{ \Carbon\Carbon::parse($activeDate)->format('F') }}
-                            </span>
-                            <span class="text-rose-500">
-                                {{ \Carbon\Carbon::parse($activeDate)->format('Y') }}
-                            </span>
+
+                <div class="flex items-start justify-between gap-4 max-md:flex-col">
+                    <div class="min-w-0 flex-1 mt-1">
+                        <flux:breadcrumbs>
+                            @if ($periodType === 'daily' && $showDailyChecklist)
+                                <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $sectionLabel }}</flux:breadcrumbs.item>
+                            @else
+                                <flux:breadcrumbs.item href="{{ $checklistUrl }}" wire:navigate>{{ $sectionLabel }}</flux:breadcrumbs.item>
+                            @endif
+                            @if ($periodType === 'daily' && $showDailyChecklist)
+                                <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodLabel }}</flux:breadcrumbs.item>
+                            @else
+                                <flux:breadcrumbs.item href="{{ $periodUrl }}" wire:navigate>{{ $periodLabel }}</flux:breadcrumbs.item>
+                            @endif
+                            @if ($periodType === 'daily' && $showDailyChecklist)
+                                <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodContext }}</flux:breadcrumbs.item>
+                            @else
+                                <flux:breadcrumbs.item>{{ $periodContext }}</flux:breadcrumbs.item>
+                            @endif
+                        </flux:breadcrumbs>
+                    </div>
+
+                    <div class="space-y-2 md:ms-auto md:w-[420px] md:shrink-0">
+                        <div class="flex items-center gap-2">
+                            <input
+                                id="selectedLocation"
+                                type="text"
+                                list="location-options"
+                                wire:model.live="selectedLocation"
+                                placeholder="{{ __('Search location...') }}"
+                                class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                            />
+                            @if ($selectedLocation !== '')
+                                <button
+                                    type="button"
+                                    wire:click="clearSelectedLocation"
+                                    class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                                    aria-label="{{ __('Clear location') }}">
+                                    &times;
+                                </button>
+                            @endif
                         </div>
-                        <button
-                            type="button"
-                            wire:click="{{ $periodType === 'weekly' ? 'nextWeeklyPeriod' : 'nextMonthlyPeriod' }}"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            aria-label="{{ __('Next period') }}"
-                        >
-                            &#8250;
-                        </button>
-                    </div>
-                    <div class="mt-3 text-center text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-                        {{ $activeLabel }}
+                        <datalist id="location-options">
+                            @foreach ($locations as $location)
+                                <option value="{{ $location['display_name'] }}"></option>
+                            @endforeach
+                        </datalist>
+
+                        <div class="flex justify-end pt-1">
+                            <button
+                                type="button"
+                                wire:click="exportToPdf"
+                                @if (!$selectedLocationId || ($periodType === 'daily' && !$showDailyChecklist))
+                                    disabled
+                                @endif
+                                style="
+                                    display: inline-flex;
+                                    width: 100%;
+                                    align-items: center;
+                                    justify-content: center;
+                                    gap: 0.5rem;
+                                    border-radius: 0.375rem;
+                                    padding: 0.5rem 1rem;
+                                    font-size: 0.875rem;
+                                    font-weight: 500;
+                                    {{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist)
+                                        ? 'background-color: #2563eb; color: white; border: 1px solid #1e40af;'
+                                        : 'background-color: #d1d5db; color: #374151; border: 1px solid #9ca3af; cursor: not-allowed; opacity: 0.5;'
+                                    }}
+                                "
+                                onmouseover="{{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) ? 'this.style.backgroundColor=\'#1d4ed8\'' : '' }}"
+                                onmouseout="{{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) ? 'this.style.backgroundColor=\'#2563eb\'' : '' }}"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                </svg>
+                                <span>{{ __('Export PDF') }}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
-                    <table class="min-w-full border-collapse text-sm">
-                        <thead class="bg-zinc-100 dark:bg-zinc-800">
-                            <tr>
-                                <th class="border border-zinc-200 px-4 py-2 text-left dark:border-zinc-700">{{ __('Area Part') }}</th>
-                                @foreach ($dayColumns as $dayKey => $dayName)
-                                    <th colspan="2" class="border border-zinc-200 px-3 py-2 text-center dark:border-zinc-700">
-                                        @if ($periodType === 'weekly')
-                                            <div class="font-semibold">
-                                                {{ $dayName['label'] }}
-                                                @if (! empty($dayName['is_current']))
-                                                    <span class="ml-1 inline-block h-2 w-2 rounded-full bg-sky-500 align-middle"></span>
-                                                @endif
-                                            </div>
-                                        @elseif ($periodType === 'monthly')
-                                            <div class="font-semibold">
-                                                {{ $dayName['label'] }}
-                                                @if (! empty($dayName['is_current']))
-                                                    <span class="ml-1 inline-block h-2 w-2 rounded-full bg-sky-500 align-middle"></span>
-                                                @endif
-                                            </div>
-                                        @else
-                                            <div class="font-semibold">{{ $dayName }}</div>
-                                            <div class="text-xs text-zinc-500">{{ \Carbon\Carbon::parse($weekDates[$dayKey])->format('M d, Y') }}</div>
-                                        @endif
-                                    </th>
-                                @endforeach
-                            </tr>
-                            <tr>
-                                <th class="border border-zinc-200 px-4 py-2 dark:border-zinc-700"></th>
-                                @foreach (array_keys($dayColumns) as $dayKey)
-                                    @if ($periodType === 'daily')
-                                        <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-orange-600 dark:border-zinc-700 dark:text-orange-400">AM</th>
-                                        <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-sky-600 dark:border-zinc-700 dark:text-sky-400">PM</th>
-                                    @else
-                                        <th class="border border-zinc-200 px-2 py-1 text-center dark:border-zinc-700">{{ __('Check') }}</th>
-                                    @endif
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($areaParts as $part)
-                                <tr class="odd:bg-white even:bg-zinc-50 dark:odd:bg-zinc-900 dark:even:bg-zinc-800/60">
-                                    <td class="border border-zinc-200 px-4 py-2 font-medium dark:border-zinc-700">
-                                        <div class="flex items-center justify-between gap-2">
-                                            <span>{{ $part['display_name'] }}</span>
-                                            @php
-                                                $previewDayKey = array_key_first($dayColumns);
-                                                $hasRecordPreview = $previewDayKey !== null
-                                                    ? $this->hasSlotRecord($part['id'], $previewDayKey, 'AM')
-                                                    : false;
-                                                $isVerifiedPreview = $previewDayKey !== null
-                                                    ? $this->isSlotSelected($part['id'], $previewDayKey, 'AM')
-                                                    : false;
-                                            @endphp
-                                            @if ($hasRecordPreview)
-                                                @if ($isVerifiedPreview)
-                                                    <button
-                                                        type="button"
-                                                        wire:click="openProofPreview({{ $part['id'] }}, '{{ $previewDayKey }}', 'AM')"
-                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/40"
-                                                        aria-label="{{ __('Preview verified proof and comment') }}"
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                                        </svg>
-                                                    </button>
-                                                @else
-                                                    <button
-                                                        type="button"
-                                                        disabled
-                                                        class="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md border border-violet-300 bg-violet-50 text-violet-600 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
-                                                        aria-label="{{ __('Proof image available') }}"
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                                                            <circle cx="16.5" cy="9" r="1.5"></circle>
-                                                            <path d="M5.5 17l5-5 3.5 3.5 2.5-2.5 2.5 4"></path>
-                                                        </svg>
-                                                    </button>
-                                                @endif
-                                            @endif
-                                        </div>
-                                    </td>
-                                    @foreach (array_keys($dayColumns) as $dayKey)
-                                        @foreach ($periodShifts as $shift)
-                                            @php
-                                                $selected = $this->isSlotSelected($part['id'], $dayKey, $shift);
-                                                $locked = $this->isSlotLockedForFuture($dayKey);
-                                                $hasRecord = $this->hasSlotRecord($part['id'], $dayKey, $shift);
-                                            @endphp
-                                            <td
-                                                class="border border-zinc-200 px-2 py-2 text-center dark:border-zinc-700 {{ ($locked || ! $hasRecord) ? 'opacity-50' : '' }} {{ $selected ? 'bg-violet-50/60 dark:bg-violet-900/20' : '' }}"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    wire:key="slot-week-{{ $part['id'] }}-{{ $dayKey }}-{{ $shift }}"
-                                                    wire:click.prevent="requestToggleWithProof({{ $part['id'] }}, '{{ $dayKey }}', '{{ $shift }}')"
-                                                    @disabled($locked || ! $hasRecord)
-                                                    @if ($selected) tabindex="-1" aria-disabled="true" @endif
-                                                    @checked($selected)
-                                                    class="h-4 w-4 rounded border-zinc-300 text-violet-600 accent-violet-600 focus:ring-violet-500 {{ $selected ? 'pointer-events-none cursor-not-allowed' : 'pointer-events-auto cursor-pointer' }} disabled:cursor-not-allowed disabled:opacity-100 disabled:accent-violet-600 dark:border-zinc-600 dark:bg-zinc-900"
-                                                />
-                                            </td>
-                                        @endforeach
-                                    @endforeach
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="{{ $totalColumns }}" class="border border-zinc-200 px-4 py-6 text-center text-zinc-500 dark:border-zinc-700">
-                                        {{ __('No mapped checklist parts found. Add rows to location_area_parts with the selected frequency.') }}
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            @elseif ($selectedLocationId !== null && $periodType === 'daily' && $showDailyChecklist)
-                <div class="space-y-5 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                    <div class="rounded-xl border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4 dark:border-zinc-700 dark:from-zinc-900 dark:to-zinc-800">
-                        <div class="flex flex-wrap items-start justify-between gap-3">
-                            <div class="space-y-1">
-                                <flux:heading size="lg">{{ __('Daily Checklist') }}</flux:heading>
-                                <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-                                    <span class="rounded-full bg-sky-100 px-2.5 py-0.5 font-medium text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
-                                        {{ $selectedLocation }}
-                                    </span>
-                                </div>
+
+                @if ($periodType === 'daily' && ! $showDailyChecklist)
+                    @php
+                        $calendarBase = \Carbon\Carbon::parse($calendarMonth)->startOfMonth();
+                        $today = \Carbon\Carbon::now('Asia/Manila')->toDateString();
+                        $weekdayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                        $firstVisibleDate = $calendarBase->copy()->startOfWeek(\Carbon\Carbon::SUNDAY);
+                        $cellCount = 42;
+                    @endphp
+                    <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+                        <div class="mb-3 flex items-center justify-between">
+                            <button
+                                type="button"
+                                wire:click="previousCalendarMonth"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                aria-label="{{ __('Previous month') }}">
+                                &#8249;
+                            </button>
+                            <div class="text-3xl font-extrabold leading-none">
+                                <span class="text-zinc-900 dark:text-zinc-100">{{ $calendarBase->format('F') }}</span>
+                                <span class="text-rose-500">{{ $calendarBase->format('Y') }}</span>
                             </div>
+                            <button
+                                type="button"
+                                wire:click="nextCalendarMonth"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                aria-label="{{ __('Next month') }}">
+                                &#8250;
+                            </button>
+                        </div>
+
+                        <div class="grid gap-y-2 text-center text-xs font-semibold uppercase tracking-wide text-zinc-400" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
+                            @foreach ($weekdayHeaders as $weekdayHeader)
+                                <div>{{ $weekdayHeader }}</div>
+                            @endforeach
+                        </div>
+
+                        <div class="mt-2 grid gap-y-2 text-center" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
+                            @for ($cell = 0; $cell < $cellCount; $cell++)
+                                @php
+                                    $cellDateObj = $firstVisibleDate->copy()->addDays($cell);
+                                    $cellDate = $cellDateObj->toDateString();
+                                    $dayNumber = $cellDateObj->day;
+                                    $isCurrentMonth = $cellDateObj->month === $calendarBase->month;
+                                    $isSelected = $cellDate === $selectedDate;
+                                    $isToday = $cellDate === $today;
+                                    $isFuture = $cellDate > $today;
+                                @endphp
+                                <button
+                                    type="button"
+                                    wire:click="selectCalendarDate('{{ $cellDate }}')"
+                                    @disabled($isFuture)
+                                    class="group relative flex h-14 items-center justify-center rounded-md {{ $isSelected ? 'bg-zinc-200/80 dark:bg-zinc-700/60' : '' }} {{ $isFuture ? 'cursor-not-allowed opacity-40' : '' }}">
+                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-full text-3xl/[1] font-semibold transition {{ $isSelected ? 'bg-sky-500 text-white shadow-sm' : ($isCurrentMonth ? ($isFuture ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-100 dark:hover:bg-zinc-700') : ($isFuture ? 'text-zinc-300 dark:text-zinc-600' : 'text-zinc-300 hover:bg-zinc-200 dark:text-zinc-500 dark:hover:bg-zinc-700')) }}">
+                                        {{ $dayNumber }}
+                                    </span>
+                                    @if ($isToday && ! $isSelected)
+                                        <span class="absolute bottom-0.5 left-1/2 h-1.5 w-1.5 mt-10 -translate-x-1/2 rounded-full bg-sky-500"></span>
+                                    @endif
+                                </button>
+                            @endfor
+                        </div>
+                    </div>
+                @endif
+
+                @if ($selectedLocationId !== null && in_array($periodType, ['weekly', 'monthly'], true))
+                    @php
+                        $dayColumns = match ($periodType) {
+                            'weekly' => $weeklyWeeks,
+                            'monthly' => $monthlyPeriods,
+                            default => $days,
+                        };
+                        $periodShifts = $periodType === 'daily' ? $shifts : ['AM'];
+                        $totalColumns = 1 + (count($dayColumns) * count($periodShifts));
+                        $activeLabel = $periodType === 'weekly'
+                            ? ($weeklyWeeks['w1']['label'] ?? __('Current Week'))
+                            : ($monthlyPeriods['m1']['label'] ?? __('Current Month'));
+                        $activeDate = $periodType === 'weekly'
+                            ? ($weeklyWeeks['w1']['start_date'] ?? now('Asia/Manila')->toDateString())
+                            : ($monthlyPeriods['m1']['start_date'] ?? now('Asia/Manila')->toDateString());
+                    @endphp
+                    <div class="mb-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+                        <div class="mb-1 flex items-center justify-between">
+                            <button
+                                type="button"
+                                wire:click="{{ $periodType === 'weekly' ? 'previousWeeklyPeriod' : 'previousMonthlyPeriod' }}"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                aria-label="{{ __('Previous period') }}">
+                                &#8249;
+                            </button>
+                            <div class="text-3xl font-extrabold leading-none">
+                                <span class="text-zinc-900 dark:text-zinc-100">{{ \Carbon\Carbon::parse($activeDate)->format('F') }}</span>
+                                <span class="text-rose-500">{{ \Carbon\Carbon::parse($activeDate)->format('Y') }}</span>
+                            </div>
+                            <button
+                                type="button"
+                                wire:click="{{ $periodType === 'weekly' ? 'nextWeeklyPeriod' : 'nextMonthlyPeriod' }}"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                aria-label="{{ __('Next period') }}">
+                                &#8250;
+                            </button>
+                        </div>
+                        <div class="mt-3 text-center text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+                            {{ $activeLabel }}
                         </div>
                     </div>
 
-                    <div class="max-h-[65vh] overflow-auto rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700">
+                    <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
                         <table class="min-w-full border-collapse text-sm">
-                            <thead class="sticky top-0 z-10 bg-zinc-100 dark:bg-zinc-800">
+                            <thead class="bg-zinc-100 dark:bg-zinc-800">
                                 <tr>
-                                    <th class="border border-zinc-200 px-4 py-3 text-left font-semibold dark:border-zinc-700">{{ __('Area Part') }}</th>
-                                    <th colspan="2" class="border border-zinc-200 px-3 py-3 text-center dark:border-zinc-700">
-                                        <div class="font-semibold">{{ \Carbon\Carbon::parse($selectedDate)->format('l') }}</div>
-                                        <div class="text-xs text-zinc-500">{{ \Carbon\Carbon::parse($selectedDate)->format('M d, Y') }}</div>
-                                    </th>
+                                    <th class="border border-zinc-200 px-4 py-2 text-left dark:border-zinc-700">{{ __('Area Part') }}</th>
+                                    @foreach ($dayColumns as $dayKey => $dayName)
+                                        <th colspan="2" class="border border-zinc-200 px-3 py-2 text-center dark:border-zinc-700">
+                                            @if ($periodType === 'weekly')
+                                                <div class="font-semibold">
+                                                    {{ $dayName['label'] }}
+                                                    @if (! empty($dayName['is_current']))
+                                                        <span class="ml-1 inline-block h-2 w-2 rounded-full bg-sky-500 align-middle"></span>
+                                                    @endif
+                                                </div>
+                                            @elseif ($periodType === 'monthly')
+                                                <div class="font-semibold">
+                                                    {{ $dayName['label'] }}
+                                                    @if (! empty($dayName['is_current']))
+                                                        <span class="ml-1 inline-block h-2 w-2 rounded-full bg-sky-500 align-middle"></span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <div class="font-semibold">{{ $dayName }}</div>
+                                                <div class="text-xs text-zinc-500">{{ \Carbon\Carbon::parse($weekDates[$dayKey])->format('M d, Y') }}</div>
+                                            @endif
+                                        </th>
+                                    @endforeach
                                 </tr>
                                 <tr>
                                     <th class="border border-zinc-200 px-4 py-2 dark:border-zinc-700"></th>
-                                    <th class="border border-zinc-200 px-2 py-2 text-center font-semibold text-orange-600 dark:border-zinc-700 dark:text-orange-400">AM</th>
-                                    <th class="border border-zinc-200 px-2 py-2 text-center font-semibold text-sky-600 dark:border-zinc-700 dark:text-sky-400">PM</th>
+                                    @foreach (array_keys($dayColumns) as $dayKey)
+                                        @if ($periodType === 'daily')
+                                            <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-orange-600 dark:border-zinc-700 dark:text-orange-400">AM</th>
+                                            <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-sky-600 dark:border-zinc-700 dark:text-sky-400">PM</th>
+                                        @else
+                                            <th class="border border-zinc-200 px-2 py-1 text-center dark:border-zinc-700">{{ __('Check') }}</th>
+                                        @endif
+                                    @endforeach
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse ($areaParts as $part)
                                     <tr class="odd:bg-white even:bg-zinc-50 dark:odd:bg-zinc-900 dark:even:bg-zinc-800/60">
-                                        <td class="border border-zinc-200 px-4 py-3 font-medium dark:border-zinc-700">
-                                            @php
-                                                $hasAmRecord = $this->hasSlotRecord($part['id'], 'selected', 'AM');
-                                                $hasPmRecord = $this->hasSlotRecord($part['id'], 'selected', 'PM');
-                                                $hasAmVerified = $this->isSlotSelected($part['id'], 'selected', 'AM');
-                                                $hasPmVerified = $this->isSlotSelected($part['id'], 'selected', 'PM');
-                                            @endphp
+                                        <td class="border border-zinc-200 px-4 py-2 font-medium dark:border-zinc-700">
                                             <div class="flex items-center justify-between gap-2">
                                                 <span>{{ $part['display_name'] }}</span>
-                                                <div class="flex items-center gap-1">
-                                                    @if ($hasAmRecord)
-                                                        @if ($hasAmVerified)
-                                                            <button
-                                                                type="button"
-                                                                wire:click="openProofPreview({{ $part['id'] }}, 'selected', 'AM')"
-                                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/40"
-                                                                aria-label="{{ __('Preview AM verified proof and comment') }}"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-                                                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                                                </svg>
-                                                            </button>
-                                                        @else
-                                                            <button
-                                                                type="button"
-                                                                disabled
-                                                                class="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md border border-orange-300 bg-orange-50 text-orange-600 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
-                                                                aria-label="{{ __('AM proof image available') }}"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-                                                                    <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                                                                    <circle cx="16.5" cy="9" r="1.5"></circle>
-                                                                    <path d="M5.5 17l5-5 3.5 3.5 2.5-2.5 2.5 4"></path>
-                                                                </svg>
-                                                            </button>
-                                                        @endif
+                                                @php
+                                                    $previewDayKey = array_key_first($dayColumns);
+                                                    $hasRecordPreview = $previewDayKey !== null ? $this->hasSlotRecord($part['id'], $previewDayKey, 'AM') : false;
+                                                    $isVerifiedPreview = $previewDayKey !== null ? $this->isSlotSelected($part['id'], $previewDayKey, 'AM') : false;
+                                                @endphp
+                                                @if ($hasRecordPreview)
+                                                    @if ($isVerifiedPreview)
+                                                        <button
+                                                            type="button"
+                                                            wire:click="openProofPreview({{ $part['id'] }}, '{{ $previewDayKey }}', 'AM')"
+                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/40"
+                                                            aria-label="{{ __('Preview verified proof and comment') }}">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+                                                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                            </svg>
+                                                        </button>
+                                                    @else
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            class="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md border border-violet-300 bg-violet-50 text-violet-600 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
+                                                            aria-label="{{ __('Proof image available') }}">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+                                                                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                                                                <circle cx="16.5" cy="9" r="1.5"></circle>
+                                                                <path d="M5.5 17l5-5 3.5 3.5 2.5-2.5 2.5 4"></path>
+                                                            </svg>
+                                                        </button>
                                                     @endif
-                                                    @if ($hasPmRecord)
-                                                        @if ($hasPmVerified)
-                                                            <button
-                                                                type="button"
-                                                                wire:click="openProofPreview({{ $part['id'] }}, 'selected', 'PM')"
-                                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-300 dark:hover:bg-sky-900/40"
-                                                                aria-label="{{ __('Preview PM verified proof and comment') }}"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#0284c7" stroke-width="2">
-                                                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                                                </svg>
-                                                            </button>
-                                                        @else
-                                                            <button
-                                                                type="button"
-                                                                disabled
-                                                                class="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md border border-sky-300 bg-sky-50 text-sky-600 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-                                                                aria-label="{{ __('PM proof image available') }}"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-                                                                    <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                                                                    <circle cx="16.5" cy="9" r="1.5"></circle>
-                                                                    <path d="M5.5 17l5-5 3.5 3.5 2.5-2.5 2.5 4"></path>
-                                                                </svg>
-                                                            </button>
-                                                        @endif
-                                                    @endif
-                                                </div>
+                                                @endif
                                             </div>
                                         </td>
-                                        @foreach ($shifts as $shift)
-                                            @php
-                                                $selected = $this->isSlotSelected($part['id'], 'selected', $shift);
-                                                $locked = $this->isSlotLockedForFuture('selected');
-                                                $hasRecord = $this->hasSlotRecord($part['id'], 'selected', $shift);
-                                            @endphp
-                                            <td
-                                                @if (! ($locked || ! $hasRecord || $selected))
-                                                    wire:click="requestToggleWithProof({{ $part['id'] }}, 'selected', '{{ $shift }}')"
-                                                @endif
-                                                class="border border-zinc-200 px-2 py-3 text-center dark:border-zinc-700 {{ ($locked || ! $hasRecord) ? 'opacity-50' : 'cursor-pointer' }} {{ $selected ? 'bg-violet-50/60 dark:bg-violet-900/20' : '' }}"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    wire:key="slot-day-{{ $part['id'] }}-selected-{{ $shift }}"
-                                                    @disabled($locked || ! $hasRecord)
-                                                    @if ($selected) tabindex="-1" aria-disabled="true" @endif
-                                                    @checked($selected)
-                                                    class="pointer-events-none h-4 w-4 rounded border-zinc-300 text-violet-600 accent-violet-600 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-100 disabled:accent-violet-600 dark:border-zinc-600 dark:bg-zinc-900"
-                                                />
-                                            </td>
+                                        @foreach (array_keys($dayColumns) as $dayKey)
+                                            @foreach ($periodShifts as $shift)
+                                                @php
+                                                    $selected = $this->isSlotSelected($part['id'], $dayKey, $shift);
+                                                    $locked = $this->isSlotLockedForFuture($dayKey);
+                                                    $hasRecord = $this->hasSlotRecord($part['id'], $dayKey, $shift);
+                                                @endphp
+                                                <td class="border border-zinc-200 px-2 py-2 text-center dark:border-zinc-700 {{ ($locked || ! $hasRecord) ? 'opacity-50' : '' }} {{ $selected ? 'bg-violet-50/60 dark:bg-violet-900/20' : '' }}">
+                                                    <input
+                                                        type="checkbox"
+                                                        wire:key="slot-week-{{ $part['id'] }}-{{ $dayKey }}-{{ $shift }}"
+                                                        wire:click.prevent="requestToggleWithProof({{ $part['id'] }}, '{{ $dayKey }}', '{{ $shift }}')"
+                                                        @disabled($locked || ! $hasRecord)
+                                                        @if ($selected) tabindex="-1" aria-disabled="true" @endif
+                                                        @checked($selected)
+                                                        class="h-4 w-4 rounded border-zinc-300 text-violet-600 accent-violet-600 focus:ring-violet-500 {{ $selected ? 'pointer-events-none cursor-not-allowed' : 'pointer-events-auto cursor-pointer' }} disabled:cursor-not-allowed disabled:opacity-100 disabled:accent-violet-600 dark:border-zinc-600 dark:bg-zinc-900"
+                                                    />
+                                                </td>
+                                            @endforeach
                                         @endforeach
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="border border-zinc-200 px-4 py-8 text-center text-zinc-500 dark:border-zinc-700">
-                                            {{ __('No mapped checklist parts found. Add rows to location_area_parts with daily frequency.') }}
+                                        <td colspan="{{ $totalColumns }}" class="border border-zinc-200 px-4 py-6 text-center text-zinc-500 dark:border-zinc-700">
+                                            {{ __('No mapped checklist parts found. Add rows to location_area_parts with the selected frequency.') }}
                                         </td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
-                </div>
-            @elseif ($selectedLocationId !== null && $periodType === 'daily')
-                <div class="rounded-xl border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
-                    {{ __('Select a date to load the daily checklist.') }}
-                </div>
-            @else
-                <div class="rounded-xl border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
-                    {{ __('Select a frequency and area location to load the checklist table.') }}
-                </div>
-            @endif
 
-            @if ($showProofPreviewModal)
-                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                    <div class="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-zinc-900">
-                        <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
-                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                                {{ $proofPreviewTitle ?? __('Proof Preview') }}
-                            </h3>
-                            <button
-                                type="button"
-                                wire:click="closeProofPreview"
-                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                                aria-label="{{ __('Close preview') }}"
-                            >
-                                &times;
-                            </button>
+                @elseif ($selectedLocationId !== null && $periodType === 'daily' && $showDailyChecklist)
+                    <div class="space-y-5 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                        <div class="rounded-xl border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4 dark:border-zinc-700 dark:from-zinc-900 dark:to-zinc-800">
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div class="space-y-1">
+                                    <flux:heading size="lg">{{ __('Daily Checklist') }}</flux:heading>
+                                    <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                                        <span class="rounded-full bg-sky-100 px-2.5 py-0.5 font-medium text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                                            {{ $selectedLocation }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="p-4">
-                            @if ($proofPreviewUrl)
-                                <div class="mx-auto w-full max-w-sm">
-                                    <div class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                                        <img src="{{ $proofPreviewUrl }}" alt="{{ __('Proof image') }}" class="h-full w-full object-contain">
-                                    </div>
-                                </div>
-                                @if (filled($proofPreviewComment))
-                                    <div class="mx-auto mt-3 w-full max-w-sm rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200">
-                                        <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Verifier Comment') }}</div>
-                                        <div>{{ $proofPreviewComment }}</div>
-                                    </div>
-                                @endif
-                            @else
-                                <div class="rounded-md border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
-                                    {{ __('No proof image available for this item.') }}
-                                </div>
-                            @endif
+
+                        <div class="max-h-[65vh] overflow-auto rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700">
+                            <table class="min-w-full border-collapse text-sm">
+                                <thead class="sticky top-0 z-10 bg-zinc-100 dark:bg-zinc-800">
+                                    <tr>
+                                        <th class="border border-zinc-200 px-4 py-3 text-left font-semibold dark:border-zinc-700">{{ __('Area Part') }}</th>
+                                        <th colspan="2" class="border border-zinc-200 px-3 py-3 text-center dark:border-zinc-700">
+                                            <div class="font-semibold">{{ \Carbon\Carbon::parse($selectedDate)->format('l') }}</div>
+                                            <div class="text-xs text-zinc-500">{{ \Carbon\Carbon::parse($selectedDate)->format('M d, Y') }}</div>
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th class="border border-zinc-200 px-4 py-2 dark:border-zinc-700"></th>
+                                        <th class="border border-zinc-200 px-2 py-2 text-center font-semibold text-orange-600 dark:border-zinc-700 dark:text-orange-400">AM</th>
+                                        <th class="border border-zinc-200 px-2 py-2 text-center font-semibold text-sky-600 dark:border-zinc-700 dark:text-sky-400">PM</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse ($areaParts as $part)
+                                        <tr class="odd:bg-white even:bg-zinc-50 dark:odd:bg-zinc-900 dark:even:bg-zinc-800/60">
+                                            <td class="border border-zinc-200 px-4 py-3 font-medium dark:border-zinc-700">
+                                                @php
+                                                    $hasAmRecord = $this->hasSlotRecord($part['id'], 'selected', 'AM');
+                                                    $hasPmRecord = $this->hasSlotRecord($part['id'], 'selected', 'PM');
+                                                    $hasAmVerified = $this->isSlotSelected($part['id'], 'selected', 'AM');
+                                                    $hasPmVerified = $this->isSlotSelected($part['id'], 'selected', 'PM');
+                                                @endphp
+                                                <div class="flex items-center justify-between gap-2">
+                                                    <span>{{ $part['display_name'] }}</span>
+                                                    <div class="flex items-center gap-1">
+                                                        @if ($hasAmRecord)
+                                                            @if ($hasAmVerified)
+                                                                <button
+                                                                    type="button"
+                                                                    wire:click="openProofPreview({{ $part['id'] }}, 'selected', 'AM')"
+                                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/40"
+                                                                    aria-label="{{ __('Preview AM verified proof and comment') }}">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+                                                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                                    </svg>
+                                                                </button>
+                                                            @else
+                                                                <button
+                                                                    type="button"
+                                                                    disabled
+                                                                    class="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md border border-orange-300 bg-orange-50 text-orange-600 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+                                                                    aria-label="{{ __('AM proof image available') }}">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+                                                                        <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                                                                        <circle cx="16.5" cy="9" r="1.5"></circle>
+                                                                        <path d="M5.5 17l5-5 3.5 3.5 2.5-2.5 2.5 4"></path>
+                                                                    </svg>
+                                                                </button>
+                                                            @endif
+                                                        @endif
+                                                        @if ($hasPmRecord)
+                                                            @if ($hasPmVerified)
+                                                                <button
+                                                                    type="button"
+                                                                    wire:click="openProofPreview({{ $part['id'] }}, 'selected', 'PM')"
+                                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-300 dark:hover:bg-sky-900/40"
+                                                                    aria-label="{{ __('Preview PM verified proof and comment') }}">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#0284c7" stroke-width="2">
+                                                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                                    </svg>
+                                                                </button>
+                                                            @else
+                                                                <button
+                                                                    type="button"
+                                                                    disabled
+                                                                    class="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md border border-sky-300 bg-sky-50 text-sky-600 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
+                                                                    aria-label="{{ __('PM proof image available') }}">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+                                                                        <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                                                                        <circle cx="16.5" cy="9" r="1.5"></circle>
+                                                                        <path d="M5.5 17l5-5 3.5 3.5 2.5-2.5 2.5 4"></path>
+                                                                    </svg>
+                                                                </button>
+                                                            @endif
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            @foreach ($shifts as $shift)
+                                                @php
+                                                    $selected = $this->isSlotSelected($part['id'], 'selected', $shift);
+                                                    $locked = $this->isSlotLockedForFuture('selected');
+                                                    $hasRecord = $this->hasSlotRecord($part['id'], 'selected', $shift);
+                                                @endphp
+                                                <td
+                                                    @if (! ($locked || ! $hasRecord || $selected))
+                                                        wire:click="requestToggleWithProof({{ $part['id'] }}, 'selected', '{{ $shift }}')"
+                                                    @endif
+                                                    class="border border-zinc-200 px-2 py-3 text-center dark:border-zinc-700 {{ ($locked || ! $hasRecord) ? 'opacity-50' : 'cursor-pointer' }} {{ $selected ? 'bg-violet-50/60 dark:bg-violet-900/20' : '' }}"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        wire:key="slot-day-{{ $part['id'] }}-selected-{{ $shift }}"
+                                                        @disabled($locked || ! $hasRecord)
+                                                        @if ($selected) tabindex="-1" aria-disabled="true" @endif
+                                                        @checked($selected)
+                                                        class="pointer-events-none h-4 w-4 rounded border-zinc-300 text-violet-600 accent-violet-600 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-100 disabled:accent-violet-600 dark:border-zinc-600 dark:bg-zinc-900"
+                                                    />
+                                                </td>
+                                            @endforeach
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="border border-zinc-200 px-4 py-8 text-center text-zinc-500 dark:border-zinc-700">
+                                                {{ __('No mapped checklist parts found. Add rows to location_area_parts with daily frequency.') }}
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
-            @endif
 
-            @if ($showVerifyModal)
-                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                    <div class="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-zinc-900">
-                        <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
-                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Verify Checklist Record') }}</h3>
-                            <button
-                                type="button"
-                                wire:click="closeVerifyModal"
-                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                                aria-label="{{ __('Close verify modal') }}"
-                            >
-                                &times;
-                            </button>
-                        </div>
-                        <div class="space-y-4 p-4">
-                            @if ($verifyPreviewUrl)
-                                <div class="mx-auto w-full max-w-sm">
-                                    <div class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                                        <img src="{{ $verifyPreviewUrl }}" alt="{{ __('Proof image') }}" class="h-full w-full object-contain">
-                                    </div>
-                                </div>
-                            @else
-                                <div class="rounded-md border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
-                                    {{ __('No proof image available for this record.') }}
-                                </div>
-                            @endif
+                @elseif ($selectedLocationId !== null && $periodType === 'daily')
+                    <div class="rounded-xl border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
+                        {{ __('Select a date to load the daily checklist.') }}
+                    </div>
+                @else
+                    <div class="rounded-xl border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
+                        {{ __('Select a frequency and area location to load the checklist table.') }}
+                    </div>
+                @endif
 
-                            <div class="space-y-2">
-                                <label for="verifyComment" class="block text-xs font-medium text-zinc-600 dark:text-zinc-300">
-                                    {{ __('Verifier Comment') }}
-                                </label>
-                                <textarea
-                                    id="verifyComment"
-                                    wire:model.defer="verifyComment"
-                                    rows="3"
-                                    placeholder="{{ __('Add verification comment...') }}"
-                                    class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                                ></textarea>
+                @if ($showProofPreviewModal)
+                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+                        <div class="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-zinc-900">
+                            <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    {{ $proofPreviewTitle ?? __('Proof Preview') }}
+                                </h3>
+                                <button
+                                    type="button"
+                                    wire:click="closeProofPreview"
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                    aria-label="{{ __('Close preview') }}">
+                                    &times;
+                                </button>
                             </div>
+                            <div class="p-4">
+                                @if ($proofPreviewUrl)
+                                    <div class="mx-auto w-full max-w-sm">
+                                        <div class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                            <img src="{{ $proofPreviewUrl }}" alt="{{ __('Proof image') }}" class="h-full w-full object-contain">
+                                        </div>
+                                    </div>
+                                    @if (filled($proofPreviewComment))
+                                        <div class="mx-auto mt-3 w-full max-w-sm rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200">
+                                            <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Verifier Comment') }}</div>
+                                            <div>{{ $proofPreviewComment }}</div>
+                                        </div>
+                                    @endif
+                                @else
+                                    <div class="rounded-md border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
+                                        {{ __('No proof image available for this item.') }}
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
-                            <div class="flex items-center justify-end gap-2">
+                @if ($showVerifyModal)
+                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+                        <div class="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-zinc-900">
+                            <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Verify Checklist Record') }}</h3>
                                 <button
                                     type="button"
                                     wire:click="closeVerifyModal"
-                                    class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                                >
-                                    {{ __('Cancel') }}
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                    aria-label="{{ __('Close verify modal') }}">
+                                    &times;
                                 </button>
-                                <button
-                                    type="button"
-                                    wire:click="confirmVerifyChecklist"
-                                    class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-                                >
-                                    {{ __('Confirm Verification') }}
-                                </button>
+                            </div>
+                            <div class="space-y-4 p-4">
+                                @if ($verifyPreviewUrl)
+                                    <div class="mx-auto w-full max-w-sm">
+                                        <div class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                            <img src="{{ $verifyPreviewUrl }}" alt="{{ __('Proof image') }}" class="h-full w-full object-contain">
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="rounded-md border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
+                                        {{ __('No proof image available for this record.') }}
+                                    </div>
+                                @endif
+
+                                <div class="space-y-2">
+                                    <label for="verifyComment" class="block text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                                        {{ __('Verifier Comment') }}
+                                    </label>
+                                    <textarea
+                                        id="verifyComment"
+                                        wire:model.defer="verifyComment"
+                                        rows="3"
+                                        placeholder="{{ __('Add verification comment...') }}"
+                                        class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"></textarea>
+                                </div>
+
+                                <div class="flex items-center justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        wire:click="closeVerifyModal"
+                                        class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                                        {{ __('Cancel') }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        wire:click="confirmVerifyChecklist"
+                                        class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                                        {{ __('Confirm Verification') }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            @endif
-        </div>
-    </x-pages::Maintenance.checklist.layout>
-
-</section>
+                @endif
+            </div>
+        </x-pages::maintenance.checklist.layout>
+    </section>
 </div>
