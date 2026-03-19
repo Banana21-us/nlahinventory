@@ -1,6 +1,6 @@
 <div class="p-6 max-w-6xl mx-auto space-y-6">
     <nav class="flex items-center text-xs font-bold uppercase tracking-widest text-gray-400">
-        <a href="{{ route('patients') }}" wire:navigate class="hover:text-indigo-600">Registry</a>
+        <a href="{{ route('medmission.patients') }}" wire:navigate class="hover:text-indigo-600">Registry</a>
         <span class="mx-2">/</span>
         <span class="text-gray-900">Patient Profile</span>
     </nav>

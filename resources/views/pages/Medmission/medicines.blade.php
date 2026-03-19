@@ -1,19 +1,33 @@
-<div class="max-w-6xl mx-auto py-8 px-4">
+<div class="max-w-7xl mx-auto py-8 px-4">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="p-2 brand-bg-blue-light rounded-lg">
+                <svg class="w-6 h-6 brand-text-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+            </div>
+            <div>
+                <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400">Pharmacy</p>
+                <h1 class="text-xl font-bold text-gray-800 leading-tight">Medicine Inventory</h1>
+            </div>
+        </div>
+    </div>
     <div class="bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden" x-data="{ open: @entangle('showForm') }">
     <button 
         @click="open = !open" 
         class="w-full flex items-center justify-between p-5 bg-white hover:bg-gray-50 transition-colors focus:outline-none"
     >
         <div class="flex items-center">
-            <div class="p-2 bg-indigo-50 rounded-lg mr-4">
-                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="p-2 rounded-lg mr-4" style="background-color:#e6f0f7;">
+                <svg class="w-5 h-5" style="color:#015581;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" x-show="!open"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" x-show="open" style="display: none;"></path>
                 </svg>
             </div>
             <h2 class="text-lg font-bold text-gray-800">Medicine Entry</h2>
         </div>
-        <span class="text-sm font-medium text-indigo-600" x-text="open ? 'Minimize' : 'Add New Medicine'"></span>
+        <span class="text-sm font-medium" style="color:#015581;" x-text="open ? 'Minimize' : 'Add New Medicine'"></span>
     </button>
 
     <div 
@@ -27,23 +41,23 @@
         <form wire:submit.prevent="save" class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="md:col-span-1">
                 <label class="block text-xs font-bold uppercase tracking-wide text-gray-500">Generic Name *</label>
-                <input type="text" wire:model="generic_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border">
+                <input type="text" wire:model="generic_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border" style="--tw-ring-color:#015581;">
                 @error('generic_name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
             </div>
 
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wide text-gray-500">Brand Name</label>
-                <input type="text" wire:model="brand_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border">
+                <input type="text" wire:model="brand_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border">
             </div>
 
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wide text-gray-500">Quantity</label>
-                <input type="text" wire:model="quantity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border">
+                <input type="text" wire:model="quantity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border">
             </div>
 
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wide text-gray-500">Dosage Form</label>
-                <input type="text" wire:model="dosage_form" placeholder="e.g Tablet, Capsule, Syrup" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border">
+                <input type="text" wire:model="dosage_form" placeholder="e.g Tablet, Capsule, Syrup" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border">
             </div>
 
             <div class="grid grid-cols-2 gap-2">
@@ -79,7 +93,7 @@
                 <button type="button" @click="open = false" class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4">
                     Cancel
                 </button>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-2 px-10 rounded shadow-md transition-all active:scale-95">
+                <button type="submit" class="text-white text-sm font-bold py-2 px-10 rounded shadow-md transition-all active:scale-95" style="background-color:#015581;" onmouseover="this.style.backgroundColor='#01406a'" onmouseout="this.style.backgroundColor='#015581'">
                     Save Medicine
                 </button>
             </div>
@@ -113,7 +127,7 @@
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-500">
                             {{ $medicine->dosage_form ?? 'N/A' }} 
-                            <span class="text-indigo-600 font-medium">({{ $medicine->strength }})</span>
+                            <span class="font-medium" style="color:#027c8b;">({{ $medicine->strength }})</span>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-500">
                             {{ $medicine->description ?? 'None' }}
@@ -131,7 +145,10 @@
                         <td class="px-6 py-4 text-right text-sm font-medium">
                             <button 
                                 wire:click="edit({{ $medicine->id }})" 
-                                class="rounded-md bg-indigo-50 px-2.5 py-1.5 text-sm font-semibold text-indigo-700 shadow-sm hover:bg-indigo-100 transition-colors"
+                                class="rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors"
+                                style="background-color:#e6f0f7;color:#015581;"
+                                onmouseover="this.style.backgroundColor='#cde0ef'"
+                                onmouseout="this.style.backgroundColor='#e6f0f7'"
                             >
                                 Edit
                             </button>
@@ -203,7 +220,7 @@
                 <div class="p-4">
                     <div class="flex items-start">
                         <div class="shrink-0">
-                            <svg class="size-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <svg class="size-6" style="color:#027c8b;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
                         </div>
@@ -212,7 +229,7 @@
                             <p class="mt-1 text-sm text-gray-500">{{ session('message') }}</p>
                         </div>
                         <div class="ml-4 flex shrink-0 border-l border-gray-100 pl-3">
-                            <button @click="show = false" type="button" class="inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            <button @click="show = false" type="button" class="inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500">
                                 <span class="sr-only">Close</span>
                                 <svg class="size-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
@@ -221,7 +238,9 @@
                         </div>
                     </div>
                 </div>
+                <div class="h-1" style="background-color:#f0b626; animation: shrink 4s linear forwards;"></div>
             </div>
+            <style>@keyframes shrink { from { width:100% } to { width:0% } }</style>
         @endif
 
        @if($isEditing)
@@ -229,12 +248,12 @@
     <div class="fixed inset-0 bg-gray-500/75 transition-opacity" wire:click="$set('isEditing', false)"></div>
 
     <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl" style="border-top:4px solid #027c8b;">
             <form wire:submit.prevent="update">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
                     <div class="flex items-center mb-6 pb-3 border-b border-gray-100">
-                        <div class="p-2 bg-indigo-100 rounded-lg mr-3">
-                            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-2 rounded-lg mr-3" style="background-color:#e6f4f5;">
+                            <svg class="w-6 h-6" style="color:#027c8b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </div>
@@ -244,7 +263,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="md:col-span-2">
                             <label class="block text-xs font-bold uppercase tracking-wide text-gray-500">Generic Name *</label>
-                            <input type="text" wire:model="generic_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500">
+                            <input type="text" wire:model="generic_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
                             @error('generic_name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
 
@@ -295,10 +314,10 @@
                 </div>
 
                 <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                    <button type="submit" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto">
+                    <button type="submit" class="inline-flex w-full justify-center rounded-md px-4 py-2 text-sm font-bold text-white shadow-sm sm:ml-3 sm:w-auto" style="background-color:#027c8b;" onmouseover="this.style.backgroundColor='#016070'" onmouseout="this.style.backgroundColor='#027c8b'">
                         Save Changes
                     </button>
-                    <button type="button" wire:click="$set('isEditing', false)" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                    <button type="button" wire:click="$set('isEditing', false)" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
                         Cancel
                     </button>
                 </div>
@@ -310,6 +329,3 @@
         </div>
     </div>
 </div>
-
-
-
