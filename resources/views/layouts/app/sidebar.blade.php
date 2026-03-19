@@ -4,30 +4,18 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
-        
-         <flux:sidebar sticky collapsible class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-        {{-- 1. MEDICAL MISSION --}}
-@can('access-medical')
-    <flux:sidebar.header>
-        <x-app-logo :sidebar="true" href="{{ route('medmission.dashboard') }}" wire:navigate />
-        <flux:sidebar.collapse class="lg:hidden" />
-    </flux:sidebar.header>
-    
-    <flux:sidebar.group icon="home" expandable heading="Medical Mission" class="grid">
-        <flux:sidebar.item :href="route('medmission.dashboard')" :current="request()->routeIs('medmission.dashboard')" wire:navigate>
-            {{ __('Dashboard') }}
-        </flux:sidebar.item>
-        <flux:sidebar.item :href="route('medmission.medicines')" :current="request()->routeIs('medmission.medicines')" wire:navigate>
-            {{ __('Medicines') }}
-        </flux:sidebar.item>
-        <flux:sidebar.item :href="route('medmission.dispense')" :current="request()->routeIs('medmission.dispense')" wire:navigate>
-            {{ __('Dispense Medicine') }}
-        </flux:sidebar.item>
-        <flux:sidebar.item :href="route('medmission.patients')" :current="request()->routeIs('medmission.patients')" wire:navigate>
-            {{ __('Patients') }}
-        </flux:sidebar.item>
-    </flux:sidebar.group>
-@endcan
+        <flux:sidebar sticky collapsible  class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+            <flux:sidebar.header>
+                <x-app-logo :sidebar="true" href="{{ route('medmission.dashboard') }}" wire:navigate />
+                <flux:sidebar.collapse class="lg:hidden" />
+            </flux:sidebar.header>
+            
+            <flux:sidebar.group icon="home" expandable heading="Medical Mission" class="grid">
+                <flux:sidebar.item :heading="__('Platform')" class="grid">
+                    <flux:sidebar.item  :href="route('medmission.dashboard')" :current="request()->routeIs('medmission.dashboard')" wire:navigate>
+                        {{ __('Dashboard') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
 
 {{-- 2. CHECKLIST --}}
 {{-- Visible if user is Maintenance, Inspector, OR HR --}}
@@ -90,6 +78,45 @@
             </flux:sidebar.item>
         </flux:sidebar.group>
 
+                <flux:sidebar.item class="grid">
+                    <flux:sidebar.item  :href="route('Maintenance.checklist.verify')" :current="request()->routeIs('Maintenance.checklist.verify')" wire:navigate>
+                        {{ __('Verify') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>   
+            </flux:sidebar.group>
+
+                <flux:sidebar.group>
+                    <flux:sidebar.item icon="newspaper" heading="Checklist" class :href="route('NewsPage.newshr')" :current="request()->routeIs('NewsPage.newshr')" wire:navigate>
+                        {{ __('News') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
+
+            <flux:sidebar.group  icon="users" expandable heading="HR Corner" class="grid">
+                <flux:sidebar.item :heading="__('Platform')" class="grid">
+                    <flux:sidebar.item :href="route('HR.hrdashboard')" :current="request()->routeIs('HR.hrdashboard')" wire:navigate>
+                        {{ __('Dashboard') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
+                <flux:sidebar.item class="grid">
+                    <flux:sidebar.item :href="route('HR.userlist')" :current="request()->routeIs('HR.userlist')" wire:navigate>
+                        {{ __('Employees') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
+                <flux:sidebar.item class="grid">
+                    <flux:sidebar.item :href="route('HR.userlist')" :current="request()->routeIs('HR.userlist')" wire:navigate>
+                        {{ __('Leave Applications') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
+            </flux:sidebar.group>
+
+            <flux:sidebar.group icon="clipboard-check" expandable heading="POS" class="grid">
+                <flux:sidebar.item :heading="__('Platform')" class="grid">
+                    <flux:sidebar.item  :href="route('POS.posproducts')" :current="request()->routeIs('POS.posproducts')" wire:navigate>
+                        {{ __('Products') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item> 
+            </flux:sidebar.group>
+            
 
             <flux:spacer />
 
@@ -105,8 +132,6 @@
 
             <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()?->name ?? 'Guest'" />
         </flux:sidebar>
-
-
         <!-- Mobile User Menu -->
         <flux:header>
     <flux:sidebar.toggle icon="bars-2" inset="left" />
