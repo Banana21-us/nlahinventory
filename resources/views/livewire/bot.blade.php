@@ -105,6 +105,7 @@
     transition: background 0.15s;
     font-family: 'DM Sans', sans-serif;
     margin-left: auto;
+    margin-left: auto;
   }
   .nlah-feedback-btn:hover {
     background: rgba(255,255,255,0.3);
@@ -226,7 +227,7 @@
     background: white;
     border-radius: 12px;
     padding: 1.2rem;
-    margin: 0.5rem;
+    margin-bottom: 900px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
   .nlah-feedback-title {

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('records', function (Blueprint $table) {
             $table->id();
             $table->integer('location_area_part_id');
-            $table->date('cleaning_date');
+            $table->dateTime('cleaning_datetime');
             $table->enum('period_type', ['daily', 'weekly', 'monthly']);
             $table->enum('shift', ['AM', 'PM'])->nullable();
             $table->enum('status', ['YES', 'NO']);

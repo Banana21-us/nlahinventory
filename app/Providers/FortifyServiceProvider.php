@@ -36,7 +36,7 @@ class FortifyServiceProvider extends ServiceProvider
 
         // Block disabled users at login
         Fortify::authenticateUsing(function (Request $request) {
-            $user = User::where('email', $request->email)->first();
+           $user = User::where('username', $request->username)->first();
 
             if ($user && Hash::check($request->password, $user->password)) {
                 if ($user->role === 'Disable') {
@@ -82,9 +82,9 @@ class FortifyServiceProvider extends ServiceProvider
                     return match($user->role) {
                         'HR'              => redirect()->route('HR.userlist'),
                         'Staff'           => redirect()->route('medmission.dashboard'),
-                        'Maintenance'     => redirect()->route('maintenance.dashboard'),
-                        'Inspector'       => redirect()->route('inspector.dashboard'),
-                        default           => redirect()->route('login')->withErrors(['email' => 'Your account is disabled. Please contact the administrator.']),
+                        'Maintenance'     => redirect()->route('Maintenance.checklist.check'),
+                        'Inspector'       => redirect()->route('Maintenance.checklist.verify'),
+                        default           => redirect()->route('logout')->withErrors(['email' => 'Your account is disabled. Please contact the administrator.']),
                     };
                 }
             };

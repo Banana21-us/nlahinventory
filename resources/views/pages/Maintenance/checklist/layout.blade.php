@@ -3,13 +3,14 @@
     $currentLocationName = $locationName ?? request('location_name');
     $currentPeriod = $selectedPeriod ?? request('period');
     $currentRouteName = $routeName ?? request()->route()?->getName() ?? 'Maintenance.checklist.check';
-    $activePeriod = in_array($currentPeriod, ['daily', 'weekly', 'monthly'], true)
+    $activePeriod = in_array($currentPeriod, ['daily', 'nightly', 'weekly', 'monthly'], true)
         ? $currentPeriod
         : 'daily';
     $periodUrl = fn (string $period) => route($currentRouteName, array_filter([
         'period' => $period,
         'location' => $currentLocationId,
         'location_name' => $currentLocationName,
+        'prefill_location' => $currentLocationId ? 1 : null,
     ], fn ($value) => $value !== null && $value !== ''));
 @endphp
 
@@ -17,7 +18,7 @@
     <div class="me-10 w-full pb-4 md:w-[220px]">
         <div class="md:hidden">
             <div class="flex gap-2 overflow-x-auto pb-1">
-                @foreach (['daily' => __('Daily'), 'weekly' => __('Weekly'), 'monthly' => __('Monthly')] as $periodKey => $periodLabel)
+               @foreach (['daily' => __('Daily'), 'nightly' => __('Nightly'), 'weekly' => __('Weekly'), 'monthly' => __('Monthly')] as $periodKey => $periodLabel)
                     <a
                         href="{{ $periodUrl($periodKey) }}"
                         class="inline-flex shrink-0 items-center rounded-md border px-3 py-1.5 text-sm font-medium transition
@@ -34,6 +35,7 @@
         <div class="hidden md:block">
             <flux:navlist aria-label="{{ __('Checklist View') }}">
                 <flux:navlist.item :href="$periodUrl('daily')" :current="$activePeriod === 'daily'">{{ __('Daily') }}</flux:navlist.item>
+                <flux:navlist.item :href="$periodUrl('nightly')" :current="$activePeriod === 'nightly'">{{ __('Nightly') }}</flux:navlist.item>
                 <flux:navlist.item :href="$periodUrl('weekly')" :current="$activePeriod === 'weekly'">{{ __('Weekly') }}</flux:navlist.item>
                 <flux:navlist.item :href="$periodUrl('monthly')" :current="$activePeriod === 'monthly'">{{ __('Monthly') }}</flux:navlist.item>
             </flux:navlist>

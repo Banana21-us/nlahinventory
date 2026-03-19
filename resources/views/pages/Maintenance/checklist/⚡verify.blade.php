@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 new class extends Component {
     public array $selectedSlots = [];
@@ -91,57 +92,59 @@ new class extends Component {
         $recordsQuery = DB::table('records')
             ->whereIn('location_area_part_id', $partIds)
             ->where('period_type', $this->periodType)
-            ->where('status', 'YES');
+            ->where('status', 'YES')
+            ->select([
+                'location_area_part_id',
+                'cleaning_datetime',
+                'shift',
+                'maintenance_name',
+                'verifier_name',
+                'verifier_status',
+                'maintenance_comments',
+                'verifier_comments',
+            ]);
 
         if ($this->periodType === 'daily') {
             // MODIFIED: Get the whole week (Monday to Sunday) based on the selected date
             $startOfWeek = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY);
             $endOfWeek = Carbon::parse($this->selectedDate)->endOfWeek(Carbon::SUNDAY);
-            $recordsQuery->whereBetween('cleaning_date', [$startOfWeek, $endOfWeek]);
+            $recordsQuery->whereBetween('cleaning_datetime', [
+                Carbon::parse($startOfWeek)->startOfDay(),
+                Carbon::parse($endOfWeek)->endOfDay(),
+            ]);
         } elseif ($this->periodType === 'weekly') {
             $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? null;
             $weekEnd = $this->weeklyWeeks['w1']['end_date'] ?? null;
             if ($weekStart && $weekEnd) {
-                $recordsQuery->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+                $recordsQuery->whereBetween('cleaning_datetime', [
+                    Carbon::parse($weekStart)->startOfDay(),
+                    Carbon::parse($weekEnd)->endOfDay(),
+                ]);
             }
         } elseif ($this->periodType === 'monthly') {
             $monthStart = $this->monthlyPeriods['m1']['start_date'] ?? null;
             $monthEnd = $this->monthlyPeriods['m1']['end_date'] ?? null;
             if ($monthStart && $monthEnd) {
-                $recordsQuery->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+                $recordsQuery->whereBetween('cleaning_datetime', [
+                    Carbon::parse($monthStart)->startOfDay(),
+                    Carbon::parse($monthEnd)->endOfDay(),
+                ]);
             }
         }
 
         $records = $recordsQuery->get();
-
-        // Prepare data for the view
-        $data = [
+        $data = $this->buildPdfExportData($records);
+        $data = array_merge($data, [
             'location' => $location,
             'areaParts' => $areaParts,
-            'records' => $records,
             'periodType' => $this->periodType,
             'selectedDate' => $this->selectedDate,
             'generatedAt' => now('Asia/Manila')->format('F j, Y g:i A'),
-        ];
-
-        // For weekly/monthly views, add date ranges
-        if ($this->periodType === 'weekly') {
-            $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? null;
-            $weekEnd = $this->weeklyWeeks['w1']['end_date'] ?? null;
-            $data['weekRange'] = $weekStart && $weekEnd 
-                ? Carbon::parse($weekStart)->format('M d') . ' - ' . Carbon::parse($weekEnd)->format('M d, Y')
-                : null;
-        } elseif ($this->periodType === 'monthly') {
-            $monthStart = $this->monthlyPeriods['m1']['start_date'] ?? null;
-            $monthEnd = $this->monthlyPeriods['m1']['end_date'] ?? null;
-            $data['monthRange'] = $monthStart && $monthEnd
-                ? Carbon::parse($monthStart)->format('F Y')
-                : null;
-        }
+        ]);
 
         // Generate PDF
         try {
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.daily-checklist', $data);
+            $pdf = Pdf::loadView('pdf.daily-checklist', $data);
             
             // Set paper size and orientation
             $pdf->setPaper('A4', 'landscape');
@@ -164,6 +167,158 @@ new class extends Component {
             $this->dispatch('notify', message: __('Error generating PDF: ') . $e->getMessage(), type: 'error');
             return;
         }
+    }
+
+    private function buildPdfExportData(\Illuminate\Support\Collection $records): array
+    {
+        $normalizedRecords = $records->map(function ($record): array {
+            $cleaningDate = Carbon::parse($record->cleaning_datetime)->toDateString();
+
+            return [
+                'location_area_part_id' => (int) $record->location_area_part_id,
+                'cleaning_date' => $cleaningDate,
+                'shift' => in_array($record->shift, $this->shifts, true) ? $record->shift : 'AM',
+                'maintenance_name' => is_string($record->maintenance_name ?? null) ? trim($record->maintenance_name) : '',
+                'verifier_name' => is_string($record->verifier_name ?? null) ? trim($record->verifier_name) : '',
+                'verifier_status' => $record->verifier_status,
+                'maintenance_comments' => is_string($record->maintenance_comments ?? null) ? trim($record->maintenance_comments) : '',
+                'verifier_comments' => is_string($record->verifier_comments ?? null) ? trim($record->verifier_comments) : '',
+            ];
+        });
+
+        $comments = [];
+        foreach ($normalizedRecords as $record) {
+            foreach (['verifier_comments', 'maintenance_comments'] as $commentField) {
+                $comment = $record[$commentField];
+                if ($comment !== '') {
+                    $comments[$comment] = $comment;
+                }
+            }
+        }
+
+        $data = [
+            'comments' => array_values($comments),
+        ];
+
+        if ($this->periodType === 'daily') {
+            $startOfWeek = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY);
+            $days = [];
+            $recordMap = [];
+            $maintenanceByDate = [];
+            $verifierByDate = [];
+
+            for ($i = 0; $i < 7; $i++) {
+                $currentDay = $startOfWeek->copy()->addDays($i);
+                $days[] = [
+                    'name' => strtoupper($currentDay->format('D')),
+                    'date' => $currentDay->format('M d'),
+                    'full_date' => $currentDay->toDateString(),
+                ];
+            }
+
+            foreach ($normalizedRecords as $record) {
+                $recordMap[$record['location_area_part_id']][$record['cleaning_date']][$record['shift']] = true;
+
+                if ($record['maintenance_name'] !== '') {
+                    $maintenanceByDate[$record['cleaning_date']][$record['maintenance_name']] = true;
+                }
+
+                if ($record['verifier_name'] !== '' && $record['verifier_status'] === 'YES') {
+                    $verifierByDate[$record['cleaning_date']][$record['verifier_name']] = true;
+                }
+            }
+
+            $data['days'] = $days;
+            $data['recordMap'] = $recordMap;
+            $data['maintenanceByDate'] = collect($maintenanceByDate)
+                ->map(fn (array $names) => $this->formatInitialsList(array_keys($names)))
+                ->all();
+            $data['verifierByDate'] = collect($verifierByDate)
+                ->map(fn (array $names) => $this->formatInitialsList(array_keys($names)))
+                ->all();
+            $data['periodLabel'] = 'Week of '.$startOfWeek->format('M d').' - '.$startOfWeek->copy()->endOfWeek(Carbon::SUNDAY)->format('M d, Y');
+
+            return $data;
+        }
+
+        if ($this->periodType === 'weekly') {
+            $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? Carbon::parse($this->selectedDate)->startOfWeek(Carbon::SUNDAY)->toDateString();
+            $weekEnd = $this->weeklyWeeks['w1']['end_date'] ?? Carbon::parse($weekStart)->endOfWeek(Carbon::SATURDAY)->toDateString();
+            $recordMap = [];
+            $maintenanceNames = [];
+            $verifierNames = [];
+
+            foreach ($normalizedRecords as $record) {
+                $recordMap[$record['location_area_part_id']] = true;
+
+                if ($record['maintenance_name'] !== '') {
+                    $maintenanceNames[$record['maintenance_name']] = true;
+                }
+
+                if ($record['verifier_name'] !== '' && $record['verifier_status'] === 'YES') {
+                    $verifierNames[$record['verifier_name']] = true;
+                }
+            }
+
+            $data['recordMap'] = $recordMap;
+            $data['maintenanceInitials'] = $this->formatInitialsList(array_keys($maintenanceNames));
+            $data['verifierInitials'] = $this->formatInitialsList(array_keys($verifierNames));
+            $data['periodLabel'] = Carbon::parse($weekStart)->format('M d').' - '.Carbon::parse($weekEnd)->format('M d, Y');
+
+            return $data;
+        }
+
+        $monthStart = $this->monthlyPeriods['m1']['start_date'] ?? Carbon::parse($this->selectedDate)->startOfMonth()->toDateString();
+        $recordMap = [];
+        $maintenanceNames = [];
+        $verifierNames = [];
+
+        foreach ($normalizedRecords as $record) {
+            $recordMap[$record['location_area_part_id']] = true;
+
+            if ($record['maintenance_name'] !== '') {
+                $maintenanceNames[$record['maintenance_name']] = true;
+            }
+
+            if ($record['verifier_name'] !== '' && $record['verifier_status'] === 'YES') {
+                $verifierNames[$record['verifier_name']] = true;
+            }
+        }
+
+        $data['recordMap'] = $recordMap;
+        $data['maintenanceInitials'] = $this->formatInitialsList(array_keys($maintenanceNames));
+        $data['verifierInitials'] = $this->formatInitialsList(array_keys($verifierNames));
+        $data['periodLabel'] = Carbon::parse($monthStart)->format('F Y');
+
+        return $data;
+    }
+
+    private function formatInitialsList(array $names): string
+    {
+        $initials = [];
+
+        foreach ($names as $name) {
+            $formatted = $this->formatInitials($name);
+            if ($formatted !== '') {
+                $initials[] = $formatted;
+            }
+        }
+
+        return implode(', ', array_values(array_unique($initials)));
+    }
+
+    private function formatInitials(string $name): string
+    {
+        $parts = preg_split('/\s+/', trim($name)) ?: [];
+        $initials = [];
+
+        foreach ($parts as $part) {
+            if ($part !== '') {
+                $initials[] = strtoupper(Str::substr($part, 0, 1)).'.';
+            }
+        }
+
+        return implode('', $initials);
     }
 
     public function mount(): void
@@ -687,27 +842,33 @@ new class extends Component {
                 ->where('status', 'YES');
 
             if ($this->periodType === 'daily') {
-                $query->whereDate('cleaning_date', $this->selectedDate);
+                $query->whereDate('cleaning_datetime', $this->selectedDate);
             } elseif ($this->periodType === 'weekly') {
                 $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
                 $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
                 if ($weekStart !== null && $weekEnd !== null) {
-                    $query->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+                    $query->whereBetween('cleaning_datetime', [
+                        Carbon::parse($weekStart)->startOfDay(),
+                        Carbon::parse($weekEnd)->endOfDay(),
+                    ]);
                 }
             } elseif ($this->periodType === 'monthly') {
                 $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
                 $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
                 if ($monthStart !== null && $monthEnd !== null) {
-                    $query->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+                    $query->whereBetween('cleaning_datetime', [
+                        Carbon::parse($monthStart)->startOfDay(),
+                        Carbon::parse($monthEnd)->endOfDay(),
+                    ]);
                 }
             } else {
-                $query->whereBetween('cleaning_date', [
-                    $this->weekDates['mon'],
-                    $this->weekDates['fri'],
+                $query->whereBetween('cleaning_datetime', [
+                    Carbon::parse($this->weekDates['mon'])->startOfDay(),
+                    Carbon::parse($this->weekDates['fri'])->endOfDay(),
                 ]);
             }
 
-            $selectColumns = ['id', 'location_area_part_id', 'cleaning_date', 'shift', 'maintenance_comments', 'verifier_status', 'verifier_comments'];
+            $selectColumns = ['id', 'location_area_part_id', 'cleaning_datetime', 'shift', 'maintenance_comments', 'verifier_status', 'verifier_comments'];
             if ($this->hasProofColumn) {
                 $selectColumns[] = 'proof';
             }
@@ -717,9 +878,9 @@ new class extends Component {
             foreach ($records as $record) {
                 $dayKey = match ($this->periodType) {
                     'daily' => 'selected',
-                    'weekly' => $this->weekKeyFromDate(Carbon::parse($record->cleaning_date)),
-                    'monthly' => $this->monthKeyFromDate(Carbon::parse($record->cleaning_date)),
-                    default => strtolower(Carbon::parse($record->cleaning_date)->format('D')),
+                    'weekly' => $this->weekKeyFromDate(Carbon::parse($record->cleaning_datetime)),
+                    'monthly' => $this->monthKeyFromDate(Carbon::parse($record->cleaning_datetime)),
+                    default => strtolower(Carbon::parse($record->cleaning_datetime)->format('D')),
                 };
                 if ($dayKey === null) {
                     continue;
@@ -764,23 +925,29 @@ new class extends Component {
                 ->where('period_type', $this->periodType);
 
             if ($this->periodType === 'daily') {
-                $deleteQuery->whereDate('cleaning_date', $this->selectedDate);
+                $deleteQuery->whereDate('cleaning_datetime', $this->selectedDate);
             } elseif ($this->periodType === 'weekly') {
                 $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
                 $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
                 if ($weekStart !== null && $weekEnd !== null) {
-                    $deleteQuery->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
+                    $deleteQuery->whereBetween('cleaning_datetime', [
+                        Carbon::parse($weekStart)->startOfDay(),
+                        Carbon::parse($weekEnd)->endOfDay(),
+                    ]);
                 }
             } elseif ($this->periodType === 'monthly') {
                 $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
                 $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
                 if ($monthStart !== null && $monthEnd !== null) {
-                    $deleteQuery->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
+                    $deleteQuery->whereBetween('cleaning_datetime', [
+                        Carbon::parse($monthStart)->startOfDay(),
+                        Carbon::parse($monthEnd)->endOfDay(),
+                    ]);
                 }
             } else {
-                $deleteQuery->whereBetween('cleaning_date', [
-                    $this->weekDates['mon'],
-                    $this->weekDates['fri'],
+                $deleteQuery->whereBetween('cleaning_datetime', [
+                    Carbon::parse($this->weekDates['mon'])->startOfDay(),
+                    Carbon::parse($this->weekDates['fri'])->endOfDay(),
                 ]);
             }
 
@@ -806,7 +973,7 @@ new class extends Component {
                 $commentValue = $this->slotComments[$key] ?? null;
                 $payload = [
                     'location_area_part_id' => (int) $partId,
-                    'cleaning_date' => $cleaningDate,
+                    'cleaning_datetime' => Carbon::parse($cleaningDate, 'Asia/Manila')->startOfDay()->toDateTimeString(),
                     'period_type' => $this->periodType,
                     'shift' => $shift,
                     'status' => 'YES',
