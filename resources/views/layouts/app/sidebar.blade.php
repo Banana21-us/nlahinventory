@@ -69,6 +69,27 @@
         </flux:sidebar.group>
 @endcan
              
+        <flux:sidebar.group class="grid" icon="currency-dollar" expandable heading="Cashier" >
+            <flux:sidebar.item icon="clipboard-document" :href="route('pos.dashboard')" :current="request()->routeIs('pos.dashboard')" wire:navigate>
+                {{ __('Dashboard') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item icon="banknotes" :href="route('pos.main')" :current="request()->routeIs('pos.main')" wire:navigate>
+                {{ __('POS') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item icon="queue-list" :href="route('pos.inventory')" :current="request()->routeIs('pos.inventory')" wire:navigate>
+                {{ __('Inventory') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item icon="square-3-stack-3d" :href="route('pos.items')" :current="request()->routeIs('pos.items')" wire:navigate>
+                {{ __('Items') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item icon="printer" :href="route('pos.sales')" :current="request()->routeIs('pos.sales')" wire:navigate>
+                {{ __('Sales') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item icon="user-group" :href="route('pos.customers')" :current="request()->routeIs('pos.customers')" wire:navigate>
+                {{ __('Customers') }}
+            </flux:sidebar.item>
+        </flux:sidebar.group>
+
 
             <flux:spacer />
 

@@ -123,19 +123,18 @@
         </div>
     </div>
 
-    @once
+  @once
 <script>
 (() => {
     const DEFAULT_PROOF_PAYLOAD = @json($defaultProofPayload);
     const getSystemShift = () => new Date().getHours() >= 12 ? 'PM' : 'AM';
-
     let stream = null;
     let activeShift = getSystemShift();
     let isOpeningModal = false;
     let currentIndex = 0;
     let capturedMap = {};
     let areaQueue = [];
-
+    let usingFallback = false;
     let modal, video, preview, canvas, errorBox, commentInput,
         captureOverlayBtn, discardBtn, confirmBtn, cancelBtn,
         areaNameDisplay, areaCounter;
@@ -156,6 +155,79 @@
         return !!(modal && video && preview && canvas);
     };
 
+    const isSecureContext = () => {
+        return window.isSecureContext ||
+               location.protocol === 'https:' ||
+               location.hostname === 'localhost' ||
+               location.hostname === '127.0.0.1';
+    };
+
+    // ─── Fallback file input (works on HTTP) ──────────────────────────────────
+    const ensureFallbackInput = () => {
+        let fi = document.getElementById('proofFallbackInput');
+        if (fi) return fi;
+        fi = document.createElement('input');
+        fi.type = 'file';
+        fi.accept = 'image/*';
+        fi.capture = 'environment';
+        fi.id = 'proofFallbackInput';
+        fi.style.cssText = 'position:fixed;opacity:0;pointer-events:none;top:0;left:0;width:1px;height:1px;';
+        document.body.appendChild(fi);
+
+        fi.addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            fi.value = '';
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = 720;
+                    canvas.height = 720;
+                    const ctx = canvas.getContext('2d');
+                    const ss = Math.min(img.width, img.height);
+                    const sx = Math.floor((img.width  - ss) / 2);
+                    const sy = Math.floor((img.height - ss) / 2);
+                    ctx.drawImage(img, sx, sy, ss, ss, 0, 0, 720, 720);
+                    handleCaptureFromCanvas(ctx);
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+        return fi;
+    };
+
+    const useFallbackMode = () => {
+        usingFallback = true;
+        video.classList.add('hidden');
+
+        // Show a tap-to-photo placeholder instead of video
+        const placeholder = document.getElementById('proofFallbackPlaceholder') || (() => {
+            const d = document.createElement('div');
+            d.id = 'proofFallbackPlaceholder';
+            d.className = 'flex flex-col items-center justify-center w-full h-full gap-2 text-zinc-400 dark:text-zinc-500';
+            d.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span class="text-xs font-medium">Tap button to take photo</span>
+                <span class="text-[10px] text-zinc-400">(HTTP mode — no live preview)</span>
+            `;
+            video.parentElement.appendChild(d);
+            return d;
+        })();
+
+        placeholder.classList.remove('hidden');
+        preview.classList.add('hidden');
+        setError('');
+    };
+
+    // ─── Secure context: real camera ─────────────────────────────────────────
     const SHIFT_ACTIVE_CLASSES   = ['bg-zinc-800','text-white','dark:bg-zinc-100','dark:text-zinc-900','shadow-inner'];
     const SHIFT_INACTIVE_CLASSES = ['bg-white','text-zinc-700','dark:bg-zinc-900','dark:text-zinc-200'];
 
@@ -172,6 +244,12 @@
     };
 
     const startCamera = async () => {
+        // HTTP / insecure context — skip getUserMedia entirely
+        if (!isSecureContext() || !navigator.mediaDevices?.getUserMedia) {
+            useFallbackMode();
+            return;
+        }
+
         stopCamera();
         try {
             stream = await navigator.mediaDevices.getUserMedia({
@@ -180,22 +258,20 @@
             });
             video.srcObject = stream;
             await video.play();
+            video.classList.remove('hidden');
+            const ph = document.getElementById('proofFallbackPlaceholder');
+            if (ph) ph.classList.add('hidden');
+            usingFallback = false;
             setError('');
         } catch (e) {
-            setError('Camera access denied or not found.');
+            // Camera permission denied even on HTTPS — fall back
+            useFallbackMode();
         }
     };
 
     const getChecklistComponent = () => {
         const root = modal?.closest('[wire\\:id]');
         return root ? window.Livewire?.find(root.getAttribute('wire:id')) : null;
-    };
-
-    const normalizePayload = (p) => {
-        if (!p) return null;
-        if (p.detail) p = p.detail;
-        if (Array.isArray(p)) p = p[0];
-        return p;
     };
 
     const buildQueue = () => {
@@ -206,34 +282,25 @@
     const setActiveShift = (shift) => {
         const normalized = (shift || getSystemShift()).toUpperCase();
         activeShift = normalized;
-
-        // Update AM/PM toggle button visuals
         document.querySelectorAll('.js-shift-toggle').forEach((btn) => {
             const isActive = btn.getAttribute('data-shift') === normalized;
             btn.classList.remove(...SHIFT_ACTIVE_CLASSES, ...SHIFT_INACTIVE_CLASSES);
             btn.classList.add(...(isActive ? SHIFT_ACTIVE_CLASSES : SHIFT_INACTIVE_CLASSES));
             btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         });
-
-        // Reset captured map based on which areas already have records for the new shift
         capturedMap = {};
         areaQueue = buildQueue();
         areaQueue.forEach(item => {
             const hasAm = item.dataset.hasAm === '1';
             const hasPm = item.dataset.hasPm === '1';
             const alreadyDone = normalized === 'PM' ? hasPm : hasAm;
-            if (alreadyDone) {
-                capturedMap[item.dataset.partId] = true;
-            }
+            if (alreadyDone) capturedMap[item.dataset.partId] = true;
         });
-
-        // Find the first uncaptured area and go there
         let firstUncaptured = 0;
         while (firstUncaptured < areaQueue.length && capturedMap[areaQueue[firstUncaptured]?.dataset?.partId]) {
             firstUncaptured++;
         }
         currentIndex = firstUncaptured;
-
         if (areaNameDisplay) {
             if (currentIndex >= areaQueue.length) {
                 areaNameDisplay.textContent = '✓ All areas captured!';
@@ -245,7 +312,6 @@
             }
         }
         if (areaCounter) areaCounter.textContent = `${Math.min(currentIndex + 1, areaQueue.length)}/${areaQueue.length}`;
-
         refreshAreaListUI();
     };
 
@@ -255,9 +321,7 @@
             const statusEl = item.querySelector('[data-area-status]');
             const isCurrent = idx === currentIndex;
             const isDone    = !!capturedMap[partId];
-
             if (!statusEl) return;
-
             if (isDone) {
                 statusEl.className = 'flex h-8 w-8 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-xs font-bold text-white transition-all';
                 statusEl.innerHTML = `<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0L3.293 9.207a1 1 0 011.414-1.414l3.043 3.043 6.543-6.543a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>`;
@@ -273,26 +337,23 @@
 
     const goToIndex = (idx) => {
         areaQueue = buildQueue();
-
         let next = idx;
         while (next < areaQueue.length && capturedMap[areaQueue[next]?.dataset?.partId]) {
             next++;
         }
         currentIndex = next;
-
         if (currentIndex >= areaQueue.length) {
             if (areaNameDisplay) areaNameDisplay.textContent = '✓ All areas captured!';
             if (areaCounter) areaCounter.textContent = `${areaQueue.length}/${areaQueue.length}`;
             captureOverlayBtn.classList.add('opacity-40', 'pointer-events-none');
             if (cancelBtn) {
                 cancelBtn.textContent = 'Done';
-                cancelBtn.classList.remove('border-zinc-300', 'text-zinc-700', 'hover:bg-zinc-100', 'dark:border-zinc-700', 'dark:text-zinc-200', 'dark:hover:bg-zinc-800');
-                cancelBtn.classList.add('bg-emerald-600', 'text-white', 'hover:bg-emerald-700', 'border-emerald-600');
+                cancelBtn.classList.remove('border-zinc-300','text-zinc-700','hover:bg-zinc-100','dark:border-zinc-700','dark:text-zinc-200','dark:hover:bg-zinc-800');
+                cancelBtn.classList.add('bg-emerald-600','text-white','hover:bg-emerald-700','border-emerald-600');
             }
             refreshAreaListUI();
             return;
         }
-
         const item = areaQueue[currentIndex];
         if (areaNameDisplay) areaNameDisplay.textContent = item.dataset.areaPart;
         if (areaCounter) areaCounter.textContent = `${currentIndex + 1}/${areaQueue.length}`;
@@ -300,15 +361,14 @@
         captureOverlayBtn.classList.remove('opacity-40', 'pointer-events-none');
         refreshAreaListUI();
         item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        // NO setPendingProof here — moved to handleCapture
     };
 
     const openModal = async (payload) => {
         if (!bindElements()) return;
         if (isOpeningModal) return;
         isOpeningModal = true;
+        usingFallback = false;
 
-        // Reset UI
         setError('');
         preview.classList.add('hidden');
         video.classList.remove('hidden');
@@ -318,19 +378,21 @@
         if (commentInput) commentInput.value = '';
         if (cancelBtn) {
             cancelBtn.textContent = 'Cancel';
-            cancelBtn.classList.remove('bg-emerald-600', 'text-white', 'hover:bg-emerald-700', 'border-emerald-600');
-            cancelBtn.classList.add('border-zinc-300', 'text-zinc-700', 'hover:bg-zinc-100', 'dark:border-zinc-700', 'dark:text-zinc-200', 'dark:hover:bg-zinc-800');
+            cancelBtn.classList.remove('bg-emerald-600','text-white','hover:bg-emerald-700','border-emerald-600');
+            cancelBtn.classList.add('border-zinc-300','text-zinc-700','hover:bg-zinc-100','dark:border-zinc-700','dark:text-zinc-200','dark:hover:bg-zinc-800');
         }
+
+        // Hide fallback placeholder on fresh open
+        const ph = document.getElementById('proofFallbackPlaceholder');
+        if (ph) ph.classList.add('hidden');
+
         modal.classList.remove('hidden');
         modal.classList.add('flex');
 
-        // Show/hide AM/PM toggle based on frequency
         const freq = (payload?.frequency ?? DEFAULT_PROOF_PAYLOAD.frequency ?? '').toLowerCase();
         const shiftToggleGroup = modal.querySelector('[data-shift-group]');
         if (shiftToggleGroup) shiftToggleGroup.classList.toggle('hidden', freq !== 'daily');
-        // nightly uses AM shift but hides the toggle
 
-        // Update AM/PM button visuals only — no queue reset here
         const normalized = activeShift.toUpperCase();
         document.querySelectorAll('.js-shift-toggle').forEach((btn) => {
             const isActive = btn.getAttribute('data-shift') === normalized;
@@ -339,12 +401,9 @@
             btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         });
 
-        await startCamera();
-        video.classList.remove('hidden');
-        preview.classList.add('hidden');
-        isOpeningModal = false;
+        await startCamera(); // detects HTTP and uses fallback automatically
 
-        // Build queue and pre-fill capturedMap ONCE, then go to first uncaptured
+        isOpeningModal = false;
         capturedMap = {};
         currentIndex = 0;
         areaQueue = buildQueue();
@@ -354,61 +413,79 @@
             const alreadyDone = normalized === 'PM' ? hasPm : hasAm;
             if (alreadyDone) capturedMap[item.dataset.partId] = true;
         });
-
         goToIndex(0);
     };
 
     const closeModal = () => {
         stopCamera();
+        usingFallback = false;
+        const ph = document.getElementById('proofFallbackPlaceholder');
+        if (ph) ph.classList.add('hidden');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
     };
 
-    // Capture — save immediately, advance to next area
-    const handleCapture = async () => {
+    // ─── Capture (called by shutter button) ──────────────────────────────────
+    const handleCapture = () => {
+        if (usingFallback) {
+            // Open native camera / file picker
+            ensureFallbackInput().click();
+            return;
+        }
+        // Live camera path
         areaQueue = buildQueue();
         if (currentIndex >= areaQueue.length) return;
-
-        const item = areaQueue[currentIndex];
         if (!video.videoWidth || !video.videoHeight) { setError('Camera not ready.'); return; }
-
         canvas.width = 720; canvas.height = 720;
         const ctx = canvas.getContext('2d');
         const ss = Math.min(video.videoWidth, video.videoHeight);
         const sx = Math.floor((video.videoWidth  - ss) / 2);
         const sy = Math.floor((video.videoHeight - ss) / 2);
+        ctx.drawImage(video, sx, sy, ss, ss, 0, 0, 720, 720);
+        handleCaptureFromCanvas(ctx);
+    };
 
-        const freq    = item.dataset.frequency;
-        const shift   = freq === 'daily' ? activeShift : (freq === 'nightly' ? 'PM' : 'AM');
+    // ─── Shared: overlay + Livewire save ─────────────────────────────────────
+    const handleCaptureFromCanvas = async (ctx) => {
+        areaQueue = buildQueue();
+        if (currentIndex >= areaQueue.length) return;
+        const item = areaQueue[currentIndex];
+
+        const freq  = item.dataset.frequency;
+        const shift = freq === 'daily' ? activeShift : (freq === 'nightly' ? 'PM' : 'AM');
 
         const now = new Date();
-        const hours   = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const currentTime = `${hours}:${minutes}`;
-        const baseDateLabel = item.dataset.dateLabel || '';
-        // Strip any old time that may have been appended, keep just the date part
-        const datePart = baseDateLabel.split(' | ')[0];
+        const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        const datePart = (item.dataset.dateLabel || '').split(' | ')[0];
         const dateWithTime = datePart ? `${datePart} | ${currentTime}` : currentTime;
 
         const overlayPayload = {
-            dateLabel:  dateWithTime,
+            dateLabel:   dateWithTime,
             shift,
-            frequency:  item.dataset.frequency,
-            capturedBy: item.dataset.capturedBy,
-            areaPart:   item.dataset.areaPart,
-            location:   item.dataset.location,
+            frequency:   item.dataset.frequency,
+            capturedBy:  item.dataset.capturedBy,
+            areaPart:    item.dataset.areaPart,
+            location:    item.dataset.location,
         };
 
-        ctx.drawImage(video, sx, sy, ss, ss, 0, 0, 720, 720);
+        // ctx may be null if coming from FileReader — re-get it
+        if (!ctx) ctx = canvas.getContext('2d');
         const comment = commentInput?.value?.trim() ?? '';
         drawMetadataOverlay(ctx, 720, 720, overlayPayload, comment);
+
         const imageData = canvas.toDataURL('image/jpeg', 0.9);
+
+        // Show preview before saving
+        preview.src = imageData;
+        preview.classList.remove('hidden');
+        if (!usingFallback) video.classList.add('hidden');
+        const ph = document.getElementById('proofFallbackPlaceholder');
+        if (ph) ph.classList.add('hidden');
 
         const component = getChecklistComponent();
         if (!component) { setError('Component not found.'); return; }
 
         try {
-            // Set pending proof immediately before confirming — avoids twitchy re-renders
             await component.call('setPendingProof',
                 Number(item.dataset.partId),
                 String(item.dataset.dayKey),
@@ -422,22 +499,19 @@
                 imageData,
                 comment
             );
+
             capturedMap[item.dataset.partId] = true;
-            // Persist progress in DOM so reopening the modal keeps completed steps.
+
             if (freq === 'daily') {
-                if (activeShift === 'PM') {
-                    item.dataset.hasPm = '1';
-                } else {
-                    item.dataset.hasAm = '1';
-                }
+                if (activeShift === 'PM') item.dataset.hasPm = '1';
+                else item.dataset.hasAm = '1';
             } else {
                 item.dataset.hasAm = '1';
             }
+
             if (commentInput) commentInput.value = '';
 
-            // Re-apply UI after Livewire re-render settles
             requestAnimationFrame(() => {
-                // Re-apply AM/PM toggle visuals that Livewire re-render wiped
                 document.querySelectorAll('.js-shift-toggle').forEach((btn) => {
                     const isActive = btn.getAttribute('data-shift') === activeShift;
                     btn.classList.remove(...SHIFT_ACTIVE_CLASSES, ...SHIFT_INACTIVE_CLASSES);
@@ -446,8 +520,19 @@
                 });
                 const currentShiftGroup = modal?.querySelector('[data-shift-group]');
                 if (currentShiftGroup) currentShiftGroup.classList.toggle('hidden', (item.dataset.frequency || '').toLowerCase() !== 'daily');
-                goToIndex(currentIndex + 1);
-                refreshAreaListUI();
+
+                // Brief preview then advance
+                setTimeout(() => {
+                    preview.classList.add('hidden');
+                    if (usingFallback) {
+                        const ph2 = document.getElementById('proofFallbackPlaceholder');
+                        if (ph2) ph2.classList.remove('hidden');
+                    } else {
+                        video.classList.remove('hidden');
+                    }
+                    goToIndex(currentIndex + 1);
+                    refreshAreaListUI();
+                }, 800); // show preview for 800ms then move on
             });
         } catch (e) {
             setError('Failed to save. Try again.');
@@ -461,11 +546,8 @@
         const capturedByText = payload?.capturedBy  ? String(payload.capturedBy)  : '';
         const areaPartText   = payload?.areaPart    ? String(payload.areaPart)    : '';
         const locationText   = payload?.location    ? String(payload.location)    : '';
-
         const isDaily = frequencyText.toLowerCase() === 'daily';
-        const dateTimeValue = isDaily
-            ? `${dateText}  |  ${shiftText}`
-            : dateText;
+        const dateTimeValue = isDaily ? `${dateText}  |  ${shiftText}` : dateText;
         const rows = [
             { label: 'Date/Time',   value: dateTimeValue },
             { label: 'Frequency',   value: frequencyText },
@@ -473,7 +555,6 @@
             { label: 'Area Part',   value: areaPartText },
             { label: 'Location',    value: locationText },
         ];
-
         const paddingX      = Math.max(12, Math.round(width * 0.02));
         const paddingY      = 10;
         const fontSize      = Math.max(11, Math.round(width * 0.017));
@@ -483,7 +564,6 @@
         const boxWidth      = width - 20;
         const valueX        = boxLeft + paddingX + labelColWidth;
         const valueMaxWidth = boxWidth - (paddingX * 2) - labelColWidth;
-
         const wrapText = (text, maxWidth) => {
             const words = String(text || '').split(/\s+/).filter(Boolean);
             if (!words.length) return [''];
@@ -496,7 +576,6 @@
             if (current) lines.push(current);
             return lines;
         };
-
         ctx.textBaseline = 'top';
         ctx.font = `600 ${fontSize}px Arial, sans-serif`;
         const wrappedRows  = rows.map(r => ({ label: r.label, lines: wrapText(r.value, valueMaxWidth) }));
@@ -504,10 +583,8 @@
         const rowGap       = 2;
         const boxHeight    = paddingY * 2 + (contentLines * lineHeight) + ((rows.length - 1) * rowGap);
         const boxTop       = height - boxHeight - 10;
-
         ctx.fillStyle = 'rgba(0,0,0,0.58)';
         ctx.fillRect(boxLeft, boxTop, boxWidth, boxHeight);
-
         let y = boxTop + paddingY;
         wrappedRows.forEach(row => {
             ctx.fillStyle = '#D4D4D8';
@@ -523,10 +600,7 @@
             const commentFontSize   = Math.max(10, Math.round(width * 0.016));
             const commentLineHeight = Math.max(14, Math.round(commentFontSize * 1.35));
             const commentMaxWidth   = Math.round((width / 2) - (commentPaddingX * 3));
-
             ctx.font = `600 ${commentFontSize}px Arial, sans-serif`;
-
-            // Wrap comment text
             const commentWords = comment.split(/\s+/).filter(Boolean);
             const commentLines = [];
             let cur = '';
@@ -536,18 +610,12 @@
                 else { commentLines.push(cur); cur = word; }
             }
             if (cur) commentLines.push(cur);
-
-            // Position: top-right corner inside the same black box
             const commentX = boxLeft + Math.floor(boxWidth * 0.62) + commentPaddingX;
             let commentY   = boxTop + paddingY;
-
-            // Draw label
             ctx.fillStyle = '#D4D4D8';
             ctx.font = `700 ${commentFontSize}px Arial, sans-serif`;
             ctx.fillText('Comment:', commentX, commentY);
             commentY += commentLineHeight;
-
-            // Draw comment lines
             ctx.fillStyle = '#FFFFFF';
             ctx.font = `600 ${commentFontSize}px Arial, sans-serif`;
             commentLines.forEach((line) => {
@@ -557,22 +625,21 @@
         }
     };
 
-    // Bind button handlers
+    // ─── Event bindings ───────────────────────────────────────────────────────
     document.getElementById('proofCaptureOverlayBtn').addEventListener('click', handleCapture);
     document.getElementById('proofCancelBtn').addEventListener('click', closeModal);
 
-    // AM/PM shift toggle + daily camera open button
     document.addEventListener('click', (e) => {
-        const shiftBtn    = e.target.closest('.js-shift-toggle');
+        const shiftBtn     = e.target.closest('.js-shift-toggle');
         const dailyOpenBtn = e.target.closest('#openDailyCameraBtn');
-        if (shiftBtn)     setActiveShift(shiftBtn.getAttribute('data-shift'));
+        if (shiftBtn)      setActiveShift(shiftBtn.getAttribute('data-shift'));
         if (dailyOpenBtn) {
             const payload = {
-                frequency: dailyOpenBtn.dataset.frequency || DEFAULT_PROOF_PAYLOAD.frequency,
-                dayKey: dailyOpenBtn.dataset.dayKey || DEFAULT_PROOF_PAYLOAD.dayKey,
-                dateLabel: dailyOpenBtn.dataset.dateLabel || DEFAULT_PROOF_PAYLOAD.dateLabel,
-                location: dailyOpenBtn.dataset.location || DEFAULT_PROOF_PAYLOAD.location,
-                capturedBy: dailyOpenBtn.dataset.capturedBy || DEFAULT_PROOF_PAYLOAD.capturedBy,
+                frequency:   dailyOpenBtn.dataset.frequency  || DEFAULT_PROOF_PAYLOAD.frequency,
+                dayKey:      dailyOpenBtn.dataset.dayKey     || DEFAULT_PROOF_PAYLOAD.dayKey,
+                dateLabel:   dailyOpenBtn.dataset.dateLabel  || DEFAULT_PROOF_PAYLOAD.dateLabel,
+                location:    dailyOpenBtn.dataset.location   || DEFAULT_PROOF_PAYLOAD.location,
+                capturedBy:  dailyOpenBtn.dataset.capturedBy || DEFAULT_PROOF_PAYLOAD.capturedBy,
             };
             openModal(payload);
         }
@@ -581,7 +648,6 @@
     document.addEventListener('livewire:init', () => {
         Livewire.on('open-proof-camera', (event) => openModal(event));
     });
-
     window.addEventListener('open-proof-camera', (e) => openModal(e?.detail ?? e));
 })();
 </script>

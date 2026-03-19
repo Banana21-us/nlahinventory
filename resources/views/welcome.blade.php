@@ -7,7 +7,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>NORTHERN LUZON ADVENTIST HOSPITAL INC.</title>
+        <title>NORTHERN LUZON ADVENTIST HOSPITAL INCss.</title>
 
         <link rel="icon" href="/1.png" sizes="any">
         <link rel="icon" href="/1.png" type="image/svg+xml">
@@ -19,6 +19,7 @@
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
         <link rel="stylesheet" href="http://192.168.3.7:8888/build/assets/app-3eqGLbXf.css">
         <!-- Styles -->
+         <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
          <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
          <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.8/dist/cdn.min.js"></script>
          <script src="https://cdn.tailwindcss.com"></script>

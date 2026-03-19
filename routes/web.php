@@ -21,9 +21,15 @@ use App\Http\Controllers\NewsEventController;
 use App\Livewire\HR;
 use App\Http\Controllers\FeedbackController;
 
+use App\Livewire\PointofSale\Posdashboard;
+use App\Livewire\PointofSale\POS;
+use App\Livewire\PointofSale\PosInventory;
+use App\Livewire\PointofSale\PosItems;
+use App\Livewire\PointofSale\PosSales;
+use App\Livewire\PointofSale\PosCustomer;
 // Email verification routes
 Route::get('/email/verify', function () {
-     return view('pages::auth.verify-email'); 
+return view('pages::auth.verify-email'); 
 })->middleware('auth')->name('verification.notice');
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
@@ -88,4 +94,17 @@ Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::post('/feedback/submit', [FeedbackController::class, 'submit'])->name('feedback.submit');
 });
 
+// User POS routes  
+// Route::middleware(['auth', 'verified'])
+//     ->prefix('POS') 
+//     ->name('POS.')  
+//     ->group(function () {
+//         Route::get('/dashboard', Dashboard::class)->name('dashboard');
+//     });
+    Route::get('/pos/dashboard', Posdashboard::class)->name('pos.dashboard');
+    Route::get('/pos',POS::class)->name('pos.main');
+    Route::get('/pos/inventory', Posinventory::class)->name('pos.inventory');
+    Route::get('/pos/items', PosItems::class)->name('pos.items');
+    Route::get('/pos/sales', PosSales::class)->name('pos.sales');
+    Route::get('/pos/customers', PosCustomer::class)->name('pos.customers');
 require __DIR__.'/settings.php';
