@@ -240,7 +240,7 @@ class HrdashboardController extends Controller
                 if ($leave->user) {
                     $result[] = [
                         'id' => $leave->id,
-                        'employee_name' => $leave->user->name ?? 'Unknown',
+                        'employee_name' => $leave->user->username ?? 'Unknown',
                         'employee_number' => $leave->user->employee_number ?? 'N/A',
                         'leavetype' => $leave->leavetype ?? 'Unknown',
                         'department' => $leave->department ?? 'N/A',
@@ -282,7 +282,7 @@ class HrdashboardController extends Controller
                 if ($leave->user) {
                     $result[] = [
                         'id' => $leave->id,
-                        'employee_name' => $leave->user->name ?? 'Unknown',
+                        'employee_name' => $leave->user->username ?? 'Unknown',
                         'employee_number' => $leave->user->employee_number ?? 'N/A',
                         'leavetype' => $leave->leavetype ?? 'Unknown',
                         'department' => $leave->department ?? 'N/A',
@@ -318,7 +318,7 @@ class HrdashboardController extends Controller
                 if ($leave->user) {
                     $result[] = [
                         'id' => $leave->id,
-                        'employee_name' => $leave->user->name ?? 'Unknown',
+                        'employee_name' => $leave->user->username ?? 'Unknown',
                         'employee_number' => $leave->user->employee_number ?? 'N/A',
                         'leavetype' => $leave->leavetype ?? 'Unknown',
                         'department' => $leave->department ?? 'N/A',
@@ -386,7 +386,7 @@ class HrdashboardController extends Controller
             $leave = Leave::find($leaveId);
             if ($leave) {
                 $leave->status = 'approved';
-                $leave->approved_by = auth()->user()->name ?? 'System';
+                $leave->approved_by = auth()->user()->username ?? 'System';
                 $leave->save();
                 
                 return redirect()->back()->with('message', 'Leave approved successfully.');

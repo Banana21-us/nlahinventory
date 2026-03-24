@@ -17,66 +17,33 @@
                     </flux:sidebar.item>
                 </flux:sidebar.item>
 
-{{-- 2. CHECKLIST --}}
-{{-- Visible if user is Maintenance, Inspector, OR HR --}}
-@if(Gate::allows('access-maintenance') || Gate::allows('access-verify'))
-    <flux:sidebar.group icon="clipboard-check" expandable heading="Checklist" class="grid">
-        @can('access-maintenance')
-            <flux:sidebar.item :href="route('Maintenance.checklist.check')" :current="request()->routeIs('Maintenance.checklist.check')" wire:navigate>
-                {{ __('Maintenance') }}
-            </flux:sidebar.item>
-        @endcan
+                <flux:sidebar.item  class="grid">
+                    <flux:sidebar.item  :href="route('medicines')" :current="request()->routeIs('medicines')" wire:navigate>
+                        {{ __('Medicines') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
 
-        @can('access-verify')
-            <flux:sidebar.item :href="route('Maintenance.checklist.verify')" :current="request()->routeIs('Maintenance.checklist.verify')" wire:navigate>
-                {{ __('Verify') }}
-            </flux:sidebar.item>
-        @endcan
-    </flux:sidebar.group>
-    
-@endif
+                <flux:sidebar.item  class="grid">
+                    <flux:sidebar.item  :href="route('dispense')" :current="request()->routeIs('dispense')" wire:navigate>
+                        {{ __('Dispense Medicine') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
 
-{{-- 3. NEWS & HR CORNER --}}
-@can('access-hr-only')
-        <flux:sidebar.group class="grid" icon="newspaper" expandable heading="News" >
-            <flux:sidebar.item icon="newspaper" :href="route('NewsPage.newshr')" :current="request()->routeIs('NewsPage.newshr')" wire:navigate>
-                {{ __('News') }}
-            </flux:sidebar.item>
-        </flux:sidebar.group>
+                <flux:sidebar.item  class="grid">
+                    <flux:sidebar.item :href="route('patients')" :current="request()->routeIs('patients')" wire:navigate>
+                        {{ __('Patients') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
+                
+            </flux:sidebar.group>
 
-        <flux:sidebar.group class="grid" icon="users" expandable heading="HR Corner" >
-            <flux:sidebar.item icon="users" :href="route('HR.userlist')" :current="request()->routeIs('HR.userlist')" wire:navigate>
-                {{ __('HR Corner') }}
-            </flux:sidebar.item>
-        </flux:sidebar.group>
 
-        <flux:sidebar.group class="grid" icon="newspaper" expandable heading="Medical Records" >
-            <flux:sidebar.item icon="shopping-cart" href="http://192.168.2.200:3777/medical.online" target="_blank">
-                {{ __('Medical Records') }}
-            </flux:sidebar.item>
-        </flux:sidebar.group>
-@endcan
-             
-        <flux:sidebar.group class="grid" icon="currency-dollar" expandable heading="Cashier" >
-            <flux:sidebar.item icon="clipboard-document" :href="route('pos.dashboard')" :current="request()->routeIs('pos.dashboard')" wire:navigate>
-                {{ __('Dashboard') }}
-            </flux:sidebar.item>
-            <flux:sidebar.item icon="banknotes" :href="route('pos.main')" :current="request()->routeIs('pos.main')" wire:navigate>
-                {{ __('POS') }}
-            </flux:sidebar.item>
-            <flux:sidebar.item icon="queue-list" :href="route('pos.inventory')" :current="request()->routeIs('pos.inventory')" wire:navigate>
-                {{ __('Inventory') }}
-            </flux:sidebar.item>
-            <flux:sidebar.item icon="square-3-stack-3d" :href="route('pos.items')" :current="request()->routeIs('pos.items')" wire:navigate>
-                {{ __('Items') }}
-            </flux:sidebar.item>
-            <flux:sidebar.item icon="printer" :href="route('pos.sales')" :current="request()->routeIs('pos.sales')" wire:navigate>
-                {{ __('Sales') }}
-            </flux:sidebar.item>
-            <flux:sidebar.item icon="user-group" :href="route('pos.customers')" :current="request()->routeIs('pos.customers')" wire:navigate>
-                {{ __('Customers') }}
-            </flux:sidebar.item>
-        </flux:sidebar.group>
+            <flux:sidebar.group icon="clipboard-check" expandable heading="Checklist" class="grid">
+                <flux:sidebar.item :heading="__('Platform')" class="grid">
+                    <flux:sidebar.item  :href="route('Maintenance.checklist.check')" :current="request()->routeIs('Maintenance.checklist.check')" wire:navigate>
+                        {{ __('Maintenance') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
 
                 <flux:sidebar.item class="grid">
                     <flux:sidebar.item  :href="route('Maintenance.checklist.verify')" :current="request()->routeIs('Maintenance.checklist.verify')" wire:navigate>
@@ -103,8 +70,13 @@
                     </flux:sidebar.item>
                 </flux:sidebar.item>
                 <flux:sidebar.item class="grid">
-                    <flux:sidebar.item :href="route('HR.userlist')" :current="request()->routeIs('HR.userlist')" wire:navigate>
+                    <flux:sidebar.item :href="route('HR.leave-applications')" :current="request()->routeIs('HR.leave-applications')" wire:navigate>
                         {{ __('Leave Applications') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.item>
+                <flux:sidebar.item class="grid">
+                    <flux:sidebar.item :href="route('HR.leave-applications')" :current="request()->routeIs('HR.leave-applications')" wire:navigate>
+                        {{ __('Leave Form') }}
                     </flux:sidebar.item>
                 </flux:sidebar.item>
             </flux:sidebar.group>
@@ -120,7 +92,7 @@
 
             <flux:spacer />
 
-            <!-- <flux:sidebar.nav>
+            <flux:sidebar.nav>
                 <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
                     {{ __('Repository') }}
                 </flux:sidebar.item>
@@ -128,7 +100,7 @@
                 <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
                     {{ __('Documentation') }}
                 </flux:sidebar.item>
-            </flux:sidebar.nav> -->
+            </flux:sidebar.nav>
 
             <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()?->name ?? 'Guest'" />
         </flux:sidebar>

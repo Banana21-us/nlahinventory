@@ -47,6 +47,13 @@ class Leave extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['formatted_leave_type', 'formatted_status'];
+
+    /**
      * Get the user that owns the leave request.
      */
     public function user()
@@ -60,6 +67,82 @@ class Leave extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * Get the leave type in readable format.
+     */
+    public function getFormattedLeaveTypeAttribute()
+    {
+        return ucfirst($this->leavetype);
+    }
+
+    /**
+     * Get the status in readable format.
+     */
+    public function getFormattedStatusAttribute()
+    {
+        return ucfirst($this->status);
+    }
+
+    /**
+     * Get the status badge class.
+     */
+    public function getStatusBadgeClassAttribute()
+    {
+        return match($this->status) {
+            'approved' => 'bg-green-100 text-green-800',
+            'rejected' => 'bg-red-100 text-red-800',
+            'pending' => 'bg-yellow-100 text-yellow-800',
+            default => 'bg-gray-100 text-gray-800'
+        };
+    }
+
+    /**
+     * Get the leave type badge class.
+     */
+    public function getLeaveTypeBadgeClassAttribute()
+    {
+        return match(strtolower($this->leavetype)) {
+            'sick leave' => 'bg-red-50 text-red-600',
+            'vacation leave' => 'bg-blue-50 text-blue-600',
+            'emergency leave' => 'bg-orange-50 text-orange-600',
+            default => 'bg-green-50 text-green-600',
+        };
+    }
+
+    /**
+     * Check if the leave is pending.
+     */
+    public function isPending()
+    {
+        return $this->status === 'pending';
+    }
+
+    /**
+     * Check if the leave is approved.
+     */
+    public function isApproved()
+    {
+        return $this->status === 'approved';
+    }
+
+    /**
+     * Check if the leave is rejected.
+     */
+    public function isRejected()
+    {
+        return $this->status === 'rejected';
+    }
+
+    /**
+     * Calculate the duration in days.
+     */
+    public function calculateDuration()
+    {
+        $start = \Carbon\Carbon::parse($this->startdate);
+        $end = \Carbon\Carbon::parse($this->enddate);
+        return $start->diffInDays($end) + 1;
     }
 
     /**
@@ -109,55 +192,5 @@ class Leave extends Model
     {
         return $query->whereBetween('startdate', [$startDate, $endDate])
                      ->orWhereBetween('enddate', [$startDate, $endDate]);
-    }
-
-    /**
-     * Get the leave type in readable format.
-     */
-    public function getLeaveTypeAttribute()
-    {
-        return ucfirst($this->leavetype);
-    }
-
-    /**
-     * Get the status in readable format.
-     */
-    public function getStatusTextAttribute()
-    {
-        return ucfirst($this->status);
-    }
-
-    /**
-     * Check if the leave is pending.
-     */
-    public function isPending()
-    {
-        return $this->status === 'pending';
-    }
-
-    /**
-     * Check if the leave is approved.
-     */
-    public function isApproved()
-    {
-        return $this->status === 'approved';
-    }
-
-    /**
-     * Check if the leave is rejected.
-     */
-    public function isRejected()
-    {
-        return $this->status === 'rejected';
-    }
-
-    /**
-     * Calculate the duration in days.
-     */
-    public function calculateDuration()
-    {
-        $start = \Carbon\Carbon::parse($this->startdate);
-        $end = \Carbon\Carbon::parse($this->enddate);
-        return $start->diffInDays($end) + 1;
     }
 }
