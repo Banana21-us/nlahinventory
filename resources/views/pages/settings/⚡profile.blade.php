@@ -20,10 +20,8 @@ new class extends Component {
      */
     public function mount(): void
     {
-        $user = Auth::user();
-
-        $this->name = $user?->name ?? '';
-        $this->email = $user?->email ?? '';
+        $this->name = Auth::user()->name;
+        $this->email = Auth::user()->email;
     }
 
     /**

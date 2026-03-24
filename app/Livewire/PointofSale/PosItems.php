@@ -23,7 +23,7 @@ class PosItems extends Component
     public string $type = '';
     public $image = null;          // new upload (TemporaryUploadedFile)
     public ?string $existingImage = null; // path of current saved image
-    public $price = '0';
+    public string $price = '';
     public string $status = 'active';
 
     protected function rules(): array
@@ -80,7 +80,7 @@ class PosItems extends Component
         $this->type          = $item->type ?? '';
         $this->existingImage = $item->image;
         $this->image         = null;
-        $this->price         = (int) $item->price;
+        $this->price         = (string) $item->price;
         $this->status        = $item->status;
         $this->isEditing     = true;
     }
@@ -142,7 +142,6 @@ class PosItems extends Component
     private function resetForm(): void
     {
         $this->reset(['name', 'type', 'image', 'existingImage', 'price', 'status', 'editingId', 'deletingId']);
-        $this->price = 0;
         $this->status = 'active';
     }
 

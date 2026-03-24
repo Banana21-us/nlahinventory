@@ -1530,5 +1530,4 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
     :period-type="$periodType"
     :active-period-key="$activePeriodKey"
 />
-
 </div>

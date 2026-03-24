@@ -85,16 +85,12 @@
                 <div>
                     <label
                         class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Type / Category</label>
-                    <select
+                    <input
+                        type="text"
                         wire:model="type"
+                        placeholder="e.g. Meals, Drinks, Snacks"
                         class="block w-full rounded-md border border-gray-300 shadow-sm
-                               focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2 bg-white">
-                        <option value="" disabled>Select category</option>
-                        <option value="Meals">Meals</option>
-                        <option value="Drinks">Drinks</option>
-                        <option value="Snacks">Snacks</option>
-                        <option value="Utensils">Utensils</option>
-                    </select>
+                               focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2"/>
                 </div>
 
                 {{-- Price --}}
@@ -453,16 +449,12 @@
                             <div>
                                 <label
                                     class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Type / Category</label>
-                                <select
+                                <input
+                                    type="text"
                                     wire:model="type"
+                                    placeholder="e.g. Meals, Drinks"
                                     class="block w-full rounded-md border border-gray-300 shadow-sm
-                                               focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2 bg-white">
-                                    <option value="" disabled>Select category</option>
-                                    <option value="Meals">Meals</option>
-                                    <option value="Drinks">Drinks</option>
-                                    <option value="Snacks">Snacks</option>
-                                    <option value="Utensils">Utensils</option>
-                                </select>
+                                               focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2"/>
                             </div>
 
                             {{-- Price --}}
