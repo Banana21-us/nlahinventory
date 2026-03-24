@@ -123,12 +123,35 @@
         </div>
     </div>
 
+    {{-- Offline Preview Modal --}}
+    <div id="offlineProofPreviewModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/60 p-4" style="display: none;">
+        <div class="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-zinc-900 relative flex flex-col max-h-[90vh]">
+             <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700 shrink-0">
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {{ __('Proof Preview') }}
+                </h3>
+                <button type="button" id="closeOfflinePreviewBtn" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800">
+                    &times;
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto">
+                <div class="mx-auto w-full max-w-sm">
+                    <div class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                        <img id="offlineProofImage" src="" class="h-full w-full object-contain">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
   @once
+<script src="{{ asset('js/dexie.js') }}"></script>
 <script>
 (() => {
     const DEFAULT_PROOF_PAYLOAD = @json($defaultProofPayload);
     const getSystemShift = () => new Date().getHours() >= 12 ? 'PM' : 'AM';
     let stream = null;
+    let offlineProofs = [];
     let activeShift = getSystemShift();
     let isOpeningModal = false;
     let currentIndex = 0;
@@ -138,6 +161,158 @@
     let modal, video, preview, canvas, errorBox, commentInput,
         captureOverlayBtn, discardBtn, confirmBtn, cancelBtn,
         areaNameDisplay, areaCounter;
+
+    let offlineModal, offlineImage, offlineComment, offlineCloseBtn;
+
+    // 1. Initialize IndexedDB
+    if (typeof Dexie !== 'undefined') {
+        const db = new Dexie('ChecklistOfflineDB');
+        db.version(1).stores({
+            pending_proofs: '++id, partId, dayKey, shift, imageData, comment'
+        });
+        window.checklistDB = db;
+    } else {
+        console.warn('Dexie.js not loaded. Offline storage unavailable.');
+    }
+
+    // 1.05 Helper: Open Offline Preview
+    const openOfflinePreview = async (id) => {
+        if (!window.checklistDB) return;
+        try {
+            const proof = await window.checklistDB.pending_proofs.get(id);
+            if (!proof) return;
+
+            offlineModal = document.getElementById('offlineProofPreviewModal');
+            offlineImage = document.getElementById('offlineProofImage');
+            offlineCloseBtn = document.getElementById('closeOfflinePreviewBtn');
+
+            if (offlineImage) offlineImage.src = proof.imageData;
+            
+            if (offlineCloseBtn) {
+                offlineCloseBtn.onclick = () => {
+                    offlineModal.classList.add('hidden');
+                    offlineModal.style.display = 'none';
+                    offlineModal.classList.remove('flex');
+                };
+            }
+
+            if (offlineModal) {
+                offlineModal.classList.remove('hidden');
+                offlineModal.style.display = 'flex';
+                offlineModal.classList.add('flex');
+            }
+        } catch (e) {
+            console.error('Error opening offline preview', e);
+        }
+    };
+
+    // 1.1 Helper: Update UI to show offline items
+    const updateOfflineVisuals = async () => {
+        if (!window.checklistDB) return;
+        offlineProofs = await window.checklistDB.pending_proofs.toArray();
+        const freq = DEFAULT_PROOF_PAYLOAD.frequency;
+
+        // Clear previous offline indicators to prevent duplicates
+        document.querySelectorAll('.js-offline-indicator').forEach(el => el.remove());
+        
+        // Update Main Table Background Checkboxes
+        offlineProofs.forEach(p => {
+            // Construct possible keys matching check.blade.php patterns
+            const keys = [
+                `slot-week-${p.partId}-${p.dayKey}-${p.shift}`,
+                `slot-day-${p.partId}-${p.dayKey}-${p.shift}`,
+                `slot-night-${p.partId}-${p.dayKey}-${p.shift}`
+            ];
+            
+            keys.forEach(k => {
+                const el = document.querySelector(`input[wire\\:key="${k}"]`);
+                if (el) {
+                    el.checked = true;
+                    // Add visual indicator (e.g., yellow background for pending)
+                    const cell = el.closest('td');
+                    if (cell) cell.classList.add('bg-yellow-50', 'dark:bg-yellow-900/30');
+
+                    // Add Icon to Name Column (First cell of the row)
+                    const row = el.closest('tr');
+                    if (row && row.cells.length > 0) {
+                        const nameCell = row.cells[0];
+                        // Try to find the container where icons usually go
+                        let mainDiv = nameCell.querySelector('.flex.justify-between');
+                        if (!mainDiv) mainDiv = nameCell.firstElementChild; 
+
+                        if (mainDiv) {
+                            // Use existing icons container or create one
+                            let iconsDiv = mainDiv.querySelector('.flex.items-center.gap-1');
+                            if (!iconsDiv) {
+                                iconsDiv = document.createElement('div');
+                                iconsDiv.className = 'flex items-center gap-1';
+                                mainDiv.appendChild(iconsDiv);
+                            }
+
+                            // Determine classes based on frequency and shift to match online buttons
+                            let classes = 'inline-flex h-8 w-8 items-center justify-center rounded-md border ';
+                            if (freq === 'daily') {
+                                if (p.shift === 'AM') {
+                                    classes += 'border-orange-300 bg-orange-50 text-orange-600 hover:bg-orange-100 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50';
+                                } else {
+                                    classes += 'border-sky-300 bg-sky-50 text-sky-600 hover:bg-sky-100 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-300 dark:hover:bg-sky-900/50';
+                                }
+                            } else if (freq === 'nightly') {
+                                classes += 'border-indigo-300 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50';
+                            } else {
+                                classes += 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800';
+                            }
+
+                            const icon = document.createElement('button');
+                            icon.type = 'button';
+                            icon.className = `js-offline-indicator ${classes}`;
+                            icon.title = 'Saved Offline (Click to view)';
+                            icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="16.5" cy="9" r="1.5"></circle><path d="M5.5 17l5-5 3.5 3.5 2.5-2.5 2.5 4"></path></svg>`;
+                            
+                            // Click listener to open preview
+                            icon.onclick = (e) => {
+                                e.stopPropagation();
+                                openOfflinePreview(p.id);
+                            };
+                            
+                            iconsDiv.appendChild(icon);
+                        }
+                    }
+                }
+            });
+        });
+    };
+
+    // 2. Sync Logic (runs when online)
+    const syncOfflineData = async () => {
+        if (!window.checklistDB || !navigator.onLine) return;
+        const db = window.checklistDB;
+        const proofs = await db.pending_proofs.toArray();
+        if (proofs.length === 0) return;
+
+        // Find component if not already bound
+        let component = getChecklistComponent();
+        if (!component) {
+            const m = document.getElementById('proofCaptureModal');
+            const r = m?.closest('[wire\\:id]');
+            if (r) component = window.Livewire?.find(r.getAttribute('wire:id'));
+        }
+        if (!component) return;
+
+        console.log(`Syncing ${proofs.length} offline proofs...`);
+        for (const proof of proofs) {
+            try {
+                await component.call('setPendingProof', proof.partId, proof.dayKey, proof.shift);
+                await component.call('confirmToggleWithProof', proof.partId, proof.dayKey, proof.shift, proof.imageData, proof.comment);
+                await db.pending_proofs.delete(proof.id);
+            } catch (e) {
+                console.error('Sync failed for proof ID ' + proof.id, e);
+            }
+        }
+        alert('Offline data synced successfully!');
+        offlineProofs = []; // Clear local cache after sync
+    };
+    window.addEventListener('online', syncOfflineData);
 
     const bindElements = () => {
         modal             = document.getElementById('proofCaptureModal');
@@ -294,7 +469,15 @@
             const hasAm = item.dataset.hasAm === '1';
             const hasPm = item.dataset.hasPm === '1';
             const alreadyDone = normalized === 'PM' ? hasPm : hasAm;
-            if (alreadyDone) capturedMap[item.dataset.partId] = true;
+            
+            // Check both server data (alreadyDone) AND local offline data
+            const isOffline = offlineProofs.some(op => 
+                op.partId == item.dataset.partId && 
+                op.dayKey == item.dataset.dayKey && 
+                op.shift == normalized
+            );
+
+            if (alreadyDone || isOffline) capturedMap[item.dataset.partId] = true;
         });
         let firstUncaptured = 0;
         while (firstUncaptured < areaQueue.length && capturedMap[areaQueue[firstUncaptured]?.dataset?.partId]) {
@@ -366,6 +549,9 @@
     const openModal = async (payload) => {
         if (!bindElements()) return;
         if (isOpeningModal) return;
+        
+        await updateOfflineVisuals(); // Refresh offline data before opening
+
         isOpeningModal = true;
         usingFallback = false;
 
@@ -411,7 +597,15 @@
             const hasAm = item.dataset.hasAm === '1';
             const hasPm = item.dataset.hasPm === '1';
             const alreadyDone = normalized === 'PM' ? hasPm : hasAm;
-            if (alreadyDone) capturedMap[item.dataset.partId] = true;
+            
+            // Check offline data here too
+            const isOffline = offlineProofs.some(op => 
+                op.partId == item.dataset.partId && 
+                op.dayKey == item.dataset.dayKey && 
+                op.shift == normalized
+            );
+
+            if (alreadyDone || isOffline) capturedMap[item.dataset.partId] = true;
         });
         goToIndex(0);
     };
@@ -481,6 +675,61 @@
         if (!usingFallback) video.classList.add('hidden');
         const ph = document.getElementById('proofFallbackPlaceholder');
         if (ph) ph.classList.add('hidden');
+
+        // ─── Offline Handling ───
+        if (!navigator.onLine) {
+            if (!window.checklistDB) {
+                setError('Offline: Storage library missing. Cannot save.');
+                return;
+            }
+            try {
+                await window.checklistDB.pending_proofs.add({
+                    partId: Number(item.dataset.partId),
+                    dayKey: String(item.dataset.dayKey),
+                    shift: shift,
+                    imageData: imageData,
+                    comment: comment
+                });
+
+                // Simulate success UI updates so user can continue
+                capturedMap[item.dataset.partId] = true;
+                if (freq === 'daily') {
+                    if (activeShift === 'PM') item.dataset.hasPm = '1';
+                    else item.dataset.hasAm = '1';
+                } else {
+                    item.dataset.hasAm = '1';
+                }
+                if (commentInput) commentInput.value = '';
+
+                // setError('Offline: Saved locally. Will sync when online.');
+                
+                // Refresh visuals to show this new item as captured
+                await updateOfflineVisuals(); 
+
+                // setTimeout(() => setError(''), 3000);
+
+                requestAnimationFrame(() => {
+                    document.querySelectorAll('.js-shift-toggle').forEach((btn) => {
+                        const isActive = btn.getAttribute('data-shift') === activeShift;
+                        btn.classList.remove(...SHIFT_ACTIVE_CLASSES, ...SHIFT_INACTIVE_CLASSES);
+                        btn.classList.add(...(isActive ? SHIFT_ACTIVE_CLASSES : SHIFT_INACTIVE_CLASSES));
+                        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                    });
+                    setTimeout(() => {
+                        preview.classList.add('hidden');
+                        if (usingFallback) {
+                            const ph2 = document.getElementById('proofFallbackPlaceholder');
+                            if (ph2) ph2.classList.remove('hidden');
+                        } else {
+                            video.classList.remove('hidden');
+                        }
+                        goToIndex(currentIndex + 1);
+                        refreshAreaListUI();
+                    }, 800);
+                });
+            } catch (e) { setError('Failed to save offline.'); }
+            return;
+        }
 
         const component = getChecklistComponent();
         if (!component) { setError('Component not found.'); return; }
@@ -647,6 +896,10 @@
 
     document.addEventListener('livewire:init', () => {
         Livewire.on('open-proof-camera', (event) => openModal(event));
+        // Attempt sync on load if online
+        if (navigator.onLine) setTimeout(syncOfflineData, 1000);
+        // Load visual indicators for offline data
+        setTimeout(updateOfflineVisuals, 500);
     });
     window.addEventListener('open-proof-camera', (e) => openModal(e?.detail ?? e));
 })();
