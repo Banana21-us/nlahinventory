@@ -224,7 +224,7 @@ class HRCorner extends Component
                 if ($leave->user) {
                     $result[] = [
                         'id' => $leave->id,
-                        'employee_name' => $leave->user->username ?? 'Unknown',
+                        'employee_name' => $leave->user->name ?? 'Unknown',
                         'employee_number' => $leave->user->employee_number ?? 'N/A',
                         'leavetype' => $leave->leavetype ?? 'Unknown',
                         'department' => $leave->department ?? 'N/A',
@@ -264,7 +264,7 @@ class HRCorner extends Component
                 if ($leave->user) {
                     $result[] = [
                         'id' => $leave->id,
-                        'employee_name' => $leave->user->username ?? 'Unknown',
+                        'employee_name' => $leave->user->name ?? 'Unknown',
                         'employee_number' => $leave->user->employee_number ?? 'N/A',
                         'leavetype' => $leave->leavetype ?? 'Unknown',
                         'department' => $leave->department ?? 'N/A',
@@ -298,7 +298,7 @@ class HRCorner extends Component
                 if ($leave->user) {
                     $result[] = [
                         'id' => $leave->id,
-                        'employee_name' => $leave->user->username ?? 'Unknown',
+                        'employee_name' => $leave->user->name ?? 'Unknown',
                         'employee_number' => $leave->user->employee_number ?? 'N/A',
                         'leavetype' => $leave->leavetype ?? 'Unknown',
                         'department' => $leave->department ?? 'N/A',
@@ -361,7 +361,7 @@ class HRCorner extends Component
             $leave = Leave::find($leaveId);
             if ($leave) {
                 $leave->status = 'approved';
-                $leave->approved_by = auth()->user()->username ?? 'System';
+                $leave->approved_by = auth()->user()->name ?? 'System';
                 $leave->save();
                 
                 session()->flash('message', 'Leave approved successfully.');

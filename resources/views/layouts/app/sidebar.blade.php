@@ -149,11 +149,6 @@
                     wire:navigate="wire:navigate">
                     {{ __('Customers') }}
                 </flux:sidebar.item>
-                <flux:sidebar.item class="grid">
-                    <flux:sidebar.item :href="route('HR.leave-applications')" :current="request()->routeIs('HR.leave-applications')" wire:navigate>
-                        {{ __('Leave Form') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.item>
             </flux:sidebar.group>
 
             <flux:spacer/>
