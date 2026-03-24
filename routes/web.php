@@ -35,6 +35,7 @@ use App\Livewire\PointOfSale\PosCustomer;
 Route::get('/email/verify', function () {
      return view('pages::auth.verify-email'); 
 })->middleware('auth')->name('verification.notice');
+
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
 
@@ -52,6 +53,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
     return redirect()->route('login')->with('status', 'Email verified! Please log in.');
 })->middleware('signed')->name('verification.verify');
+
 Route::post('/email/resend', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
     return back()->with('message', 'Verification link sent!');
@@ -89,16 +91,21 @@ Route::middleware(['auth','can:access-verify'])->group(function () {
 
 // Public NLAH routes
 Route::get('/', function () {return redirect()->route('nlah.home');})->name('home');
+
 Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::view('/home', 'nlah.home')->name('home');
     Route::view('/about', 'nlah.about')->name('about');
     Route::view('/services', 'nlah.services')->name('services');
+
+    // News routes using NewsEventController for public pages
     Route::get('/news', [NewsEventController::class, 'index'])->name('news');
     Route::get('/news/{id}', [NewsEventController::class, 'show'])->name('news.detail');
     Route::get('/news/category/{category}', [NewsEventController::class, 'byCategory'])->name('news.category');
     Route::get('/news/type/{type}', [NewsEventController::class, 'byType'])->name('news.type');
-    Route::get('/feedbacks', [FeedbackController::class, 'getFeedbacks'])->name('feedbacks');
-    Route::post('/feedback/submit', [FeedbackController::class, 'submit'])->name('feedback.submit');
+
+    // Feedback route
+    Route::get('/feedbacks', [App\Http\Controllers\FeedbackController::class, 'getFeedbacks'])->name('feedbacks');
+    Route::post('/feedback/submit', [App\Http\Controllers\FeedbackController::class, 'submit'])->name('feedback.submit');
 });
 
 

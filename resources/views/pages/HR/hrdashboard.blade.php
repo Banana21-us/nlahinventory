@@ -158,8 +158,6 @@ use Carbon\Carbon;
                             <tr class="border-b border-gray-200">
                                 <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Employee</th>
                                 <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Type</th>
-                                <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Dates</th>
-                                <th class="text-center py-3 px-4 text-sm font-medium text-gray-600">Days</th>
                                 <th class="text-center py-3 px-4 text-sm font-medium text-gray-600">Status</th>
                             </tr>
                         </thead>
@@ -178,12 +176,6 @@ use Carbon\Carbon;
                                     </div>
                                 </td>
                                 <td class="py-3 px-4 text-gray-600">{{ $leave['leavetype'] }}</td>
-                                <td class="py-3 px-4 text-gray-600 text-sm">
-                                    {{ Carbon::parse($leave['startdate'])->format('M d') }} - {{ Carbon::parse($leave['enddate'])->format('M d') }}
-                                </td>
-                                <td class="py-3 px-4 text-center">
-                                    <span class="text-lg font-bold text-gray-900">{{ $leave['totaldays'] }}</span>
-                                </td>
                                 <td class="py-3 px-4 text-center">
                                     <span class="px-3 py-1 text-xs rounded-full 
                                         @if($leave['status'] == 'approved') bg-green-100 text-green-700
