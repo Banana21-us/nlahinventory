@@ -67,7 +67,8 @@
                     wire:navigate="wire:navigate">
                     {{ __('Maintenance') }}
                 </flux:sidebar.item>
-                @endcan @can('access-verify')
+                @endcan 
+                @can('access-verify')
                 <flux:sidebar.item
                     :href="route('Maintenance.checklist.verify')"
                     :current="request()->routeIs('Maintenance.checklist.verify')"
@@ -78,30 +79,48 @@
             </flux:sidebar.group>
             @endif
 
-            {{-- 3. NEWS & HR CORNER --}}
+            {{-- 3. HR CORNER WITH DROPDOWN --}}
             @can('access-hr-only')
-            <flux:sidebar.nav>
-                <flux:sidebar.group class="grid">
-                    <flux:sidebar.item
+            <flux:sidebar.item
                         icon="newspaper"
                         :href="route('NewsPage.newshr')"
                         :current="request()->routeIs('NewsPage.newshr')"
                         wire:navigate="wire:navigate">
                         {{ __('News') }}
                     </flux:sidebar.item>
-
-                    <flux:sidebar.item
-                        icon="users"
-                        :href="route('HR.userlist')"
-                        :current="request()->routeIs('HR.userlist')"
-                        wire:navigate="wire:navigate">
-                        {{ __('HR Corner') }}
-                    </flux:sidebar.item>
-
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
+            <flux:sidebar.group
+                icon="users"
+                expandable="expandable"
+                heading="HR Corner"
+                class="grid">
+                
+                {{-- HR Dashboard --}}
+                <flux:sidebar.item
+                    :href="route('HR.hrdashboard')"
+                    :current="request()->routeIs('HR.hrdashboard')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Dashboard') }}
+                </flux:sidebar.item>
+                
+                {{-- Leave Applications --}}
+                <flux:sidebar.item
+                    :href="route('HR.leave-applications')"
+                    :current="request()->routeIs('HR.leave-applications')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Leave Applications') }}
+                </flux:sidebar.item>
+                
+                {{-- Employee List --}}
+                <flux:sidebar.item
+                    :href="route('HR.userlist')"
+                    :current="request()->routeIs('HR.userlist')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Employee List') }}
+                </flux:sidebar.item>
+            </flux:sidebar.group>
             @endcan
 
+            {{-- Cashier Section --}}
             <flux:sidebar.group
                 class="grid"
                 icon="currency-dollar"
@@ -152,12 +171,15 @@
             </flux:sidebar.group>
 
             <flux:spacer/>
+            
+            {{-- Medical Records Link --}}
             <flux:sidebar.item
                 icon="shopping-cart"
                 href="http://192.168.2.200:3777/medical.online"
                 target="_blank">
                 {{ __('Medical Records') }}
             </flux:sidebar.item>
+            
             <!-- <flux:sidebar.nav> <flux:sidebar.item icon="folder-git-2"
             href="https://github.com/laravel/livewire-starter-kit" target="_blank"> {{
             __('Repository') }} </flux:sidebar.item> <flux:sidebar.item
