@@ -362,6 +362,7 @@ class POS extends Component
             ->values();
 
         if (! $rice || ! $meal || $utensils->isEmpty()) {
+            session()->flash('budget_meal_alert', 'Please select at least one utensil for the budget meal.');
             $this->notify('danger', 'Missing Selection', 'Choose a rice, a meal, and at least one utensil to build the budget meal.');
             return;
         }
@@ -616,6 +617,7 @@ class POS extends Component
             $this->closeBudgetMealModal();
             $this->mount();
 
+            session()->flash('checkout_success', 'Transaction successful.');
             $this->dispatch('sale-completed', saleId: $sale->id);
             $this->notify('success', 'Sale Completed!', 'The transaction has been recorded.');
 
