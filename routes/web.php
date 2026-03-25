@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Volt;
 use App\Http\Controllers\NewsEventController;
 use App\Livewire\HR;
+use App\Livewire\LeaveForm;
 use App\Http\Controllers\FeedbackController;
 use App\Livewire\HRCorner;
 use App\Livewire\HRLeaveApplications;
@@ -71,6 +72,9 @@ Route::middleware(['auth', 'verified', 'can:access-medical'])
         Route::get('/patients', PatientManager::class)->name('patients');
         Route::get('/patients/{id}', PatientDetail::class)->name('patient.details');
     });
+
+// Form route
+Route::get('/LeaveForm/leave', LeaveForm::class)->middleware(['auth', 'verified'])->name('users.leaveform');
 
 // HR Routes
 Route::middleware('can:access-hr-only')->group(function () {

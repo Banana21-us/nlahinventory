@@ -117,8 +117,18 @@
                     wire:navigate="wire:navigate">
                     {{ __('Employee List') }}
                 </flux:sidebar.item>
+
+                {{-- Leave form --}}
             </flux:sidebar.group>
             @endcan
+
+            <flux:sidebar.item
+                    icon="calendar"
+                    :href="route('users.leaveform')"
+                    :current="request()->routeIs('users.leaveform')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Leave Form') }}
+                </flux:sidebar.item>
 
             {{-- Cashier Section --}}
             <flux:sidebar.group
