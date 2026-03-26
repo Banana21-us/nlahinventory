@@ -721,7 +721,7 @@ if ($this->periodType === 'daily') {
 
     private function loadAreaParts(): void
     {
-        if (! in_array($this->periodType, ['daily', 'weekly', 'monthly'], true) || $this->selectedLocationId === null) {
+        if (! in_array($this->periodType, ['daily', 'nightly', 'weekly', 'monthly'], true) || $this->selectedLocationId === null) {
             $this->areaParts = [];
             return;
         }
@@ -759,7 +759,7 @@ if ($this->periodType === 'daily') {
 
     private function loadLocations(): void
     {
-        if (! in_array($this->periodType, ['daily', 'weekly', 'monthly'], true)) {
+        if (! in_array($this->periodType, ['daily', 'nightly', 'weekly', 'monthly'], true)) {
             $this->locations = [];
             $this->selectedLocation = '';
             $this->selectedLocationId = null;
@@ -1120,6 +1120,7 @@ if ($this->periodType === 'daily') {
             <div class="space-y-4">
                 @php
                     $periodLabel = match ($periodType) {
+                        'nightly' => __('Nightly'), // Add this line
                         'weekly' => __('Weekly'),
                         'monthly' => __('Monthly'),
                         default => __('Daily'),
@@ -1225,7 +1226,7 @@ if ($this->periodType === 'daily') {
                     </div>
                 </div>
 
-                @if ($periodType === 'daily' && ! $showDailyChecklist)
+                @if (in_array($periodType, ['daily', 'nightly']) && ! $showDailyChecklist)
                     @php
                         $calendarBase = \Carbon\Carbon::parse($calendarMonth)->startOfMonth();
                         $today = \Carbon\Carbon::now('Asia/Manila')->toDateString();
@@ -1441,7 +1442,7 @@ if ($this->periodType === 'daily') {
                         </table>
                     </div>
 
-                @elseif ($selectedLocationId !== null && $periodType === 'daily' && $showDailyChecklist)
+                @elseif ($selectedLocationId !== null && in_array($periodType, ['daily', 'nightly']) && $showDailyChecklist)
                     <div class="space-y-5 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
                         <div class="rounded-xl border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4 dark:border-zinc-700 dark:from-zinc-900 dark:to-zinc-800">
                             <div class="flex flex-wrap items-start justify-between gap-3">
@@ -1458,18 +1459,22 @@ if ($this->periodType === 'daily') {
 
                         <div class="max-h-[65vh] overflow-auto rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700">
                             <table class="min-w-full border-collapse text-sm">
-                                <thead class="sticky top-0 z-10 bg-zinc-100 dark:bg-zinc-800">
+                                <thead>
                                     <tr>
                                         <th class="border border-zinc-200 px-4 py-3 text-left font-semibold dark:border-zinc-700">{{ __('Area Part') }}</th>
-                                        <th colspan="2" class="border border-zinc-200 px-3 py-3 text-center dark:border-zinc-700">
+                                        <th colspan="{{ $periodType === 'nightly' ? 1 : 2 }}" class="border border-zinc-200 px-3 py-3 text-center dark:border-zinc-700">
                                             <div class="font-semibold">{{ \Carbon\Carbon::parse($selectedDate)->format('l') }}</div>
                                             <div class="text-xs text-zinc-500">{{ \Carbon\Carbon::parse($selectedDate)->format('M d, Y') }}</div>
                                         </th>
                                     </tr>
                                     <tr>
                                         <th class="border border-zinc-200 px-4 py-2 dark:border-zinc-700"></th>
-                                        <th class="border border-zinc-200 px-2 py-2 text-center font-semibold text-orange-600 dark:border-zinc-700 dark:text-orange-400">AM</th>
-                                        <th class="border border-zinc-200 px-2 py-2 text-center font-semibold text-sky-600 dark:border-zinc-700 dark:text-sky-400">PM</th>
+                                            @if ($periodType === 'daily')
+                                                <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-orange-600 dark:border-zinc-700 dark:text-orange-400">AM</th>
+                                                <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-sky-600 dark:border-zinc-700 dark:text-sky-400">PM</th>
+                                            @else
+                                                <th class="border border-zinc-200 px-2 py-1 text-center dark:border-zinc-700">{{ __('Check') }}</th>
+                                            @endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1539,6 +1544,7 @@ if ($this->periodType === 'daily') {
                                                 </div>
                                             </td>
                                             @foreach ($shifts as $shift)
+                                                @if($periodType === 'nightly' && $shift === 'AM') @continue @endif
                                                 @php
                                                     $selected = $this->isSlotSelected($part['id'], 'selected', $shift);
                                                     $locked = $this->isSlotLockedForFuture('selected');
@@ -1573,7 +1579,7 @@ if ($this->periodType === 'daily') {
                         </div>
                     </div>
 
-                @elseif ($selectedLocationId !== null && $periodType === 'daily')
+                @elseif ($selectedLocationId !== null && in_array($periodType, ['daily', 'nightly']))
                     <div class="rounded-xl border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
                         {{ __('Select a date to load the daily checklist.') }}
                     </div>
