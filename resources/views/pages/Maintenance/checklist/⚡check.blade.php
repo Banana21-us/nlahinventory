@@ -122,7 +122,7 @@ new class extends Component {
             ->startOfMonth()
             ->toDateString();
     }
-
+    
     public function selectCalendarDate(string $date): void
     {
         try {

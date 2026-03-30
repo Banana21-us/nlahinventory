@@ -89,7 +89,7 @@
                     {{-- Camera --}}
                     <div class="w-full space-y-3">
                         <div class="relative aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                            <video id="proofVideo" class="h-full w-full rounded-lg bg-black object-cover"></video>
+                            <video id="proofVideo" class="h-full w-full rounded-lg bg-black object-cover" autoplay playsinline muted></video>
                             <img id="proofPreview" class="hidden h-full w-full rounded-lg bg-black object-cover" alt="{{ __('Proof preview') }}">
                         </div>
 
@@ -478,7 +478,10 @@
         // Show preview before saving
         preview.src = imageData;
         preview.classList.remove('hidden');
-        if (!usingFallback) video.classList.add('hidden');
+        if (!usingFallback) {
+            video.classList.add('hidden');
+            stopCamera(); // ← ADD THIS LINE
+        }
         const ph = document.getElementById('proofFallbackPlaceholder');
         if (ph) ph.classList.add('hidden');
 
@@ -522,18 +525,18 @@
                 if (currentShiftGroup) currentShiftGroup.classList.toggle('hidden', (item.dataset.frequency || '').toLowerCase() !== 'daily');
 
                 // Brief preview then advance
-                setTimeout(() => {
-                    preview.classList.add('hidden');
-                    if (usingFallback) {
-                        const ph2 = document.getElementById('proofFallbackPlaceholder');
-                        if (ph2) ph2.classList.remove('hidden');
-                    } else {
-                        video.classList.remove('hidden');
-                    }
-                    goToIndex(currentIndex + 1);
-                    refreshAreaListUI();
-                }, 800); // show preview for 800ms then move on
-            });
+                setTimeout(async () => {
+                preview.classList.add('hidden');
+                if (usingFallback) {
+                    const ph2 = document.getElementById('proofFallbackPlaceholder');
+                    if (ph2) ph2.classList.remove('hidden');
+                } else {
+                    await startCamera(); // restarts fresh for next area
+                }
+                goToIndex(currentIndex + 1);
+                refreshAreaListUI();
+            }, 800); // show preview for 800ms then move on
+           });
         } catch (e) {
             setError('Failed to save. Try again.');
         }
