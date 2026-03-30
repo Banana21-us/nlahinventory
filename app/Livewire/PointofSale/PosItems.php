@@ -18,7 +18,7 @@ class PosItems extends Component
     // Form fields
     public ?int $editingId = null;
     public ?int $deletingId = null;
-
+    public string $barcode = '';
     public string $name = '';
     public string $type = '';
     public $image = null;          // new upload (TemporaryUploadedFile)
@@ -30,6 +30,7 @@ class PosItems extends Component
     {
         return [
             'name'   => 'required|string|max:255',
+            'barcode' => 'required|string|unique:items,barcode|max:255',
             'type'   => 'nullable|string|max:100',
             'image'  => 'nullable|image|max:2048',
             'price'  => 'required|integer|min:0',
@@ -39,6 +40,8 @@ class PosItems extends Component
 
     protected $messages = [
         'name.required'  => 'Item name is required.',
+        'barcode.required' => 'Barcode is required.',
+        'barcode.unique' => 'Barcode already exists.',
         'price.required' => 'Price is required.',
         'price.integer'  => 'Price must be a whole number.',
         'image.image'    => 'File must be an image.',
@@ -58,6 +61,7 @@ class PosItems extends Component
 
         Item::create([
             'name'   => trim($this->name),
+            'barcode' => trim($this->barcode),
             'type'   => trim($this->type) ?: null,
             'image'  => $imagePath,
             'price'  => (int) $this->price,
@@ -77,6 +81,7 @@ class PosItems extends Component
 
         $this->editingId     = $item->id;
         $this->name          = $item->name;
+        $this->barcode       = $item->barcode;
         $this->type          = $item->type ?? '';
         $this->existingImage = $item->image;
         $this->image         = null;
@@ -102,6 +107,7 @@ class PosItems extends Component
 
         $item->update([
             'name'   => trim($this->name),
+            'barcode' => trim($this->barcode),
             'type'   => trim($this->type) ?: null,
             'image'  => $imagePath,
             'price'  => (int) $this->price,
@@ -141,7 +147,7 @@ class PosItems extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['name', 'type', 'image', 'existingImage', 'price', 'status', 'editingId', 'deletingId']);
+        $this->reset(['name', 'barcode', 'type', 'image', 'existingImage', 'price', 'status', 'editingId', 'deletingId']);
         $this->price = 0;
         $this->status = 'active';
     }

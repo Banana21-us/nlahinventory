@@ -17,6 +17,7 @@ class POS extends Component
     public $items    = [];
     public $customers = [];
     public string $search   = '';
+    public string $barcode   = '';
     public array  $cart     = [];
     public string $category = 'all';
 
@@ -53,18 +54,20 @@ class POS extends Component
     }
 
     // ─── Computed ────────────────────────────────────────────────────────────
-
     #[Computed]
-    public function filteredItems()
-    {
-        return $this->items->filter(function ($item) {
-            $matchesSearch = empty($this->search)
-                || str_contains(strtolower($item->name), strtolower($this->search));
-            $matchesCategory = $this->category === 'all'
-                || strtolower((string) $item->type) === $this->category;
-            return $matchesSearch && $matchesCategory;
-        });
-    }
+public function filteredItems()
+{
+    return $this->items->filter(function ($item) {
+        $matchesSearch = empty($this->search)
+            || str_contains(strtolower($item->name), strtolower($this->search))
+            || str_contains(strtolower((string) $item->barcode), strtolower($this->search)); // ← add this
+
+        $matchesCategory = $this->category === 'all'
+            || strtolower((string) $item->type) === $this->category;
+
+        return $matchesSearch && $matchesCategory;
+    });
+}
 
     #[Computed]
     public function budgetMealRiceOptions()
@@ -203,6 +206,42 @@ class POS extends Component
             ];
         }
     }
+
+    public function addToCartBybarcode(string $barcode): void
+{
+    $item = Item::where('barcode', $barcode)
+        ->where('status', 'active')
+        ->first();
+
+    if (! $item) {
+        $this->notify('danger', 'Item Not Found', "No active item found for barcode: {$barcode}");
+        return;
+    }
+
+    $inventory = Inventory::where('item_id', $item->id)->first();
+
+    if (! $inventory || $inventory->quantity <= 0) {
+        $this->notify('danger', 'Out of Stock', "{$item->name} is out of stock.");
+        return;
+    }
+
+    if (isset($this->cart[$item->id])) {
+        if ($this->cart[$item->id]['quantity'] >= $inventory->quantity) {
+            $this->notify('danger', 'Stock Limit', "Only {$inventory->quantity} in stock.");
+            return;
+        }
+        $this->cart[$item->id]['quantity']++;
+    } else {
+        $this->cart[$item->id] = [
+            'id'       => $item->id,
+            'name'     => $item->name,
+            'price'    => $item->price,
+            'quantity' => 1,
+        ];
+    }
+
+    $this->notify('success', 'Item Added', "{$item->name} added to cart.");
+}
 
     public function openBudgetMealModal(): void
     {

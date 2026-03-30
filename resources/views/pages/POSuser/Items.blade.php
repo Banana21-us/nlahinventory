@@ -74,10 +74,28 @@
                         type="text"
                         wire:model="name"
                         placeholder="e.g. Burger, Iced Tea"
+                        @keydown.enter.prevent
                         class="block w-full rounded-md border border-gray-300 shadow-sm
                                focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2"/>
                     @error('name')
                     <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
+                    @enderror
+                </div>
+                
+                {{-- SKU / Barcode --}}
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                        Barcode
+                    </label>
+                    <input
+                    type="text"
+                    wire:model="barcode"
+                    placeholder="Scan or type barcode…"
+                    @keydown.enter.prevent
+                    class="block w-full rounded-md border border-gray-300 shadow-sm
+                               focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2"/>
+                    @error('barcode')
+                        <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
 
@@ -108,12 +126,26 @@
                             wire:model="price"
                             min="0"
                             placeholder="0"
+                            @keydown.enter.prevent
                             class="block w-full pl-7 rounded-md border border-gray-300 shadow-sm
                                    focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2"/>
                     </div>
                     @error('price')
                     <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
                     @enderror
+                </div>
+                
+                {{-- Status --}}
+                <div>
+                    <label
+                        class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Status</label>
+                    <select
+                        wire:model="status"
+                        class="block w-full rounded-md border border-gray-300 shadow-sm
+                               focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2 bg-white">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
                 </div>
 
                 {{-- Image Upload --}}
@@ -155,18 +187,7 @@
                     @enderror
                 </div>
 
-                {{-- Status --}}
-                <div>
-                    <label
-                        class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Status</label>
-                    <select
-                        wire:model="status"
-                        class="block w-full rounded-md border border-gray-300 shadow-sm
-                               focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2 bg-white">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
+                
 
                 {{-- Actions --}}
                 <div
@@ -245,15 +266,17 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th
-                            class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Item</th>
+                            class="px-6 ms-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Item</th>
                         <th
-                            class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+                            class="px-6 ms-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Barcode</th>
                         <th
-                            class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
+                            class="px-6 ms-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
                         <th
-                            class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                            class="px-6 ms-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
                         <th
-                            class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                            class="px-6 ms-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th
+                            class="px-6 ms-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
@@ -263,14 +286,28 @@
                         {{-- Item Name + Image --}}
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
-                                @php $imgUrl = $item->image ? asset('storage/' . $item->image) :
-                                asset('images/placeholder.png'); @endphp
+                                @php $imgUrl = $item->image ? asset('storage/' . $item->image) : asset('images/placeholder.png'); @endphp
                                 <img
                                     src="{{ $imgUrl }}"
                                     alt="{{ $item->name }}"
                                     class="w-10 h-10 rounded-lg object-cover bg-gray-100 border border-gray-200 shrink-0"/>
-                                <span class="text-sm font-bold text-gray-900">{{ $item->name }}</span>
+                                <div>
+                                    <p class="text-sm font-bold text-gray-900">{{ $item->name }}</p>
+                                    
+                                </div>
                             </div>
+                        </td>
+
+                        <!-- barcode -->
+                         <td class="px-6 py-4">
+                            @if($item->barcode)
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                {{ $item->barcode }}
+                            </span>
+                            @else
+                            <span class="text-xs text-gray-400">—</span>
+                            @endif
                         </td>
 
                         {{-- Type --}}
@@ -445,6 +482,19 @@
                                     class="block w-full rounded-md border border-gray-300 shadow-sm
                                                focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2"/>
                                 @error('name')
+                                <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
+                                @enderror
+                            </div>
+                            <!-- barcdode -->
+                            <div class="md:col-span-2">
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Barcode *</label>
+                                <input
+                                    type="text"
+                                    wire:model="barcode"
+                                    class="block w-full rounded-md border border-gray-300 shadow-sm
+                                               focus:ring-amber-500 focus:border-amber-500 sm:text-sm p-2"/>
+                                @error('barcode')
                                 <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
                                 @enderror
                             </div>
