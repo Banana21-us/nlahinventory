@@ -88,4 +88,8 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->role === 'Disable';
     }
+        public function employmentDetail()
+    {
+        return $this->hasOne(\App\Models\EmploymentDetail::class, 'user_id');
+    }
 }

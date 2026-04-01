@@ -22,13 +22,16 @@ use App\Livewire\HR;
 use App\Livewire\LeaveForm;
 use App\Http\Controllers\FeedbackController;
 use App\Livewire\HRCorner;
-use App\Livewire\HRLeaveApplications;
 use App\Livewire\PointOfSale\Posdashboard;
 use App\Livewire\PointOfSale\POS;
 use App\Livewire\PointOfSale\PosInventory;
 use App\Livewire\PointOfSale\PosItems;
 use App\Livewire\PointOfSale\PosSales;
 use App\Livewire\PointOfSale\PosCustomer;
+
+use App\Livewire\LeaveRequest;
+use App\Livewire\HrLeaveManagement;
+use App\Livewire\DHead;
 // Route::get('/', function () {
 //     return view('welcome');
 // })->name('home');
@@ -74,13 +77,13 @@ Route::middleware(['auth', 'verified', 'can:access-medical'])
     });
 
 // Form route
-Route::get('/LeaveForm/leave', LeaveForm::class)->middleware(['auth', 'verified'])->name('users.leaveform');
-
+Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
+Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
 // HR Routes
 Route::middleware('can:access-hr-only')->group(function () {
         Route::get('/HR/news', News::class)->name('NewsPage.newshr');
         Route::get('/HR/userlist', HR::class)->name('HR.userlist');
-        Route::get('/HR/leave-applications', HRLeaveApplications::class)->name('HR.leave-applications');
+        Route::get('/HR/hr-leave-management', HrLeaveManagement::class)->name('HR.hr-leave-management');
         Route::get('/HR/hrdashboard', HRCorner::class)->name('HR.hrdashboard');
     });
 // Maintenance routes
@@ -111,8 +114,8 @@ Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::get('/news/type/{type}', [NewsEventController::class, 'byType'])->name('news.type');
 
     // Feedback route
-    Route::get('/feedbacks', [App\Http\Controllers\FeedbackController::class, 'getFeedbacks'])->name('feedbacks');
-    Route::post('/feedback/submit', [App\Http\Controllers\FeedbackController::class, 'submit'])->name('feedback.submit');
+    Route::get('/feedbacks', [FeedbackController::class, 'getFeedbacks'])->name('feedbacks');
+    Route::post('/feedback/submit', [FeedbackController::class, 'submit'])->name('feedback.submit');
 });
 
 
@@ -122,6 +125,7 @@ Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::get('/pos/items', PosItems::class)->name('pos.items');
     Route::get('/pos/sales', PosSales::class)->name('pos.sales');
     Route::get('/pos/customers', PosCustomer::class)->name('pos.customers');
+
 
 
 require __DIR__.'/settings.php';

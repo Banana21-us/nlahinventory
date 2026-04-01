@@ -104,18 +104,19 @@
                 
                 {{-- Leave Applications --}}
                 <flux:sidebar.item
-                    :href="route('HR.leave-applications')"
-                    :current="request()->routeIs('HR.leave-applications')"
+                    :href="route('HR.hr-leave-management')"
+                    :current="request()->routeIs('HR.hr-leave-management')"
                     wire:navigate="wire:navigate">
                     {{ __('Leave Applications') }}
                 </flux:sidebar.item>
+
                 
                 {{-- Employee List --}}
                 <flux:sidebar.item
                     :href="route('HR.userlist')"
                     :current="request()->routeIs('HR.userlist')"
                     wire:navigate="wire:navigate">
-                    {{ __('Employee List') }}
+                    {{ __('Web User List') }}
                 </flux:sidebar.item>
 
                 {{-- Leave form --}}
@@ -128,7 +129,15 @@
                     :current="request()->routeIs('users.leaveform')"
                     wire:navigate="wire:navigate">
                     {{ __('Leave Form') }}
-                </flux:sidebar.item>
+            </flux:sidebar.item>
+            
+            <flux:sidebar.item
+                    icon="calendar"
+                    :href="route('users.dhead-leaveform')"
+                    :current="request()->routeIs('users.dhead-leaveform')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Department Head Form') }}
+            </flux:sidebar.item>
 
             {{-- Cashier Section --}}
             <flux:sidebar.group
