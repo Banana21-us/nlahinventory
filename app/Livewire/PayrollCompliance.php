@@ -9,8 +9,8 @@ use Livewire\Component;
 class PayrollCompliance extends Component
 {
     // ── Shift Differential Calculator ─────────────────────────────────────
-    public string $shiftIn  = '19:00'; // default 7 PM
-    public string $shiftOut = '07:00'; // default 7 AM next day
+    public string $shiftIn  = '22:00'; // default 7 PM
+    public string $shiftOut = '06:00'; // default 7 AM next day
     public string $shiftDate = '';
     public string $shiftDayType = 'regular'; // regular | special | regular_holiday
 
@@ -42,8 +42,8 @@ class PayrollCompliance extends Component
             return;
         }
 
-        $nightStart = Carbon::parse($this->shiftDate . ' 19:00:00'); // 7 PM
-        $nightEnd   = Carbon::parse($this->shiftDate . ' 07:00:00')->addDay(); // 7 AM next day
+        $nightStart = Carbon::parse($this->shiftDate . ' 22:00:00'); // 7 PM
+        $nightEnd   = Carbon::parse($this->shiftDate . ' 06:00:00')->addDay(); // 6 AM next day
 
         $clockIn  = Carbon::parse($this->shiftDate . ' ' . $this->shiftIn . ':00');
         // If shiftOut < shiftIn time, it means next-day

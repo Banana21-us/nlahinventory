@@ -6,12 +6,28 @@ use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
 {
-    // Important: Match this to your 'desc employee' table name
-    protected $table = 'employee'; 
+    protected $table = 'employee';
 
     protected $fillable = [
-        'employee_number', 'user_id', 'first_name', 'last_name', 
-        'birth_date', 'gender', 'citizenship', 'email_add', 
-        'p_address', 'mobile_no'
+        'employee_number', 'user_id', 'biometric_id',
+        'last_name', 'first_name', 'middle_name', 'extension',
+        'birth_date', 'place_of_birth', 'gender', 'civil_status',
+        'citizenship', 'religion', 'blood_type', 'height', 'weight',
+        'mobile_no', 'telephone', 'email_add', 'p_address', 'c_address',
+        'contact_person', 'contact_number',
     ];
+
+    protected $casts = [
+        'birth_date' => 'date',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function employmentDetail()
+    {
+        return $this->hasOne(EmploymentDetail::class, 'user_id', 'user_id');
+    }
 }

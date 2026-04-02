@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('employee_number')->unique();
 
-            $table->unsignedBigInteger('user_id'); // Manual Reference
+            $table->unsignedBigInteger('user_id')->nullable(); // Manual Reference
             $table->string('biometric_id')->unique()->nullable(); // Link to ZKTeco ID
 
             $table->string('last_name');

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('require',{}\\), indent=2\\)\\)\")",
+      "Bash(php artisan:*)",
+      "Bash(php -r \"echo php_ini_loaded_file\\(\\);\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8888)",
+      "Bash(tasklist /fi \"PID eq 8172\" /v)",
+      "Bash(tasklist)",
+      "Bash(wmic process:*)",
+      "Bash(taskkill //F //PID 8172)",
+      "Bash(php -r \"echo php_ini_loaded_file\\(\\); echo PHP_EOL; echo 'upload_max: '.ini_get\\('upload_max_filesize'\\); echo PHP_EOL; echo 'post_max: '.ini_get\\('post_max_size'\\);\")",
+      "Bash(php -l d:\\\\web\\\\app\\\\Services\\\\AttendanceService.php)",
+      "Bash(php -l \"D:/web/app/Services/AttendanceService.php\")",
+      "Bash(php -r \"echo 'pdo_odbc: '.\\(extension_loaded\\('pdo_odbc'\\)?'YES':'NO'\\).PHP_EOL; echo 'odbc: '.\\(extension_loaded\\('odbc'\\)?'YES':'NO'\\).PHP_EOL; echo 'COM: '.\\(class_exists\\('COM'\\)?'YES':'NO'\\).PHP_EOL;\")",
+      "Bash(php -r \"echo PHP_BINARY.PHP_EOL; echo php_ini_loaded_file\\(\\).PHP_EOL;\")",
+      "Bash(taskkill //F //PID 10212 //PID 22136)",
+      "Bash(php -l \"D:/web/app/Livewire/AttendanceManagement.php\")"
+    ]
+  }
+}

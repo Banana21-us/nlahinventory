@@ -34,6 +34,8 @@ use App\Livewire\LeaveRequest;
 use App\Livewire\HrLeaveManagement;
 use App\Livewire\DHead;
 use App\Livewire\PayrollCompliance;
+use App\Livewire\EmployeeManagement;
+use App\Livewire\AttendanceManagement;
 // Route::get('/', function () {
 //     return view('welcome');
 // })->name('home');
@@ -77,9 +79,6 @@ Route::middleware(['auth', 'verified', 'can:access-medical'])
         Route::get('/patients/{id}', PatientDetail::class)->name('patient.details');
     });
     
-Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
-        Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
-
 // HR Routes
 Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/news', News::class)->name('NewsPage.newshr');
@@ -87,6 +86,8 @@ Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/hr-leave-management', HrLeaveManagement::class)->name('HR.hr-leave-management');
     Route::get('/HR/hrdashboard', HRCorner::class)->name('HR.hrdashboard');
     Route::get('/HR/payroll-compliance', PayrollCompliance::class)->name('HR.payroll-compliance');
+    Route::get('/HR/employees', EmployeeManagement::class)->name('HR.employees');
+    Route::get('/HR/attendance', AttendanceManagement::class)->name('HR.attendance');
 });
 
 // Maintenance routes
@@ -112,7 +113,7 @@ Route::middleware(['auth','can:access-cashier-only'])->group(function () {
 
 // Public NLAH routes
 Route::get('/', function () {return redirect()->route('nlah.home');})->name('home');
-Route::prefix('nlah')->name('nlah.')->group(function () {
+    Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::view('/home', 'nlah.home')->name('home');
     Route::view('/about', 'nlah.about')->name('about');
     Route::view('/services', 'nlah.services')->name('services');
@@ -130,5 +131,9 @@ Route::prefix('nlah')->name('nlah.')->group(function () {
 Route::get('/leave/{leave}/respond/{action}', [LeaveResponseController::class, 'respond'])
     ->name('leave.dhead.respond')
     ->middleware('signed');
+
+// under dev
+Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
+Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
 
 require __DIR__.'/settings.php';

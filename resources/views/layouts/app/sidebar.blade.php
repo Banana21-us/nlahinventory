@@ -119,13 +119,30 @@
                     {{ __('Web User List') }}
                 </flux:sidebar.item>
 
+                {{-- Employee Management --}}
+                <flux:sidebar.item
+                    :href="route('HR.employees')"
+                    :current="request()->routeIs('HR.employees')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Employees') }}
+                </flux:sidebar.item>
+
+                {{-- Attendance --}}
+                <flux:sidebar.item
+                    :href="route('HR.attendance')"
+                    :current="request()->routeIs('HR.attendance')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Attendance') }}
+                </flux:sidebar.item>
+
                 {{-- Leave form --}}
                 
             </flux:sidebar.group>
             @endcan
 
-            
-<flux:sidebar.item
+            {{-- 4. PAYROLL | LABOR COMPLIANCE --}}
+            @can('access-payroll')
+            <flux:sidebar.item
                     icon="calendar"
                     :href="route('users.leaveform')"
                     :current="request()->routeIs('users.leaveform')"
@@ -141,12 +158,11 @@
                     {{ __('Department Head Form') }}
             </flux:sidebar.item>
             
-            {{-- 4. PAYROLL & LABOR COMPLIANCE --}}
-            @can('access-payroll')
+            
             <flux:sidebar.group
                 icon="banknotes"
                 expandable="expandable"
-                heading="Payroll &amp; Compliance"
+                heading="Payroll & Compliance"
                 class="grid">
                 <flux:sidebar.item
                     :href="route('HR.payroll-compliance')"
