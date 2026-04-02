@@ -34,6 +34,148 @@
     --color-accent-foreground: var(--color-white);
 }
 [x-cloak] { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — custom page components
+   All custom brand/page CSS classes that don't use Tailwind's
+   dark: prefix need overrides here.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Page wrappers ── */
+.dark .nlah-page-bg   { background: #0f172a !important; }
+
+/* ── Cards ── */
+.dark .kpi-card,
+.dark .s-card,
+.dark .section-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+.dark .s-head,
+.dark .section-head {
+    border-color: #334155 !important;
+}
+
+/* ── Brand light backgrounds → deep tinted dark equivalents ── */
+.dark .brand-bg-p-lt,
+.dark .brand-bg-primary-light { background: #0c2d44 !important; }
+
+.dark .brand-bg-a-lt,
+.dark .brand-bg-accent-light  { background: #3b2800 !important; }
+
+.dark .brand-bg-t-lt,
+.dark .brand-bg-teal-light    { background: #062e38 !important; }
+
+/* ── Track / gauge / divider ── */
+.dark .bar-track,
+.dark .gauge-track  { background: #334155 !important; }
+.dark .step-divider { background: #334155 !important; }
+
+/* ── Row hovers ── */
+.dark .brand-row-hover:hover { background: #1e3a4a !important; }
+.dark .row-hover:hover       { background: #243447 !important; }
+
+/* ── Contrib separator lines ── */
+.dark .contrib-row { border-color: #334155 !important; }
+
+/* ── Text inside custom dark cards ── */
+.dark .kpi-card .text-gray-900,
+.dark .kpi-card .text-gray-800,
+.dark .s-card   .text-gray-900,
+.dark .s-card   .text-gray-800,
+.dark .section-card .text-gray-900,
+.dark .section-card .text-gray-800 { color: #f1f5f9 !important; }
+
+.dark .kpi-card .text-gray-700,
+.dark .kpi-card .text-gray-600,
+.dark .s-card   .text-gray-700,
+.dark .s-card   .text-gray-600,
+.dark .section-card .text-gray-700,
+.dark .section-card .text-gray-600 { color: #cbd5e1 !important; }
+
+.dark .kpi-card .text-gray-500,
+.dark .kpi-card .text-gray-400,
+.dark .s-card   .text-gray-500,
+.dark .s-card   .text-gray-400,
+.dark .section-card .text-gray-500,
+.dark .section-card .text-gray-400 { color: #94a3b8 !important; }
+
+/* ── Page-level headings & labels outside cards ── */
+.dark .nlah-page-text-primary { color: #f1f5f9 !important; }
+.dark .nlah-page-text-muted   { color: #94a3b8 !important; }
+
+/* Text directly inside page wrappers (not inside cards) */
+.dark .nlah-page-text-primary .text-gray-900,
+.dark .nlah-page-text-primary .text-gray-800,
+.dark .nlah-page-bg .text-gray-900,
+.dark .nlah-page-bg .text-gray-800 { color: #f1f5f9 !important; }
+
+.dark .nlah-page-text-primary .text-gray-700,
+.dark .nlah-page-text-primary .text-gray-600,
+.dark .nlah-page-bg .text-gray-700,
+.dark .nlah-page-bg .text-gray-600 { color: #cbd5e1 !important; }
+
+.dark .nlah-page-text-primary .text-gray-500,
+.dark .nlah-page-text-primary .text-gray-400,
+.dark .nlah-page-bg .text-gray-500,
+.dark .nlah-page-bg .text-gray-400 { color: #94a3b8 !important; }
+
+/* ── Tables inside custom pages ── */
+.dark table thead tr,
+.dark .bg-gray-50:not([class*="flux"]) { background: #162032 !important; }
+
+.dark table tbody tr { background: #1e293b !important; }
+.dark table tbody tr:hover { background: #243447 !important; }
+.dark table tbody tr,
+.dark table thead tr th,
+.dark table tbody tr td { border-color: #334155 !important; }
+
+.dark table tbody tr td .text-gray-900,
+.dark table tbody tr td .text-gray-800,
+.dark table thead tr th.text-gray-500 { color: #cbd5e1 !important; }
+
+.dark table tbody tr td .text-gray-500,
+.dark table tbody tr td .text-gray-400 { color: #94a3b8 !important; }
+
+/* ── White panels inside modals/slide-overs ── */
+.dark .bg-white:not([class*="flux"]) { background: #1e293b !important; }
+.dark .bg-white .text-gray-900,
+.dark .bg-white .text-gray-800 { color: #f1f5f9 !important; }
+.dark .bg-white .text-gray-700,
+.dark .bg-white .text-gray-600 { color: #cbd5e1 !important; }
+.dark .bg-white .text-gray-500,
+.dark .bg-white .text-gray-400 { color: #94a3b8 !important; }
+
+/* ── Gray backgrounds used inside custom pages ── */
+.dark .bg-gray-50:not([class*="flux"]) { background: #162032 !important; }
+.dark .bg-gray-100:not([class*="flux"]) { background: #1a2740 !important; }
+
+/* ── Borders ── */
+.dark .border-gray-200:not([class*="flux"]),
+.dark .border-gray-100:not([class*="flux"]) { border-color: #334155 !important; }
+.dark .divide-gray-200:not([class*="flux"]) > * + * { border-color: #334155 !important; }
+.dark .divide-gray-100:not([class*="flux"]) > * + * { border-color: #334155 !important; }
+
+/* ── Form inputs inside custom pages ── */
+.dark input:not([data-flux-control]),
+.dark select:not([data-flux-control]),
+.dark textarea:not([data-flux-control]) {
+    background: #1e293b !important;
+    border-color: #475569 !important;
+    color: #f1f5f9 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: #64748b !important; }
+
+/* ── Slide-over/modal header (brand-bg-primary stays as is — dark enough) ── */
+
+/* ── Leave status badges with inline styles — handled per component ── */
+
+/* ── Ring shadows on page section elements ── */
+.dark .shadow-md:not([class*="flux"]),
+.dark .shadow-sm:not([class*="flux"]) {
+    box-shadow: 0 1px 6px 0 rgba(0,0,0,.5) !important;
+}
 @layer theme {
     .dark {
         --color-accent: var(--color-white);

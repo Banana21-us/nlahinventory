@@ -7,11 +7,11 @@
 
         <flux:sidebar
             sticky="sticky"
-            collapsible="mobile"
+            collapsible
             class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
 
             {{-- 1. MEDICAL MISSION --}}
-            @can('access-medical')
+            <!-- @can('access-medical')
             <flux:sidebar.header>
                 <x-app-logo
                     :sidebar="true"
@@ -50,7 +50,7 @@
                     {{ __('Patients') }}
                 </flux:sidebar.item>
             </flux:sidebar.group>
-            @endcan
+            @endcan -->
 
             {{-- 2. CHECKLIST --}}
             {{-- Visible if user is Maintenance, Inspector, OR HR --}}
@@ -120,10 +120,12 @@
                 </flux:sidebar.item>
 
                 {{-- Leave form --}}
+                
             </flux:sidebar.group>
             @endcan
 
-            <flux:sidebar.item
+            
+<flux:sidebar.item
                     icon="calendar"
                     :href="route('users.leaveform')"
                     :current="request()->routeIs('users.leaveform')"
@@ -138,8 +140,25 @@
                     wire:navigate="wire:navigate">
                     {{ __('Department Head Form') }}
             </flux:sidebar.item>
+            
+            {{-- 4. PAYROLL & LABOR COMPLIANCE --}}
+            @can('access-payroll')
+            <flux:sidebar.group
+                icon="banknotes"
+                expandable="expandable"
+                heading="Payroll &amp; Compliance"
+                class="grid">
+                <flux:sidebar.item
+                    :href="route('HR.payroll-compliance')"
+                    :current="request()->routeIs('HR.payroll-compliance')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Shift Differential') }}
+                </flux:sidebar.item>
+            </flux:sidebar.group>
+            @endcan
 
             {{-- Cashier Section --}}
+             @can('access-cashier-only')
             <flux:sidebar.group
                 class="grid"
                 icon="currency-dollar"
@@ -188,16 +207,17 @@
                     {{ __('Customers') }}
                 </flux:sidebar.item>
             </flux:sidebar.group>
+            @endcan
 
             <flux:spacer/>
             
             {{-- Medical Records Link --}}
-            <flux:sidebar.item
+            <!-- <flux:sidebar.item
                 icon="shopping-cart"
                 href="http://192.168.2.200:3777/medical.online"
                 target="_blank">
                 {{ __('Medical Records') }}
-            </flux:sidebar.item>
+            </flux:sidebar.item> -->
             
             <!-- <flux:sidebar.nav> <flux:sidebar.item icon="folder-git-2"
             href="https://github.com/laravel/livewire-starter-kit" target="_blank"> {{
@@ -211,14 +231,14 @@
                 :name="auth()->user()?->name ?? 'Guest'"/>
         </flux:sidebar>
 
-        <!-- Mobile User Menu -->
-        <flux:header class="lg:hidden">
-            <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left"/>
+        <!-- Top Header (all screen sizes) -->
+        <flux:header class="border-b border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+            <flux:sidebar.toggle icon="bars-2" inset="left"/>
             <flux:spacer/>
 
             {{-- Only show the profile dropdown if the user is logged in --}}
             @auth
-            <flux:dropdown position="top" align="end">
+            <flux:dropdown position="top" align="end" class="lg:hidden">
                 <flux:profile
                     :initials="auth()->user()->initials()"
                     icon-trailing="chevron-down"/>
@@ -258,8 +278,7 @@
                 </flux:menu>
             </flux:dropdown>
             @else
-            {{-- Show a Login button if guest --}}
-            <flux:button :href="route('login')" variant="ghost" size="sm">Log in</flux:button>
+            <flux:button :href="route('login')" variant="ghost" size="sm" class="lg:hidden">Log in</flux:button>
             @endauth
         </flux:header>
 

@@ -1,3 +1,4 @@
+<div class="max-w-7xl mx-auto py-8 px-4 nlah-page-text-primary">
 <style>
     .brand-bg-primary        { background-color: #015581; }
     .brand-bg-primary-light  { background-color: #e6f0f7; }
@@ -33,7 +34,6 @@
     @keyframes shrink { from { width: 100% } to { width: 0% } }
 </style>
 
-<div class="max-w-7xl mx-auto py-8 px-4">
     {{-- PAGE HEADER --}}
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
@@ -81,11 +81,12 @@
             class="p-6 border-t border-gray-100 bg-gray-50/30"
         >
             <form wire:submit.prevent="save" class="space-y-6">
+
                 {{-- Row 1: Leave Type & Credits --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Nature of Leave *</label>
-                        <select 
+                        <select
                             wire:model.live="leave_type"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
                             <option value="">Select Type…</option>
@@ -124,7 +125,13 @@
                         </div>
                     </div>
                 </div>
-                {{-- ↑ Row 1 grid closed here (was missing before) --}}
+
+                {{-- Credit cap error --}}
+                @error('total_days')
+                    <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 font-medium">
+                        {{ $message }}
+                    </div>
+                @enderror
 
                 {{-- Row 2: Dates & Duration --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -150,7 +157,7 @@
                                 <option value="PM">PM Half</option>
                             </select>
                             <div class="px-3 py-2 brand-bg-teal-light rounded-md font-bold brand-text-teal text-sm shrink-0 border border-teal-100 whitespace-nowrap">
-                                {{ $total_days ?? 0 }}d
+                                {{ $total_days }}d
                             </div>
                         </div>
                     </div>
@@ -167,11 +174,11 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Designated Reliever</label>
-                        <input type="text" wire:model.live="reliever"
+                        <input type="text" wire:model="reliever"
                             placeholder="e.g. Juan dela Cruz"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                         <p class="text-[10px] text-gray-400 mt-1.5 italic font-medium leading-tight">
-                            Reliever will be notified to cover your duties during your absence.
+                            Person who will cover your duties during your absence.
                         </p>
                         @error('reliever') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
@@ -191,8 +198,13 @@
                                 </svg>
                             </div>
                             <div>
-                                <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Click to upload file</p>
-                                <p class="text-[10px] text-gray-400 font-medium">PDF, JPG or PNG — max 5MB</p>
+                                @if($attachment)
+                                    <p class="text-xs font-bold text-teal-600 uppercase tracking-wide">File selected</p>
+                                    <p class="text-[10px] text-gray-400 font-medium">{{ $attachment->getClientOriginalName() }}</p>
+                                @else
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Click to upload file</p>
+                                    <p class="text-[10px] text-gray-400 font-medium">PDF, JPG or PNG — max 5MB</p>
+                                @endif
                             </div>
                         </div>
                         <input type="file" wire:model="attachment" class="hidden"/>
@@ -208,34 +220,19 @@
                     </button>
                     <button
                         type="submit"
-                        class="bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold py-2 px-10 rounded shadow-md
-                               transition-all active:scale-95 flex items-center gap-2">
-                        <span wire:loading.remove wire:target="save">Save Item</span>
-                        <span
-                            wire:loading="wire:loading"
-                            wire:target="save"
-                            class="flex items-center gap-2">
+                        class="brand-btn-primary text-sm font-bold py-2 px-10 rounded shadow-md active:scale-95 flex items-center gap-2">
+                        <span wire:loading.remove wire:target="save">Submit Leave</span>
+                        <span wire:loading wire:target="save" class="flex items-center gap-2">
                             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                <circle
-                                    class="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    stroke-width="4"/>
-                                <path
-                                    class="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                             </svg>
-                            Saving…
+                            Submitting…
                         </span>
                     </button>
                 </div>
 
             </form>
-                                    <button wire:click="save" type="button">TEST SAVE</button>
-
         </div>
     </div>
 
@@ -259,7 +256,7 @@
 
             <div class="relative">
                 <input
-                    wire:model.debounce.300ms="search"
+                    wire:model.live.debounce.300ms="search"
                     type="text"
                     placeholder="Search applications…"
                     class="search-focus pl-4 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg transition-all w-56"
@@ -295,17 +292,16 @@
                             'pending'   => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
                             'cancelled' => 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;',
                         ];
-                        // Keys now match the full leave_type values stored in DB
                         $typeBadge = [
-                            'Vacation Leave'     => 'background-color:#e6f4f5;color:#027c8b;border:1px solid #a5d8dd;',
-                            'Sick Leave'         => 'background-color:#ede9fe;color:#6b21a8;border:1px solid #c4b5fd;',
-                            'Pay-Off'            => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
-                            'Compassionate Leave'=> 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5;',
-                            'Leave Without Pay'  => 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;',
-                            'Birthday Leave'     => 'background-color:#fce7f3;color:#9d174d;border:1px solid #f9a8d4;',
-                            'Single Parent Leave'=> 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
-                            'Maternity Leave'    => 'background-color:#fce7f3;color:#9d174d;border:1px solid #f9a8d4;',
-                            'Paternity Leave'    => 'background-color:#e6f4f5;color:#027c8b;border:1px solid #a5d8dd;',
+                            'Vacation Leave'      => 'background-color:#e6f4f5;color:#027c8b;border:1px solid #a5d8dd;',
+                            'Sick Leave'          => 'background-color:#ede9fe;color:#6b21a8;border:1px solid #c4b5fd;',
+                            'Pay-Off'             => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
+                            'Compassionate Leave' => 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5;',
+                            'Leave Without Pay'   => 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;',
+                            'Birthday Leave'      => 'background-color:#fce7f3;color:#9d174d;border:1px solid #f9a8d4;',
+                            'Single Parent Leave' => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
+                            'Maternity Leave'     => 'background-color:#fce7f3;color:#9d174d;border:1px solid #f9a8d4;',
+                            'Paternity Leave'     => 'background-color:#e6f4f5;color:#027c8b;border:1px solid #a5d8dd;',
                         ];
                     @endphp
 
@@ -321,7 +317,7 @@
 
                             <td class="px-6 py-4">
                                 <div class="text-sm font-semibold text-gray-800">
-                                    {{ \Carbon\Carbon::parse($leave->start_date)->format('M d') }} – {{ \Carbon\Carbon::parse($leave->end_date)->format('M d, Y') }}
+                                    {{ $leave->start_date->format('M d') }} – {{ $leave->end_date->format('M d, Y') }}
                                 </div>
                                 <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-0.5">
                                     {{ $leave->day_part }} Day
@@ -335,7 +331,7 @@
                             </td>
 
                             <td class="px-6 py-4 text-sm text-gray-400">
-                                {{ \Carbon\Carbon::parse($leave->date_requested)->format('M d, Y') }}
+                                {{ $leave->date_requested?->format('M d, Y') ?? '—' }}
                             </td>
 
                             <td class="px-6 py-4">
@@ -405,7 +401,7 @@
                     </svg>
                 </div>
                 <div class="flex-1 pt-0.5">
-                    <p class="text-sm font-semibold text-gray-900">Success!</p>
+                    <p class="text-sm font-semibold text-gray-900">Submitted!</p>
                     <p class="mt-0.5 text-sm text-gray-500">{{ session('message') }}</p>
                 </div>
                 <button @click="show = false" class="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors">

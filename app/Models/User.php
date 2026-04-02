@@ -25,9 +25,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'username',
         'password',
         'employee_number',
-        'department',
+        'department_id',
         'role',
-        'email_verified_at'
+        'email_verified_at',
     ];
 
     /**
@@ -88,8 +88,13 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->role === 'Disable';
     }
-        public function employmentDetail()
+    public function employmentDetail()
     {
         return $this->hasOne(\App\Models\EmploymentDetail::class, 'user_id');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(\App\Models\Department::class, 'department_id');
     }
 }

@@ -2,47 +2,43 @@
 
 namespace App\Livewire;
 
-use App\Models\Leave; // Ensure your model name is correct
-use Livewire\Component;
-use Livewire\WithPagination;
+use App\Mail\LeaveStatusUpdateMail;
+use App\Models\Leave;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
+use Livewire\Component;
 
 class HrLeaveManagement extends Component
 {
-    use WithPagination;
-
     // Filter & Search States
     public $search = '';
     public $statusFilter = 'all';
-    
+
     // Modal & Review States
     public $selectedLeaveId = null;
     public $hrRemarks = '';
     public $isReviewing = false;
 
-    /**
-     * Get the filtered list of leave applications.
-     * Access in Blade via: $this->leaves
-     */
     #[Computed]
     public function leaves()
     {
-        return Leave::with('user.employee')
-            ->when($this->search, function($query) {
-                $query->whereHas('user', function($q) {
-                    $q->where('username', 'like', '%' . $this->search . '%');
+        return Leave::with(['user.department'])
+            ->when($this->search, function ($query) {
+                $query->whereHas('user', function ($q) {
+                    $q->where('username', 'like', '%' . $this->search . '%')
+                      ->orWhere('name', 'like', '%' . $this->search . '%');
                 });
             })
-            ->when($this->statusFilter !== 'all', function($query) {
+            ->when($this->statusFilter !== 'all', function ($query) {
                 $query->where('hr_status', $this->statusFilter);
             })
             ->latest()
             ->get();
     }
 
-    /**
-     * Dashboard Stats
-     */
     #[Computed]
     public function pendingCount()
     {
@@ -53,28 +49,24 @@ class HrLeaveManagement extends Component
     public function approvedTodayCount()
     {
         return Leave::where('hr_status', 'approved')
-            ->whereDate('updated_at', now())
+            ->whereDate('hr_approved_at', now())
             ->count();
     }
 
-    /**
-     * Opens the review slide-over/modal
-     */
     public function viewDetails($id)
     {
         $this->selectedLeaveId = $id;
         $leave = Leave::find($id);
-        $this->hrRemarks = $leave->hr_remarks; // Pre-fill if exists
+        $this->hrRemarks = $leave->remarks ?? '';
         $this->isReviewing = true;
     }
 
-    /**
-     * Computed property for the single leave being reviewed
-     */
     #[Computed]
     public function selectedLeave()
     {
-        return $this->selectedLeaveId ? Leave::with('user.employee')->find($this->selectedLeaveId) : null;
+        return $this->selectedLeaveId
+            ? Leave::with(['user.department', 'user.employmentDetail'])->find($this->selectedLeaveId)
+            : null;
     }
 
     public function closeModal()
@@ -83,43 +75,62 @@ class HrLeaveManagement extends Component
         $this->reset(['selectedLeaveId', 'hrRemarks']);
     }
 
-    /**
-     * HR Approval Logic
-     */
     public function approve()
     {
         $leave = Leave::findOrFail($this->selectedLeaveId);
-        
+
         $leave->update([
-            'hr_status' => 'approved',
-            'hr_remarks' => $this->hrRemarks,
-            'approved_by_hr_at' => now(),
+            'hr_status'      => 'approved',
+            'remarks'        => $this->hrRemarks,
+            'hr_approved_at' => now(),
+            'approved_by'    => Auth::id(),
         ]);
 
-        session()->flash('message', "Leave for {$leave->user->username} has been approved.");
+        $this->notifyEmployee($leave->fresh(['user.department']));
+
+        session()->flash('message', "Leave for {$leave->user->name} has been approved.");
         $this->closeModal();
     }
 
-    /**
-     * HR Rejection Logic
-     */
     public function reject()
     {
         $this->validate([
-            'hrRemarks' => 'required|min:5' // Good practice to require a reason for rejection
+            'hrRemarks' => 'required|min:5',
         ], [
-            'hrRemarks.required' => 'Please provide a reason for the rejection.'
+            'hrRemarks.required' => 'Please provide a reason for the rejection.',
         ]);
 
         $leave = Leave::findOrFail($this->selectedLeaveId);
-        
+
         $leave->update([
-            'hr_status' => 'rejected',
-            'hr_remarks' => $this->hrRemarks,
+            'hr_status'        => 'rejected',
+            'rejection_reason' => $this->hrRemarks,
+            'remarks'          => $this->hrRemarks,
         ]);
 
-        session()->flash('message', "Leave request rejected.");
+        $this->notifyEmployee($leave->fresh(['user.department']));
+
+        session()->flash('message', 'Leave request rejected.');
         $this->closeModal();
+    }
+
+    private function notifyEmployee(Leave $leave): void
+    {
+        $email = $leave->user?->email;
+        if (! $email) {
+            Log::warning('LeaveStatusUpdateMail: user has no email', ['leave_id' => $leave->id]);
+            return;
+        }
+
+        try {
+            Mail::to($email)->send(new LeaveStatusUpdateMail($leave));
+        } catch (\Exception $e) {
+            Log::error('LeaveStatusUpdateMail failed', [
+                'leave_id' => $leave->id,
+                'email'    => $email,
+                'error'    => $e->getMessage(),
+            ]);
+        }
     }
 
     public function render()

@@ -1,3 +1,4 @@
+<div class="max-w-7xl mx-auto py-8 px-4 nlah-page-text-primary">
 <style>
     .brand-bg-primary        { background-color: #015581; }
     .brand-bg-primary-light  { background-color: #e6f0f7; }
@@ -41,8 +42,6 @@
 
     @keyframes shrink { from { width: 100% } to { width: 0% } }
 </style>
-
-<div class="max-w-7xl mx-auto py-8 px-4">
 
     {{-- ═══════════════════════════════════════════
          PAGE HEADER
@@ -111,6 +110,13 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Username *</label>
+                    <input type="text" wire:model="username" placeholder="juan.delacruz"
+                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    @error('username') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Email *</label>
                     <input type="email" wire:model="email" placeholder="juan@example.com"
                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
@@ -138,6 +144,7 @@
                         <option value="HR">HR</option>
                         <option value="Maintenance">Maintenance</option>
                         <option value="Inspector">Inspector</option>
+                        <option value="Cashier">Cashier</option>
                         <option value="Disable">Disable</option>
                     </select>
                 </div>

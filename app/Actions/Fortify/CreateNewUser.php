@@ -12,37 +12,34 @@ class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;
 
-    /**
-     * Validate and create a newly registered user.
-     *
-     * @param  array<string, string>  $input
-     */
     public function create(array $input): User
     {
         Validator::make($input, [
             ...$this->profileRules(),
-            'username' => ['required', 'string', 'max:255', 'unique:users'],
-            'password' => $this->passwordRules(),
+            'username'        => ['required', 'string', 'max:255', 'unique:users'],
+            'department_id'   => ['required', 'exists:departments,id'],
+            'password'        => $this->passwordRules(),
             'employee_number' => [
                 'required',
                 'string',
-                // Must exist in the employee table first
                 'exists:employee,employee_number',
-                // Must not already be registered in users
                 'unique:users,employee_number',
             ],
         ], [
-            'employee_number.exists' => 'This employee number was not found. Please contact HR.',
-            'employee_number.unique' => 'This employee number is already registered.',
+            'employee_number.exists'  => 'This employee number was not found. Please contact HR.',
+            'employee_number.unique'  => 'This employee number is already registered.',
+            'department_id.required'  => 'Please select your department.',
+            'department_id.exists'    => 'Selected department does not exist.',
         ])->validate();
 
         return User::create([
-            'name' => $input['name'],
-            'username' => $input['username'] ?? null,
-            'email' => $input['email'],
-            'password' => $input['password'],
-            'role'     => 'Staff',
+            'name'            => $input['name'],
+            'username'        => $input['username'],
+            'email'           => $input['email'],
+            'password'        => $input['password'],
+            'role'            => 'Staff',
             'employee_number' => $input['employee_number'],
+            'department_id'   => $input['department_id'],
         ]);
     }
 }

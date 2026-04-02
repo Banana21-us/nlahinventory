@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\Department;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -80,11 +81,12 @@ class FortifyServiceProvider extends ServiceProvider
                     }
 
                     return match($user->role) {
-                        'HR'              => redirect()->route('HR.userlist'),
-                        'Staff'           => redirect()->route('medmission.dashboard'),
-                        'Maintenance'     => redirect()->route('Maintenance.checklist.check'),
-                        'Inspector'       => redirect()->route('Maintenance.checklist.verify'),
-                        default           => redirect()->route('logout')->withErrors(['email' => 'Your account is disabled. Please contact the administrator.']),
+                        'HR'          => redirect()->route('HR.userlist'),
+                        'Staff'       => redirect()->route('medmission.dashboard'),
+                        'Maintenance' => redirect()->route('Maintenance.checklist.check'),
+                        'Inspector'   => redirect()->route('Maintenance.checklist.verify'),
+                        'Cashier'     => redirect()->route('pos.dashboard'),
+                        default       => redirect()->route('logout')->withErrors(['email' => 'Your account is disabled. Please contact the administrator.']),
                     };
                 }
             };
@@ -109,7 +111,9 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::verifyEmailView(fn () => view('pages::auth.verify-email'));
         Fortify::twoFactorChallengeView(fn () => view('pages::auth.two-factor-challenge'));
         Fortify::confirmPasswordView(fn () => view('pages::auth.confirm-password'));
-        Fortify::registerView(fn () => view('pages::auth.register'));
+        Fortify::registerView(fn () => view('pages::auth.register', [
+            'departments' => Department::orderBy('name')->get(),
+        ]));
         Fortify::resetPasswordView(fn () => view('pages::auth.reset-password'));
         Fortify::requestPasswordResetLinkView(fn () => view('pages::auth.forgot-password'));
     }

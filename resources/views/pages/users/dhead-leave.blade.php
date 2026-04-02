@@ -1,5 +1,6 @@
 {{-- resources/views/pages/users/dhead-leave.blade.php --}}
 
+<div class="max-w-7xl mx-auto py-8 px-4 nlah-page-text-primary">
 <style>
     .brand-bg-primary        { background-color: #015581; }
     .brand-bg-primary-light  { background-color: #e6f0f7; }
@@ -20,8 +21,6 @@
     @keyframes shrink { from { width:100% } to { width:0% } }
     .animate-shrink { animation: shrink 4s linear forwards; }
 </style>
-
-<div class="max-w-7xl mx-auto py-8 px-4">
 
     {{-- ── FLASH MESSAGE ── --}}
     @if (session()->has('message'))
@@ -132,22 +131,31 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Nature of Leave *</label>
-                        <select wire:model="form.leave_type" required
+                        <select wire:model.live="form.leave_type" required
                                 class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
                             <option value="">Select Type…</option>
-                            <option value="Vacation">Vacation Leave (VL)</option>
-                            <option value="Sick">Sick Leave (SL)</option>
-                            <option value="Emergency">Emergency Leave (EL)</option>
-                            <option value="Maternity">Maternity/Paternity</option>
-                            <option value="Solo Parent">Solo Parent Leave</option>
+                            <option value="Vacation Leave">Vacation Leave (VL)</option>
+                            <option value="Sick Leave">Sick Leave (SL)</option>
+                            <option value="Pay-Off">Pay-Off</option>
+                            <option value="Compassionate Leave">Compassionate Leave</option>
+                            <option value="Leave Without Pay">Leave Without Pay (LWOP)</option>
+                            <option value="Birthday Leave">Birthday Leave</option>
+                            <option value="Single Parent Leave">Single Parent Leave</option>
+                            <option value="Maternity Leave">Maternity Leave</option>
+                            <option value="Paternity Leave">Paternity Leave</option>
                         </select>
                         @error('form.leave_type') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
-                    <div class="md:col-span-2 brand-bg-primary-light rounded-md border border-blue-100 px-4 py-3 flex items-center justify-between">
+                    <div class="md:col-span-2 brand-bg-primary-light rounded-md border border-blue-100 px-4 py-3 flex items-center justify-between"
+                         wire:key="credits-panel-{{ $form['leave_type'] }}">
                         <div>
-                            <p class="text-[10px] font-bold brand-text-primary uppercase tracking-wide">Available Leave Credits</p>
+                            <p class="text-[10px] font-bold brand-text-primary uppercase tracking-wide">{{ $creditLabel }}</p>
                             <p class="text-xl font-bold text-gray-800 mt-0.5">
-                                {{ $availableCredits }} <span class="text-sm font-semibold text-gray-500">Days</span>
+                                @if($showCredits)
+                                    {{ $availableCredits }} <span class="text-sm font-semibold text-gray-500">Days</span>
+                                @else
+                                    <span class="text-sm font-semibold text-gray-400 italic">Unlimited</span>
+                                @endif
                             </p>
                         </div>
                         <div class="p-2 rounded-lg brand-bg-primary">
@@ -157,6 +165,13 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Credit cap error --}}
+                @error('form.total_days')
+                    <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 font-medium">
+                        {{ $message }}
+                    </div>
+                @enderror
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>

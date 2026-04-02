@@ -6,27 +6,31 @@
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
 
-        <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-6">
+        <form method="POST" action="{{ route('register') }}" class="flex flex-col gap-6">
             @csrf
+
             <!-- Name -->
             <flux:input
                 name="name"
-                :label="__('Name')"
+                :label="__('Full Name')"
                 :value="old('name')"
                 type="text"
                 required
                 autofocus
                 autocomplete="name"
-                :placeholder="__('Full name')"
+                :placeholder="__('Juan dela Cruz')"
             />
-           <flux:input
+
+            <!-- Username -->
+            <flux:input
                 name="username"
-                :label="__('username')"
+                :label="__('Username')"
                 :value="old('username')"
                 required
                 autocomplete="username"
-                placeholder="nickname"
+                placeholder="juan.delacruz"
             />
+
             <!-- Employee Number -->
             <flux:input
                 name="employee_number"
@@ -36,6 +40,22 @@
                 required
                 placeholder="EMP-0001"
             />
+
+            <!-- Department -->
+            <div>
+                <flux:select name="department_id" :label="__('Department')" required>
+                    <option value="" disabled {{ old('department_id') ? '' : 'selected' }}>{{ __('Select your department') }}</option>
+                    @foreach($departments as $dept)
+                        <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                            {{ $dept->name }} ({{ $dept->code }})
+                        </option>
+                    @endforeach
+                </flux:select>
+                @error('department_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Role -->
             <flux:select name="role" :label="__('Role')" required>
                 <option value="" disabled selected>{{ __('Select your role') }}</option>
@@ -43,10 +63,11 @@
                 <option value="maintenance" {{ old('role') == 'maintenance' ? 'selected' : '' }}>{{ __('Maintenance') }}</option>
                 <option value="inspector" {{ old('role') == 'inspector' ? 'selected' : '' }}>{{ __('Inspector') }}</option>
             </flux:select>
+            
             <!-- Email Address -->
             <flux:input
                 name="email"
-                :label="__('Email address')"
+                :label="__('Email Address')"
                 :value="old('email')"
                 type="email"
                 required
@@ -68,7 +89,7 @@
             <!-- Confirm Password -->
             <flux:input
                 name="password_confirmation"
-                :label="__('Confirm password')"
+                :label="__('Confirm Password')"
                 type="password"
                 required
                 autocomplete="new-password"

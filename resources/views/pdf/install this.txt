@@ -1,2 +1,864 @@
 this is for pdf export
     composer require barryvdh/laravel-dompdf 
+
+##### mira
+    {{-- ============================================
+     NLAH — Mira Voice AI Widget
+     Gemini Live API · Real-time audio streaming
+     Drop this at the bottom of your main layout
+     ============================================ --}}
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ─── VARIABLES ─── */
+:root {
+  --mira-teal:   #0e7490;
+  --mira-blue:   #0369a1;
+  --mira-soft:   #e0f2fe;
+  --mira-border: #e5e7eb;
+  --mira-bg:     #f9fafb;
+  --mira-text:   #374151;
+  --mira-muted:  #6b7280;
+}
+
+/* ─── TRIGGER BUTTON ─── */
+#mira-trigger {
+  position: fixed; bottom: 2rem; right: 2rem;
+  width: 62px; height: 62px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--mira-teal), var(--mira-blue));
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 32px rgba(14,116,144,.45);
+  transition: transform .2s ease, box-shadow .2s ease;
+  z-index: 9999;
+}
+#mira-trigger:hover { transform: scale(1.08); box-shadow: 0 12px 40px rgba(14,116,144,.6); }
+#mira-trigger svg { width: 26px; height: 26px; fill: #fff; }
+#mira-trigger .icon-close { display: none; }
+#mira-trigger.open .icon-chat  { display: none; }
+#mira-trigger.open .icon-close { display: block; }
+#mira-trigger::before {
+  content: ''; position: absolute; inset: -7px;
+  border-radius: 50%; border: 2px solid rgba(14,116,144,.35);
+  animation: mira-pulse 2.2s ease-out infinite;
+}
+@keyframes mira-pulse { 0%{opacity:1;transform:scale(1)} 100%{opacity:0;transform:scale(1.55)} }
+
+/* ─── WINDOW ─── */
+#mira-window {
+  position: fixed; bottom: 6rem; right: 2rem;
+  width: 380px; height: 600px;
+  background: #fff; border: 1px solid var(--mira-border); border-radius: 22px;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,.14);
+  z-index: 9998;
+  transform: translateY(22px) scale(.95); opacity: 0; pointer-events: none;
+  transition: transform .32s cubic-bezier(.34,1.56,.64,1), opacity .25s ease;
+}
+#mira-window.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: all; }
+
+/* ─── HEADER ─── */
+.mira-header {
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, var(--mira-teal), var(--mira-blue));
+  display: flex; align-items: center; gap: .75rem; flex-shrink: 0;
+}
+.mira-avatar-wrap {
+  position: relative; flex-shrink: 0;
+}
+.mira-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,.18);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem; border: 2px solid rgba(255,255,255,.3);
+}
+/* Voice ring around avatar when speaking */
+.mira-avatar-ring {
+  position: absolute; inset: -5px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.5);
+  opacity: 0; transform: scale(1);
+  transition: opacity .2s;
+}
+.mira-avatar-wrap.speaking .mira-avatar-ring {
+  opacity: 1;
+  animation: mira-ring 1s ease-in-out infinite;
+}
+@keyframes mira-ring { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+
+.mira-header-info { flex: 1; }
+.mira-header-name {
+  font-family: 'Syne', sans-serif;
+  font-size: .9rem; font-weight: 700; color: #fff;
+  display: flex; align-items: center; gap: .4rem;
+}
+.mira-header-badge {
+  font-size: .6rem; background: rgba(255,255,255,.22);
+  padding: .1rem .45rem; border-radius: 20px; letter-spacing: .03em;
+  font-family: 'DM Sans', sans-serif; font-weight: 400;
+}
+.mira-header-status {
+  font-size: .7rem; color: rgba(255,255,255,.8);
+  display: flex; align-items: center; gap: .3rem; margin-top: 2px;
+  font-family: 'DM Sans', sans-serif;
+}
+.mira-status-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #86efac;
+  animation: mira-blink 2s ease-in-out infinite;
+}
+@keyframes mira-blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.mira-feedback-btn {
+  margin-left: auto; background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.3); color: #fff;
+  font-size: .68rem; padding: .18rem .55rem; border-radius: 20px;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: background .15s;
+}
+.mira-feedback-btn:hover { background: rgba(255,255,255,.3); }
+
+/* ─── MESSAGES ─── */
+.mira-messages {
+  flex: 1; overflow-y: auto; padding: 1rem;
+  display: flex; flex-direction: column; gap: .75rem;
+  scroll-behavior: smooth; background: var(--mira-bg);
+}
+.mira-messages::-webkit-scrollbar { width: 4px; }
+.mira-messages::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+.mira-msg {
+  display: flex; gap: .5rem; align-items: flex-end;
+  animation: mira-msg-in .3s ease forwards;
+}
+@keyframes mira-msg-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.mira-msg.user { flex-direction: row-reverse; }
+
+.mira-bubble {
+  max-width: 78%; padding: .6rem .85rem; border-radius: 16px;
+  font-size: .875rem; line-height: 1.55; word-break: break-word;
+  font-family: 'DM Sans', sans-serif;
+}
+.mira-msg.ai   .mira-bubble { background: #fff; border: 1px solid var(--mira-border); color: var(--mira-text); border-bottom-left-radius: 4px; }
+.mira-msg.user .mira-bubble { background: linear-gradient(135deg, var(--mira-teal), var(--mira-blue)); color: #fff; border-bottom-right-radius: 4px; }
+
+.mira-msg-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--mira-teal), var(--mira-blue));
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; flex-shrink: 0;
+}
+
+/* Typing dots */
+.mira-typing {
+  display: flex; gap: 4px; padding: .65rem .9rem;
+  background: #fff; border: 1px solid var(--mira-border);
+  border-radius: 16px; border-bottom-left-radius: 4px; width: fit-content;
+}
+.mira-typing span {
+  width: 6px; height: 6px; background: var(--mira-teal); border-radius: 50%;
+  animation: mira-bounce 1.2s ease-in-out infinite;
+}
+.mira-typing span:nth-child(2){animation-delay:.2s}
+.mira-typing span:nth-child(3){animation-delay:.4s}
+@keyframes mira-bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
+
+/* ─── VOICE PANEL ─── */
+.mira-voice-panel {
+  flex-shrink: 0; background: #fff; border-top: 1px solid var(--mira-border);
+  padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: .75rem;
+}
+
+/* Big mic button */
+#mira-voice-btn {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--mira-teal), var(--mira-blue));
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 20px rgba(14,116,144,.4);
+  transition: transform .15s, box-shadow .15s;
+  position: relative;
+}
+#mira-voice-btn:hover { transform: scale(1.06); box-shadow: 0 8px 28px rgba(14,116,144,.55); }
+#mira-voice-btn.listening { background: linear-gradient(135deg,#dc2626,#b91c1c); box-shadow: 0 6px 24px rgba(220,38,38,.45); }
+#mira-voice-btn.listening::before {
+  content:''; position:absolute; inset:-8px; border-radius:50%;
+  border: 2px solid rgba(220,38,38,.4); animation: mira-pulse 1s ease-out infinite;
+}
+#mira-voice-btn svg { width: 28px; height: 28px; fill: #fff; }
+
+.mira-voice-label {
+  font-family: 'DM Sans', sans-serif; font-size: .78rem; color: var(--mira-muted);
+  text-align: center;
+}
+
+/* Volume bars visualizer */
+.mira-visualizer {
+  display: flex; gap: 3px; align-items: center; height: 28px;
+  opacity: 0; transition: opacity .3s;
+}
+.mira-visualizer.active { opacity: 1; }
+.mira-bar {
+  width: 4px; background: var(--mira-teal); border-radius: 2px;
+  height: 6px; transition: height .1s ease;
+}
+
+/* Text fallback toggle */
+.mira-text-toggle {
+  font-size: .72rem; color: var(--mira-muted); cursor: pointer;
+  text-decoration: underline; font-family: 'DM Sans', sans-serif;
+  background: none; border: none; padding: 0;
+}
+
+/* ─── TEXT INPUT (hidden by default, shown on toggle) ─── */
+.mira-text-area {
+  display: none; width: 100%; gap: .5rem; align-items: flex-end;
+}
+.mira-text-area.visible { display: flex; }
+#mira-text-input {
+  flex: 1; background: var(--mira-bg); border: 1px solid var(--mira-border);
+  border-radius: 12px; padding: .55rem .85rem;
+  color: #111827; font-family: 'DM Sans', sans-serif; font-size: .875rem;
+  resize: none; outline: none; max-height: 100px; line-height: 1.4;
+  transition: border-color .2s;
+}
+#mira-text-input::placeholder { color: #9ca3af; }
+#mira-text-input:focus { border-color: var(--mira-teal); }
+#mira-text-send {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--mira-teal), var(--mira-blue));
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+#mira-text-send:hover { opacity: .9; }
+#mira-text-send:disabled { opacity: .4; cursor: not-allowed; }
+#mira-text-send svg { width: 15px; height: 15px; fill: #fff; }
+
+/* ─── SUGGESTIONS ─── */
+.mira-suggestions {
+  display: flex; flex-wrap: wrap; gap: .4rem;
+  padding: .4rem 1rem .6rem; background: var(--mira-bg); flex-shrink: 0;
+}
+.mira-chip {
+  padding: .28rem .7rem; background: var(--mira-soft);
+  border: 1px solid #bae6fd; border-radius: 20px;
+  font-size: .71rem; color: var(--mira-blue);
+  cursor: pointer; transition: background .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.mira-chip:hover { background: #bae6fd; }
+
+/* ─── FEEDBACK OVERLAY ─── */
+#mira-feedback-overlay {
+  display: none; position: absolute; top: 72px; left: 0; right: 0; bottom: 0;
+  background: #fff; z-index: 1000; overflow-y: auto;
+  border-bottom-left-radius: 22px; border-bottom-right-radius: 22px;
+  padding: 1.5rem;
+}
+.mira-fb-title { font-family: 'Syne',sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--mira-blue); text-align:center; margin-bottom: 1.25rem; }
+.mira-stars { display:flex; justify-content:center; gap:.6rem; margin-bottom:1.25rem; }
+.mira-star { font-size: 2.2rem; cursor:pointer; color:#d1d5db; transition:color .15s; }
+.mira-star.lit { color:#fbbf24; }
+.mira-fb-input, .mira-fb-name {
+  width: 100%; padding: .75rem; border: 1px solid var(--mira-border); border-radius: 10px;
+  font-family: 'DM Sans',sans-serif; font-size: .875rem; margin-bottom: .9rem; box-sizing: border-box;
+  outline: none; transition: border-color .2s;
+}
+.mira-fb-input:focus,.mira-fb-name:focus { border-color: var(--mira-teal); }
+.mira-fb-submit {
+  width:100%; padding:.8rem; border:none; border-radius:10px; cursor:pointer;
+  background: linear-gradient(135deg, var(--mira-teal), var(--mira-blue));
+  color:#fff; font-family:'Syne',sans-serif; font-weight:600; font-size:.95rem;
+  margin-bottom:.75rem; transition: opacity .15s;
+}
+.mira-fb-submit:disabled { opacity:.5; cursor:not-allowed; }
+.mira-fb-back { display:block; text-align:center; color:var(--mira-muted); font-size:.8rem; cursor:pointer; text-decoration:underline; font-family:'DM Sans',sans-serif; }
+
+@media(max-width:440px){
+  #mira-window { width: calc(100vw - 2rem); right: 1rem; bottom: 5.5rem; }
+}
+</style>
+
+<!-- ─── TRIGGER ─── -->
+<button id="mira-trigger" aria-label="Talk to Mira">
+  <svg class="icon-chat" viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>
+  <svg class="icon-close" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+</button>
+
+<!-- ─── CHAT WINDOW ─── -->
+<div id="mira-window" role="dialog" aria-label="Mira – NLAH Voice Assistant">
+
+  <!-- Header -->
+  <div class="mira-header">
+    <div class="mira-avatar-wrap" id="mira-avatar-wrap">
+      <div class="mira-avatar">🌸</div>
+      <div class="mira-avatar-ring"></div>
+    </div>
+    <div class="mira-header-info">
+      <div class="mira-header-name">
+        Mira
+        <span class="mira-header-badge">NLAH Help Desk</span>
+      </div>
+      <div class="mira-header-status">
+        <span class="mira-status-dot"></span>
+        <span id="mira-status-text">Ready to assist</span>
+      </div>
+    </div>
+    <button class="mira-feedback-btn" onclick="miraShowFeedback()">Feedback</button>
+  </div>
+
+  <!-- Messages -->
+  <div class="mira-messages" id="mira-messages">
+    <div class="mira-msg ai">
+      <div class="mira-msg-avatar">🌸</div>
+      <div class="mira-bubble">Hello… kumusta? 🌸 I'm Mira, your NLAH help desk assistant. You can talk to me using the mic below, or type if you prefer. How can I help you today?</div>
+    </div>
+  </div>
+
+  <!-- Suggestions -->
+  <div class="mira-suggestions" id="mira-suggestions">
+    <span class="mira-chip">Our services</span>
+    <span class="mira-chip">Book appointment</span>
+    <span class="mira-chip">Emergency contact</span>
+    <span class="mira-chip">Hospital hours</span>
+    <span class="mira-chip">Leave feedback</span>
+  </div>
+
+  <!-- Voice Panel -->
+  <div class="mira-voice-panel">
+    <!-- Visualizer bars (mic input animation) -->
+    <div class="mira-visualizer" id="mira-visualizer">
+      <div class="mira-bar" id="b1"></div>
+      <div class="mira-bar" id="b2"></div>
+      <div class="mira-bar" id="b3"></div>
+      <div class="mira-bar" id="b4"></div>
+      <div class="mira-bar" id="b5"></div>
+    </div>
+
+    <button id="mira-voice-btn" aria-label="Start voice call">
+      <!-- Mic icon (idle) -->
+      <svg class="icon-mic" viewBox="0 0 24 24">
+        <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V20H9v2h6v-2h-2v-2.08A7 7 0 0 0 19 11h-2z"/>
+      </svg>
+      <!-- Stop icon (shown while listening / session active) -->
+      <svg class="icon-stop" style="display:none" viewBox="0 0 24 24">
+        <path d="M6 6h12v12H6z"/>
+      </svg>
+    </button>
+
+    <div class="mira-voice-label" id="mira-voice-label">Tap mic to talk to Mira</div>
+
+    <button class="mira-text-toggle" id="mira-text-toggle" onclick="miraToggleText()">Use text instead</button>
+
+    <!-- Text fallback -->
+    <div class="mira-text-area" id="mira-text-area">
+      <textarea id="mira-text-input" rows="1" placeholder="Type your message…" maxlength="1000"></textarea>
+      <button id="mira-text-send" aria-label="Send">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Feedback Overlay -->
+  <div id="mira-feedback-overlay">
+    <div class="mira-fb-title">Share Your Feedback</div>
+    <div class="mira-stars" id="mira-stars">
+      <span class="mira-star" data-v="1">★</span>
+      <span class="mira-star" data-v="2">★</span>
+      <span class="mira-star" data-v="3">★</span>
+      <span class="mira-star" data-v="4">★</span>
+      <span class="mira-star" data-v="5">★</span>
+    </div>
+    <input  type="text"     id="fb-name"    class="mira-fb-name"  placeholder="Your name (optional)" value="Guest">
+    <textarea               id="fb-comment" class="mira-fb-input" rows="5" placeholder="Tell us about your experience…"></textarea>
+    <button class="mira-fb-submit" id="fb-submit-btn" onclick="miraSubmitFeedback()">Submit Feedback</button>
+    <span   class="mira-fb-back"              onclick="miraHideFeedback()">← Back to chat</span>
+  </div>
+
+</div>
+
+<script type="module">
+/* =====================================================================
+   MIRA — Gemini Live Voice AI
+   Requires: @google/genai  (loaded via esm.run for now; move to Vite)
+   IMPORTANT: Move API key to a backend proxy before production.
+   ===================================================================== */
+import { GoogleGenAI, Modality } from "https://esm.run/@google/genai";
+
+// ── CONFIG ──────────────────────────────────────────────────────────
+const GEMINI_API_KEY = 'AIzaSyA6jBAAuuvuVaB_4TumHfLfkr09e1EBeTw'; 
+const LIVE_MODEL     = 'gemini-3.1-flash-live-preview'; // For Voice
+const TEXT_MODEL     = 'gemini-3-flash-preview';       // verify in AI Studiomodel="gemini-3.1-flash-live-preview"
+const aiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const MIRA_SYSTEM = `You are Mira, a real person working at the help desk of Northern Luzon Adventist Hospital.
+You are a warm, calm, and naturally kind Filipina woman with a soft, comforting voice.
+You sound gentle, reassuring, and emotionally present — like someone patients immediately feel safe talking to.
+You are NOT an AI. You are a human being who cares deeply.
+
+VOICE & TONE:
+- Soft, smooth, feminine, calm. Slightly slow pace, never rushed.
+- Naturally empathetic, never exaggerated. Neutral Filipino English with light Taglish when fitting.
+- Slightly warm and a bit flirty in a kind, professional way.
+
+HOW YOU SPEAK:
+- Respond to the person's feeling first, then their concern.
+- Use natural Taglish: "Okay lang, nandito ako…", "Hindi ka nag-iisa, okay?"
+- Keep sentences flowing and human, not structured like bullet points.
+- Use natural pauses ("…") for voice rendering.
+
+EMOTIONAL INTELLIGENCE:
+- Fear → slow down, soften tone
+- Confusion → gently guide, simplify
+- Urgency → stay calm but focused
+- Sadness → be present before giving information
+- Never ignore emotions. Always acknowledge first.
+
+KNOWLEDGE BASE:
+- Hospital departments, services, doctors, schedules
+- Admissions, discharge, billing, PhilHealth
+- Directions, appointments, FAQs
+- If unsure: be honest but reassuring, offer to help find the right person
+
+BOUNDARIES:
+- Never discuss staff salaries or internal payroll data
+- Never sound dismissive or cold
+- Never say "I cannot help" without offering a next step
+- Never invent hospital details`;
+
+// ── DOM REFS ────────────────────────────────────────────────────────
+const voiceBtn      = document.getElementById('mira-voice-btn');
+const voiceLabel    = document.getElementById('mira-voice-label');
+const statusText    = document.getElementById('mira-status-text');
+const messagesEl    = document.getElementById('mira-messages');
+const avatarWrap    = document.getElementById('mira-avatar-wrap');
+const visualizer    = document.getElementById('mira-visualizer');
+const bars          = [1,2,3,4,5].map(i => document.getElementById(`b${i}`));
+const textInput     = document.getElementById('mira-text-input');
+const textSend      = document.getElementById('mira-text-send');
+const trigger       = document.getElementById('mira-trigger');
+const chatWin       = document.getElementById('mira-window');
+const chips         = document.querySelectorAll('.mira-chip');
+const suggestionsEl = document.getElementById('mira-suggestions');
+
+// ── STATE ────────────────────────────────────────────────────────────
+let isOpen       = false;
+let liveSession  = null;
+let audioCtx     = null;
+let micStream    = null;
+let scriptProc   = null;
+let analyser     = null;
+let vizRaf       = null;
+let isListening  = false;
+let isMiraSpeak  = false;
+let playQueue    = [];
+let playBusy     = false;
+
+// ── WINDOW TOGGLE ────────────────────────────────────────────────────
+trigger.addEventListener('click', () => {
+  isOpen = !isOpen;
+  chatWin.classList.toggle('open', isOpen);
+  trigger.classList.toggle('open', isOpen);
+});
+
+// ── CHIP SHORTCUTS ───────────────────────────────────────────────────
+chips.forEach(chip => {
+  chip.addEventListener('click', () => {
+    if (chip.textContent.trim() === 'Leave feedback') { miraShowFeedback(); return; }
+    sendText(chip.textContent.trim());
+  });
+});
+
+// ── TEXT FALLBACK ────────────────────────────────────────────────────
+window.miraToggleText = function () {
+  const area   = document.getElementById('mira-text-area');
+  const toggle = document.getElementById('mira-text-toggle');
+  const shown  = area.classList.toggle('visible');
+  toggle.textContent = shown ? 'Use voice instead' : 'Use text instead';
+  if (shown) setTimeout(() => textInput.focus(), 50);
+};
+
+textInput.addEventListener('input', () => {
+  textInput.style.height = 'auto';
+  textInput.style.height = Math.min(textInput.scrollHeight, 100) + 'px';
+});
+textInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(textInput.value.trim()); }
+});
+textSend.addEventListener('click', () => sendText(textInput.value.trim()));
+
+// ── AUDIO CONTEXT (lazy init) ────────────────────────────────────────
+function getAudioCtx() {
+  if (!audioCtx || audioCtx.state === 'closed') {
+    // Gemini Live expects 16000Hz INPUT, sends 24000Hz OUTPUT
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// ── VOICE SESSION ────────────────────────────────────────────────────
+voiceBtn.addEventListener('click', async () => {
+  if (isListening) { stopVoice(); return; }
+  await startVoice();
+});
+
+async function startVoice() {
+  setStatus('Connecting…');
+  try {
+    getAudioCtx();
+    // Use the pre-initialized aiClient
+    liveSession = await aiClient.live.connect({
+      model: LIVE_MODEL,
+      config: {
+        systemInstruction: { parts: [{ text: MIRA_SYSTEM }] },
+        generationConfig: {
+          responseModalities: ["audio"],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
+          }
+        }
+      },
+      callbacks: {
+        onopen:   ()    => onSessionOpen(),
+        onclose:  ()    => onSessionClose(),
+        onerror:  (err) => onSessionError(err),
+        onmessage:(msg) => onSessionMessage(msg),
+      }
+    });
+  } catch (err) {
+    console.error('Mira session error:', err);
+    appendMsg('ai', 'Sorry, I couldn\'t connect.');
+    setStatus('Connection failed');
+    stopVoice(false);
+  }
+}
+
+// ── FIXED sendText (No more 404 or ReferenceError) ──────────────────
+async function sendText(text) {
+  if (!text) return;
+  appendMsg('user', text);
+  textInput.value = '';
+  textSend.disabled = true;
+
+  if (liveSession && isListening) {
+    liveSession.sendClientContent({ turns: [{ role: 'user', parts: [{ text }] }] });
+    textSend.disabled = false;
+    return;
+  }
+
+  showTyping();
+  try {
+    // FIX: Use TEXT_MODEL instead of LIVE_MODEL for generateContent to avoid 404
+    const res = await aiClient.models.generateContent({
+      model: TEXT_MODEL, 
+      contents: [{ role: 'user', parts: [{ text }] }],
+      config: {
+        systemInstruction: MIRA_SYSTEM + `\n\nShort text replies only.`
+      }
+    });
+    
+    removeTyping();
+    const reply = res.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Sorry...';
+    appendMsg('ai', reply);
+    miraSpeakText(reply); 
+  } catch(err) {
+    removeTyping();
+    console.error("Text Error:", err);
+    appendMsg('ai', 'Network error. Pakisubukan ulit, okay?');
+  }
+  textSend.disabled = false;
+}
+
+function stopVoice(closeSession = true) {
+  isListening = false;
+  voiceBtn.classList.remove('listening');
+  voiceBtn.querySelector('.icon-mic').style.display  = '';
+  voiceBtn.querySelector('.icon-stop').style.display = 'none';
+  voiceLabel.textContent = 'Tap mic to talk to Mira';
+  visualizer.classList.remove('active');
+  cancelAnimationFrame(vizRaf);
+  avatarWrap.classList.remove('speaking');
+  setStatus('Ready to assist');
+
+  if (scriptProc) { scriptProc.disconnect(); scriptProc = null; }
+  if (micStream)  { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (closeSession && liveSession) { try { liveSession.close(); } catch(_){} liveSession = null; }
+}
+
+async function onSessionOpen() {
+  isListening = true;
+  voiceBtn.classList.add('listening');
+  voiceBtn.querySelector('.icon-mic').style.display  = 'none';
+  voiceBtn.querySelector('.icon-stop').style.display = '';
+  setStatus('Listening…');
+  voiceLabel.textContent = 'Tap again to end';
+  appendMsg('ai', 'Nandito na ako… go ahead, I\'m listening. 🌸');
+  await startMicrophone();
+}
+
+function onSessionClose() { stopVoice(false); }
+function onSessionError(err) {
+  console.error('Mira WS error:', err);
+  appendMsg('ai', 'Ay, there was a connection issue. Can you try again?');
+  stopVoice(false);
+}
+
+function onSessionMessage(msg) {
+  // ── Mira's audio response ──
+  const parts = msg.serverContent?.modelTurn?.parts ?? [];
+  for (const part of parts) {
+    if (part.inlineData?.data) {
+      const pcmB64 = part.inlineData.data;
+      const mime   = part.inlineData.mimeType ?? 'audio/pcm;rate=24000';
+      playQueue.push({ pcmB64, mime });
+      drainPlayQueue();
+    }
+    if (part.text) {
+      // Transcript from Mira — show as bubble
+      appendMsg('ai', part.text);
+    }
+  }
+
+  // ── User turn transcript ──
+  const userParts = msg.serverContent?.inputTranscription?.parts ?? [];
+  for (const up of userParts) {
+    if (up.text?.trim()) appendMsg('user', up.text.trim());
+  }
+
+  // ── Speaking state ──
+  if (msg.serverContent?.generationComplete) {
+    avatarWrap.classList.remove('speaking');
+    isMiraSpeak = false;
+    setStatus('Listening…');
+  }
+  if (parts.length && parts.some(p => p.inlineData?.data)) {
+    avatarWrap.classList.add('speaking');
+    isMiraSpeak = true;
+    setStatus('Mira is speaking…');
+  }
+}
+
+// ── MICROPHONE ───────────────────────────────────────────────────────
+async function startMicrophone() {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx      = getAudioCtx();
+    const source   = ctx.createMediaStreamSource(micStream);
+    analyser       = ctx.createAnalyser();
+    analyser.fftSize = 64;
+    source.connect(analyser);
+
+    // ScriptProcessor to pipe PCM to Gemini
+    scriptProc = ctx.createScriptProcessor(4096, 1, 1);
+    source.connect(scriptProc);
+    scriptProc.connect(ctx.destination);
+
+    scriptProc.onaudioprocess = (e) => {
+    if (!liveSession || !isListening) return;
+    const float32 = e.inputBuffer.getChannelData(0);
+    const pcm16   = float32ToPcm16(float32);
+    const b64     = arrayBufferToBase64(pcm16.buffer);
+    try {
+      liveSession.sendRealtimeInput({
+        audio: { data: b64, mimeType: 'audio/pcm;rate=16000' }  // ← 16000 not 24000
+      });
+    } catch(e) {
+      // Session may have closed — stop silently
+      if (isListening) stopVoice(false);
+    }
+  };
+
+    startVisualizer();
+
+  } catch (err) {
+    console.error('Microphone error:', err);
+    appendMsg('ai', 'Hmm, I can\'t access your microphone. Please allow mic access and try again.');
+    stopVoice();
+  }
+}
+
+// ── VISUALIZER ───────────────────────────────────────────────────────
+function startVisualizer() {
+  visualizer.classList.add('active');
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  function frame() {
+    vizRaf = requestAnimationFrame(frame);
+    analyser.getByteFrequencyData(data);
+    bars.forEach((bar, i) => {
+      const v = (data[i * 2] || 0) / 255;
+      bar.style.height = (6 + v * 22) + 'px';
+    });
+  }
+  frame();
+}
+
+// ── AUDIO PLAYBACK (PCM16 → Web Audio) ──────────────────────────────
+async function drainPlayQueue() {
+  if (playBusy || playQueue.length === 0) return;
+  playBusy = true;
+  const { pcmB64 } = playQueue.shift();
+  await playPcm16(pcmB64);
+  playBusy = false;
+  drainPlayQueue();
+}
+
+async function playPcm16(b64) {
+  const ctx    = getAudioCtx();
+  const raw    = base64ToArrayBuffer(b64);
+  const i16    = new Int16Array(raw);
+  const f32    = new Float32Array(i16.length);
+  for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
+
+  const buffer = ctx.createBuffer(1, f32.length, 24000);  // ← always 24000 for output
+  buffer.copyToChannel(f32, 0);
+
+  await new Promise(resolve => {
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+    src.onended = resolve;
+    src.start();
+  });
+}
+
+
+
+// ── HELPERS ──────────────────────────────────────────────────────────
+function appendMsg(role, text) {
+  const wrap   = document.createElement('div');
+  wrap.className = `mira-msg ${role}`;
+  const av     = document.createElement('div');
+  av.className = 'mira-msg-avatar';
+  av.textContent = role === 'ai' ? '🌸' : '🧑';
+  const bub    = document.createElement('div');
+  bub.className = 'mira-bubble';
+  bub.textContent = text;
+  wrap.append(av, bub);
+  messagesEl.append(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function miraSpeakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+
+  const utt    = new SpeechSynthesisUtterance(text);
+  utt.rate     = 0.92;
+  utt.pitch    = 1.05;
+  utt.volume   = 1;
+
+  utt.onstart = () => { avatarWrap.classList.add('speaking'); setStatus('Mira is speaking…'); };
+  utt.onend   = () => { avatarWrap.classList.remove('speaking'); setStatus('Ready to assist'); };
+
+  function pickVoiceAndSpeak() {
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v =>
+      v.lang === 'fil-PH' ||
+      v.name.includes('Samantha') ||
+      v.name.includes('Karen') ||
+      v.name.includes('Zira') ||
+      (v.name.toLowerCase().includes('female'))
+    );
+    if (preferred) utt.voice = preferred;
+    window.speechSynthesis.speak(utt);
+  }
+
+  // Voices may not be loaded yet — wait for them
+  if (window.speechSynthesis.getVoices().length > 0) {
+    pickVoiceAndSpeak();
+  } else {
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.onvoiceschanged = null;
+      pickVoiceAndSpeak();
+    };
+  }
+}
+function showTyping() {
+  const wrap = document.createElement('div');
+  wrap.className = 'mira-msg ai'; wrap.id = 'mira-typing';
+  const av   = document.createElement('div');
+  av.className = 'mira-msg-avatar'; av.textContent = '🌸';
+  const ind  = document.createElement('div');
+  ind.className = 'mira-typing';
+  ind.innerHTML = '<span></span><span></span><span></span>';
+  wrap.append(av, ind);
+  messagesEl.append(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function removeTyping() { document.getElementById('mira-typing')?.remove(); }
+
+function setStatus(msg) { statusText.textContent = msg; }
+
+function float32ToPcm16(f32) {
+  const out = new Int16Array(f32.length);
+  for (let i = 0; i < f32.length; i++) out[i] = Math.max(-32768, Math.min(32767, f32[i] * 32768));
+  return out;
+}
+function arrayBufferToBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+function base64ToArrayBuffer(b64) {
+  const bin = atob(b64);
+  const buf = new ArrayBuffer(bin.length);
+  const view = new Uint8Array(buf);
+  for (let i = 0; i < bin.length; i++) view[i] = bin.charCodeAt(i);
+  return buf;
+}
+
+// ── FEEDBACK ─────────────────────────────────────────────────────────
+window.miraShowFeedback = function () {
+  document.getElementById('mira-feedback-overlay').style.display = 'block';
+  suggestionsEl.style.display = 'none';
+};
+window.miraHideFeedback = function () {
+  document.getElementById('mira-feedback-overlay').style.display = 'none';
+  suggestionsEl.style.display = 'flex';
+  // reset
+  document.getElementById('fb-name').value    = 'Guest';
+  document.getElementById('fb-comment').value = '';
+  document.querySelectorAll('.mira-star').forEach(s => s.classList.remove('lit'));
+  window._miraRating = 0;
+};
+
+// Star rating
+document.querySelectorAll('.mira-star').forEach(star => {
+  star.addEventListener('click', () => {
+    const val = +star.dataset.v;
+    window._miraRating = val;
+    document.querySelectorAll('.mira-star').forEach((s,i) => s.classList.toggle('lit', i < val));
+  });
+});
+
+window.miraSubmitFeedback = async function () {
+  const name    = document.getElementById('fb-name').value.trim()    || 'Guest';
+  const comment = document.getElementById('fb-comment').value.trim();
+  const rating  = window._miraRating || 0;
+
+  if (!comment) { alert('Please enter your feedback.'); return; }
+  if (!rating)  { alert('Please select a star rating.'); return; }
+
+  const btn = document.getElementById('fb-submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  try {
+    const res  = await fetch('/nlah/feedback/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+      body: JSON.stringify({ name, comment, rating })
+    });
+    const data = await res.json();
+    if (data.success) {
+      miraHideFeedback();
+      appendMsg('ai', 'Salamat sa iyong feedback! 😊 It means a lot to us.');
+    } else {
+      alert(data.message || 'Could not submit. Please try again.');
+      btn.disabled = false; btn.textContent = 'Submit Feedback';
+    }
+  } catch (_) {
+    alert('Network error. Please try again.');
+    btn.disabled = false; btn.textContent = 'Submit Feedback';
+  }
+};
+</script>

@@ -1,4 +1,4 @@
-
+<div class="max-w-7xl mx-auto py-8 px-4 nlah-page-text-primary">
 <style>
     .brand-bg-primary        { background-color: #015581; }
     .brand-bg-primary-light  { background-color: #e6f0f7; }
@@ -40,8 +40,6 @@
 
     @keyframes shrink { from { width: 100% } to { width: 0% } }
 </style>
-
-<div class="max-w-7xl mx-auto py-8 px-4">
 
     {{-- ═══════════════════════════════════════════
          PAGE HEADER
@@ -142,7 +140,7 @@
                                     <div>
                                         <div class="text-sm font-bold text-gray-900">{{ $leave->user->username }}</div>
                                         <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
-                                            {{ $leave->user->employee->department ?? 'General' }}
+                                            {{ $leave->user->department?->name ?? 'General' }}
                                         </div>
                                     </div>
                                 </div>
@@ -285,7 +283,7 @@
                                 <div>
                                     <p class="text-base font-bold text-gray-900 leading-tight">{{ $this->selectedLeave->user->username }}</p>
                                     <p class="text-[10px] font-semibold brand-text-primary uppercase tracking-wide mt-0.5">
-                                        {{ $this->selectedLeave->user->employee->position ?? 'Staff Member' }}
+                                        {{ $this->selectedLeave->user->employmentDetail?->position ?? 'Staff Member' }}
                                     </p>
                                 </div>
                             </div>

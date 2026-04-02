@@ -7,6 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Department extends Model
 {
     protected $fillable = [
-        'name', 'code', 'dept_head_id'
+        'name', 'code', 'dept_head_id',
     ];
+
+    public function deptHead()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'dept_head_id');
+    }
+
+    public function users()
+    {
+        return $this->hasMany(\App\Models\User::class, 'department_id');
+    }
 }

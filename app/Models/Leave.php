@@ -9,188 +9,167 @@ class Leave extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
     protected $table = 'leaves';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'user_id',
-        'leavetype',
-        'department',
-        'startdate',
-        'enddate',
-        'totaldays',
+        'leave_type',
+        'start_date',
+        'end_date',
+        'total_days',
+        'day_part',
         'reason',
-        'status',
+        'reliever',
+        'attachment',
+        'date_requested',
+        'dept_head_status',
+        'dept_head_approved_at',
+        'dept_head_id',
+        'hr_status',
+        'hr_approved_at',
         'approved_by',
         'remarks',
+        'rejection_reason',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-        'startdate' => 'date',
-        'enddate' => 'date',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'start_date'           => 'date',
+        'end_date'             => 'date',
+        'date_requested'       => 'date',
+        'dept_head_approved_at' => 'datetime',
+        'hr_approved_at'       => 'datetime',
+        'created_at'           => 'datetime',
+        'updated_at'           => 'datetime',
     ];
 
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array
-     */
-    protected $appends = ['formatted_leave_type', 'formatted_status'];
+    // ─── Relationships ────────────────────────────────────────────────────────
 
-    /**
-     * Get the user that owns the leave request.
-     */
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /**
-     * Get the approver of the leave request.
-     */
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    /**
-     * Get the leave type in readable format.
-     */
-    public function getFormattedLeaveTypeAttribute()
+    public function deptHead()
     {
-        return ucfirst($this->leavetype);
+        return $this->belongsTo(User::class, 'dept_head_id');
     }
 
-    /**
-     * Get the status in readable format.
-     */
-    public function getFormattedStatusAttribute()
-    {
-        return ucfirst($this->status);
-    }
+    // ─── Scopes ───────────────────────────────────────────────────────────────
 
-    /**
-     * Get the status badge class.
-     */
-    public function getStatusBadgeClassAttribute()
-    {
-        return match($this->status) {
-            'approved' => 'bg-green-100 text-green-800',
-            'rejected' => 'bg-red-100 text-red-800',
-            'pending' => 'bg-yellow-100 text-yellow-800',
-            default => 'bg-gray-100 text-gray-800'
-        };
-    }
-
-    /**
-     * Get the leave type badge class.
-     */
-    public function getLeaveTypeBadgeClassAttribute()
-    {
-        return match(strtolower($this->leavetype)) {
-            'sick leave' => 'bg-red-50 text-red-600',
-            'vacation leave' => 'bg-blue-50 text-blue-600',
-            'emergency leave' => 'bg-orange-50 text-orange-600',
-            default => 'bg-green-50 text-green-600',
-        };
-    }
-
-    /**
-     * Check if the leave is pending.
-     */
-    public function isPending()
-    {
-        return $this->status === 'pending';
-    }
-
-    /**
-     * Check if the leave is approved.
-     */
-    public function isApproved()
-    {
-        return $this->status === 'approved';
-    }
-
-    /**
-     * Check if the leave is rejected.
-     */
-    public function isRejected()
-    {
-        return $this->status === 'rejected';
-    }
-
-    /**
-     * Calculate the duration in days.
-     */
-    public function calculateDuration()
-    {
-        $start = \Carbon\Carbon::parse($this->startdate);
-        $end = \Carbon\Carbon::parse($this->enddate);
-        return $start->diffInDays($end) + 1;
-    }
-
-    /**
-     * Scope a query to only include pending leaves.
-     */
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('hr_status', 'pending');
     }
 
-    /**
-     * Scope a query to only include approved leaves.
-     */
     public function scopeApproved($query)
     {
-        return $query->where('status', 'approved');
+        return $query->where('hr_status', 'approved');
     }
 
-    /**
-     * Scope a query to only include rejected leaves.
-     */
     public function scopeRejected($query)
     {
-        return $query->where('status', 'rejected');
+        return $query->where('hr_status', 'rejected');
     }
 
-    /**
-     * Scope a query to only include leaves for a specific user.
-     */
     public function scopeForUser($query, $userId)
     {
         return $query->where('user_id', $userId);
     }
 
-    /**
-     * Scope a query to only include leaves for a specific department.
-     */
-    public function scopeForDepartment($query, $department)
+    public function scopeBetweenDates($query, $startDate, $endDate)
     {
-        return $query->where('department', $department);
+        return $query->whereBetween('start_date', [$startDate, $endDate])
+                     ->orWhereBetween('end_date', [$startDate, $endDate]);
+    }
+
+    // ─── Credit Helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Total lifetime VL entitlement for a user.
+     *
+     * Each calendar year from hire year → current year the employee earns a
+     * tier-based allocation.  Unused days carry forward indefinitely.
+     *
+     * Tiers (years of service at Jan 1 of each year):
+     *   < 7 yrs  → 10 days/yr
+     *   7–14 yrs → 15 days/yr
+     *   ≥ 15 yrs → 20 days/yr
+     */
+    public static function availableVLCredits(int $userId): float
+    {
+        $vlTypes  = ['Vacation Leave', 'Birthday Leave'];
+
+        $emp      = \DB::table('employment_details')->where('user_id', $userId)->first();
+        $user     = \App\Models\User::find($userId);
+        $hireDate = \Carbon\Carbon::parse($emp?->hiring_date ?? $user->created_at);
+
+        $hireYear    = (int) $hireDate->format('Y');
+        $currentYear = (int) now()->format('Y');
+
+        // Sum up entitlement for every year from hire to now (VL carries over)
+        $totalEarned = 0;
+        for ($year = $hireYear; $year <= $currentYear; $year++) {
+            // Years of service at the start of this year (0 for hire year)
+            $yearsService = $year === $hireYear
+                ? 0
+                : (int) $hireDate->diffInYears(\Carbon\Carbon::create($year, 1, 1));
+
+            $totalEarned += match (true) {
+                $yearsService >= 15 => 20,
+                $yearsService >= 7  => 15,
+                default             => 10,
+            };
+        }
+
+        // All-time VL used (carryover means we look at total usage, not just this year)
+        $totalUsed = self::where('user_id', $userId)
+            ->whereIn('leave_type', $vlTypes)
+            ->whereIn('hr_status', ['pending', 'approved'])
+            ->sum('total_days');
+
+        return max(0, $totalEarned - $totalUsed);
     }
 
     /**
-     * Scope a query to only include leaves within a date range.
+     * Available SL credits for the current year only (resets every Jan 1).
      */
-    public function scopeBetweenDates($query, $startDate, $endDate)
+    public static function availableSLCredits(int $userId): float
     {
-        return $query->whereBetween('startdate', [$startDate, $endDate])
-                     ->orWhereBetween('enddate', [$startDate, $endDate]);
+        $slTypes = ['Sick Leave'];
+
+        $usedSL = self::where('user_id', $userId)
+            ->whereIn('leave_type', $slTypes)
+            ->whereIn('hr_status', ['pending', 'approved'])
+            ->whereYear('start_date', now()->year)
+            ->sum('total_days');
+
+        return max(0, 3 - $usedSL);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    public function isPending(): bool
+    {
+        return $this->hr_status === 'pending';
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->hr_status === 'approved';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->hr_status === 'rejected';
+    }
+
+    public function calculateDuration(): int
+    {
+        return $this->start_date->diffInDays($this->end_date) + 1;
     }
 }

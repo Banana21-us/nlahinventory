@@ -40,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
     Gate::define('access-maintenance', fn(User $user) => $user->role === 'Maintenance');
     Gate::define('access-verify', fn(User $user) => $user->role === 'Inspector');
     Gate::define('access-hr-only', fn(User $user) => $user->role === 'HR');
+    Gate::define('access-payroll', fn(User $user) => $user->role === 'HR');
+    Gate::define('access-cashier-only', fn(User $user) => $user->role === 'Cashier');
 
         
     }

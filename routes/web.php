@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LeaveResponseController;
 use App\Livewire\About;
 use App\Livewire\Medicines;
 use App\Livewire\News;
@@ -32,6 +33,7 @@ use App\Livewire\PointOfSale\PosCustomer;
 use App\Livewire\LeaveRequest;
 use App\Livewire\HrLeaveManagement;
 use App\Livewire\DHead;
+use App\Livewire\PayrollCompliance;
 // Route::get('/', function () {
 //     return view('welcome');
 // })->name('home');
@@ -43,7 +45,6 @@ Route::get('/email/verify', function () {
 
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
-
     if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
         abort(403);
     }
@@ -75,38 +76,46 @@ Route::middleware(['auth', 'verified', 'can:access-medical'])
         Route::get('/patients', PatientManager::class)->name('patients');
         Route::get('/patients/{id}', PatientDetail::class)->name('patient.details');
     });
-
-// Form route
+    
 Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
-Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
+        Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
+
 // HR Routes
 Route::middleware('can:access-hr-only')->group(function () {
-        Route::get('/HR/news', News::class)->name('NewsPage.newshr');
-        Route::get('/HR/userlist', HR::class)->name('HR.userlist');
-        Route::get('/HR/hr-leave-management', HrLeaveManagement::class)->name('HR.hr-leave-management');
-        Route::get('/HR/hrdashboard', HRCorner::class)->name('HR.hrdashboard');
-    });
-// Maintenance routes
+    Route::get('/HR/news', News::class)->name('NewsPage.newshr');
+    Route::get('/HR/userlist', HR::class)->name('HR.userlist');
+    Route::get('/HR/hr-leave-management', HrLeaveManagement::class)->name('HR.hr-leave-management');
+    Route::get('/HR/hrdashboard', HRCorner::class)->name('HR.hrdashboard');
+    Route::get('/HR/payroll-compliance', PayrollCompliance::class)->name('HR.payroll-compliance');
+});
 
+// Maintenance routes
 Route::middleware(['auth','can:access-maintenance'])->group(function () {
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
+// Verify routes
 Route::middleware(['auth','can:access-verify'])->group(function () {
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
-
+    // Cashier routes
+Route::middleware(['auth','can:access-cashier-only'])->group(function () {
+    Route::get('/pos/dashboard', Posdashboard::class)->name('pos.dashboard');
+    Route::get('/pos', POS::class)->name('pos.main');
+    Route::get('/pos/inventory', PosInventory::class)->name('pos.inventory');
+    Route::get('/pos/items', PosItems::class)->name('pos.items');
+    Route::get('/pos/sales', PosSales::class)->name('pos.sales');
+    Route::get('/pos/customers', PosCustomer::class)->name('pos.customers');
+});
 
 // Public NLAH routes
 Route::get('/', function () {return redirect()->route('nlah.home');})->name('home');
-
 Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::view('/home', 'nlah.home')->name('home');
     Route::view('/about', 'nlah.about')->name('about');
     Route::view('/services', 'nlah.services')->name('services');
-
     // News routes using NewsEventController for public pages
     Route::get('/news', [NewsEventController::class, 'index'])->name('news');
     Route::get('/news/{id}', [NewsEventController::class, 'show'])->name('news.detail');
@@ -117,15 +126,9 @@ Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::get('/feedbacks', [FeedbackController::class, 'getFeedbacks'])->name('feedbacks');
     Route::post('/feedback/submit', [FeedbackController::class, 'submit'])->name('feedback.submit');
 });
-
-
-    Route::get('/pos/dashboard', Posdashboard::class)->name('pos.dashboard');
-    Route::get('/pos', POS::class)->name('pos.main');
-    Route::get('/pos/inventory', PosInventory::class)->name('pos.inventory');
-    Route::get('/pos/items', PosItems::class)->name('pos.items');
-    Route::get('/pos/sales', PosSales::class)->name('pos.sales');
-    Route::get('/pos/customers', PosCustomer::class)->name('pos.customers');
-
-
+// Department Head leave approval/rejection via signed email link (no auth required)
+Route::get('/leave/{leave}/respond/{action}', [LeaveResponseController::class, 'respond'])
+    ->name('leave.dhead.respond')
+    ->middleware('signed');
 
 require __DIR__.'/settings.php';
