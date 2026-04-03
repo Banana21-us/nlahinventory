@@ -10,74 +10,50 @@
             collapsible
             class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
 
-            {{-- 1. MEDICAL MISSION --}}
-            <!-- @can('access-medical')
-            <flux:sidebar.header>
-                <x-app-logo
-                    :sidebar="true"
-                    href="{{ route('medmission.dashboard') }}"
-                    wire:navigate="wire:navigate"/>
-                <flux:sidebar.collapse class="lg:hidden"/>
-            </flux:sidebar.header>
+            
 
-            <flux:sidebar.group
+            {{-- 2. MAINTENANCE --}}
+            @can('access-maintenance')
+            <flux:sidebar.item
                 icon="home"
-                expandable="expandable"
-                heading="Medical Mission"
-                class="grid">
-                <flux:sidebar.item
-                    :href="route('medmission.dashboard')"
-                    :current="request()->routeIs('medmission.dashboard')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Dashboard') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item
-                    :href="route('medmission.medicines')"
-                    :current="request()->routeIs('medmission.medicines')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Medicines') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item
-                    :href="route('medmission.dispense')"
-                    :current="request()->routeIs('medmission.dispense')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Dispense Medicine') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item
-                    :href="route('medmission.patients')"
-                    :current="request()->routeIs('medmission.patients')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Patients') }}
-                </flux:sidebar.item>
-            </flux:sidebar.group>
-            @endcan -->
+                :href="route('Maintenance.dashboard')"
+                :current="request()->routeIs('Maintenance.dashboard')"
+                wire:navigate="wire:navigate">
+                {{ __('Dashboard') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item
+                icon="clipboard-document-check"
+                :href="route('Maintenance.checklist.check')"
+                :current="request()->routeIs('Maintenance.checklist.check')"
+                wire:navigate="wire:navigate">
+                {{ __('Checklist') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item
+                icon="calendar-days"
+                :href="route('users.leaveform')"
+                :current="request()->routeIs('users.leaveform')"
+                wire:navigate="wire:navigate">
+                {{ __('Leave') }}
+            </flux:sidebar.item>
+            @endcan
 
-            {{-- 2. CHECKLIST --}}
-            {{-- Visible if user is Maintenance, Inspector, OR HR --}}
-            @if(Gate::allows('access-maintenance') || Gate::allows('access-verify'))
-            <flux:sidebar.group
-                icon="clipboard-check"
-                expandable="expandable"
-                heading="Checklist"
-                class="grid">
-                @can('access-maintenance')
-                <flux:sidebar.item
-                    :href="route('Maintenance.checklist.check')"
-                    :current="request()->routeIs('Maintenance.checklist.check')"
+            {{-- INSPECTOR --}}
+            @can('access-verify')
+            <flux:sidebar.item
+                icon="magnifying-glass"
+                :href="route('Maintenance.checklist.verify')"
+                :current="request()->routeIs('Maintenance.checklist.verify')"
+                wire:navigate="wire:navigate">
+                {{ __('Verify') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item
+                    icon="calendar"
+                    :href="route('users.dhead-leaveform')"
+                    :current="request()->routeIs('users.dhead-leaveform')"
                     wire:navigate="wire:navigate">
-                    {{ __('Maintenance') }}
-                </flux:sidebar.item>
-                @endcan 
-                @can('access-verify')
-                <flux:sidebar.item
-                    :href="route('Maintenance.checklist.verify')"
-                    :current="request()->routeIs('Maintenance.checklist.verify')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Verify') }}
-                </flux:sidebar.item>
-                @endcan
-            </flux:sidebar.group>
-            @endif
+                    {{ __('Department Head Form') }}
+            </flux:sidebar.item>
+            @endcan
 
             {{-- 3. HR CORNER WITH DROPDOWN --}}
             @can('access-hr-only')
@@ -126,6 +102,14 @@
                     wire:navigate="wire:navigate">
                     {{ __('Employees') }}
                 </flux:sidebar.item>
+                
+                <!-- Department Management -->
+                <flux:sidebar.item
+                    :href="route('HR.departments')"
+                    :current="request()->routeIs('HR.departments')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Departments') }}
+                </flux:sidebar.item>    
 
                 {{-- Attendance --}}
                 <flux:sidebar.item

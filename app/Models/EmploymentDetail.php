@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmploymentDetail extends Model
 {
     protected $fillable = [
-        'user_id', 'department', 'dept_code', 'position', 'rank',
+        'employee_id', 'department_id', 'position', 'rank',
         'employment_status', 'hiring_date', 'regularization_date',
         'license_no', 'license_expiry', 're_membership',
         'philhealth_no', 'pagibig_no', 'tin_no', 'sss_no', 'gsis_no',
@@ -19,8 +19,13 @@ class EmploymentDetail extends Model
         'license_expiry'      => 'date',
     ];
 
-    public function user()
+    public function employee()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(\App\Models\Employee::class, 'employee_id');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(\App\Models\Department::class, 'department_id');
     }
 }

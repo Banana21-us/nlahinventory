@@ -198,7 +198,7 @@ new class extends Component {
     $this->clearPendingProof();
 
     $normalizedShift  = in_array(strtoupper($shift), ['AM', 'PM'], true) ? strtoupper($shift) : null;
-    $normalizedPeriod = $this->periodType === 'nightly' ? 'daily' : $this->periodType;
+    $normalizedPeriod = $this->periodType;
     try {
         DB::table('records')
             ->where('location_area_part_id', $locationAreaPartId)
@@ -290,7 +290,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
     }
 
     $normalizedShift    = in_array(strtoupper($shift), ['AM', 'PM'], true) ? strtoupper($shift) : null;
-    $normalizedPeriod   = $this->periodType === 'nightly' ? 'daily' : $this->periodType;
+    $normalizedPeriod   = $this->periodType;
     $commentValue       = is_string($comment) && trim($comment) !== '' ? trim($comment) : null;
 
     try {
@@ -588,7 +588,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 
     try {
         $partIds        = array_column($this->areaParts, 'id');
-        $normalizedPeriod = $this->periodType === 'nightly' ? 'daily' : $this->periodType;
+        $normalizedPeriod = $this->periodType;
 
         $query = DB::table('records')
             ->whereIn('location_area_part_id', $partIds)
@@ -647,7 +647,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
         return;
     }
 
-    $normalizedPeriod = $this->periodType === 'nightly' ? 'daily' : $this->periodType;
+    $normalizedPeriod = $this->periodType;
 
     try {
         $partIds     = array_column($this->areaParts, 'id');

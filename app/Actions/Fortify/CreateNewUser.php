@@ -17,7 +17,6 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'username'        => ['required', 'string', 'max:255', 'unique:users'],
-            'department_id'   => ['required', 'exists:departments,id'],
             'password'        => $this->passwordRules(),
             'employee_number' => [
                 'required',
@@ -28,8 +27,6 @@ class CreateNewUser implements CreatesNewUsers
         ], [
             'employee_number.exists'  => 'This employee number was not found. Please contact HR.',
             'employee_number.unique'  => 'This employee number is already registered.',
-            'department_id.required'  => 'Please select your department.',
-            'department_id.exists'    => 'Selected department does not exist.',
         ])->validate();
 
         return User::create([
@@ -37,9 +34,7 @@ class CreateNewUser implements CreatesNewUsers
             'username'        => $input['username'],
             'email'           => $input['email'],
             'password'        => $input['password'],
-            'role'            => 'Staff',
             'employee_number' => $input['employee_number'],
-            'department_id'   => $input['department_id'],
         ]);
     }
 }

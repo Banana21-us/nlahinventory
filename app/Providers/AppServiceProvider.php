@@ -30,18 +30,18 @@ class AppServiceProvider extends ServiceProvider
         URL::forceScheme('https');
     }
         Gate::before(function (User $user, string $ability) {
-        if ($user->role === 'HR') {
-            return true;
-        }
-    });
+            if ($user->employmentDetail?->position === 'HR Manager') {
+                return true;
+            }
+        });
 
     // Define the specific gates for other roles
-    Gate::define('access-medical', fn(User $user) => $user->role === 'Staff');
-    Gate::define('access-maintenance', fn(User $user) => $user->role === 'Maintenance');
-    Gate::define('access-verify', fn(User $user) => $user->role === 'Inspector');
-    Gate::define('access-hr-only', fn(User $user) => $user->role === 'HR');
-    Gate::define('access-payroll', fn(User $user) => $user->role === 'HR');
-    Gate::define('access-cashier-only', fn(User $user) => $user->role === 'Cashier');
+    Gate::define('access-medical', fn(User $user) => $user->employmentDetail?->position === 'Staff');
+    Gate::define('access-maintenance', fn(User $user) => $user->employmentDetail?->position === 'Housekeeping');
+    Gate::define('access-verify', fn(User $user) => $user->employmentDetail?->position === 'Maintenance_Head');
+    Gate::define('access-hr-only', fn(User $user) => $user->employmentDetail?->position === 'HR Manager');
+    Gate::define('access-payroll', fn(User $user) => $user->employmentDetail?->position === 'HR Manager');
+    Gate::define('access-cashier-only', fn(User $user) => $user->employmentDetail?->position === 'Cashier');
 
         
     }

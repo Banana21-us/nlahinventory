@@ -104,7 +104,8 @@ class Leave extends Model
     {
         $vlTypes  = ['Vacation Leave', 'Birthday Leave'];
 
-        $emp      = \DB::table('employment_details')->where('user_id', $userId)->first();
+        $employeeId = \DB::table('employee')->where('user_id', $userId)->value('id');
+        $emp        = $employeeId ? \DB::table('employment_details')->where('employee_id', $employeeId)->first() : null;
         $user     = \App\Models\User::find($userId);
         $hireDate = \Carbon\Carbon::parse($emp?->hiring_date ?? $user->created_at);
 

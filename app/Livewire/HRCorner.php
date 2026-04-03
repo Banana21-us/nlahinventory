@@ -15,7 +15,7 @@ class HRCorner extends Component
         $today = now()->toDateString();
 
         // ── KPI Cards ──────────────────────────────────────────────────────────
-        $totalEmployees = User::whereNotIn('role', ['Disable'])->count();
+        $totalEmployees = User::where('is_active', true)->count();
 
         $onLeaveToday = Leave::where('hr_status', 'approved')
             ->whereDate('start_date', '<=', $today)
@@ -53,22 +53,25 @@ class HRCorner extends Component
 
         $totalEmploymentDetails = $employmentStatus->sum('total');
 
-        // ── Role Breakdown ──────────────────────────────────────────────────
-        $roleBreakdown = User::select('role', DB::raw('count(*) as total'))
-            ->groupBy('role')
+        // ── Position Breakdown (replaces role breakdown) ────────────────────
+        $roleBreakdown = DB::table('employment_details')
+            ->select('position', DB::raw('count(*) as total'))
+            ->whereNotNull('position')
+            ->groupBy('position')
             ->orderByDesc('total')
-            ->get();
+            ->get()
+            ->map(fn ($row) => (object) ['role' => $row->position, 'total' => $row->total]);
 
-        // ── Department Headcount ────────────────────────────────────────────
+        // ── Department Headcount (via employment_details.department_id) ───────
         $departments = DB::table('departments')
-            ->leftJoin('users', 'departments.id', '=', 'users.department_id')
-            ->select('departments.name', 'departments.code', DB::raw('count(users.id) as total'))
+            ->leftJoin('employment_details', 'departments.id', '=', 'employment_details.department_id')
+            ->select('departments.name', 'departments.code', DB::raw('count(employment_details.id) as total'))
             ->groupBy('departments.id', 'departments.name', 'departments.code')
             ->orderByDesc('total')
             ->get();
 
         // ── Pending Leaves (HR needs to action) ────────────────────────────
-        $pendingLeaves = Leave::with('user.department')
+        $pendingLeaves = Leave::with('user.employmentDetail.department')
             ->where('hr_status', 'pending')
             ->where('dept_head_status', 'approved')
             ->latest()
@@ -76,13 +79,13 @@ class HRCorner extends Component
             ->get();
 
         // ── Recent Leave Activity ───────────────────────────────────────────
-        $recentLeaves = Leave::with('user.department')
+        $recentLeaves = Leave::with('user.employmentDetail.department')
             ->latest()
             ->take(7)
             ->get();
 
         // ── Upcoming Approved Leaves (next 7 days) ──────────────────────────
-        $upcomingLeaves = Leave::with('user.department')
+        $upcomingLeaves = Leave::with('user.employmentDetail.department')
             ->where('hr_status', 'approved')
             ->whereDate('start_date', '>=', $today)
             ->whereDate('start_date', '<=', now()->addDays(7)->toDateString())

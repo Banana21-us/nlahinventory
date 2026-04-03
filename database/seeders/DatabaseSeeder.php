@@ -75,12 +75,11 @@ class DatabaseSeeder extends Seeder
                 'email'             => $data['email'],
                 'email_verified_at' => now(),
                 'password'          => Hash::make('password123'),
-                'role'              => $data['role'],
                 'is_active'         => 1,
             ]);
 
             // Create the Employee Profile
-            Employee::create([
+            $emp = Employee::create([
                 'employee_number' => $empNumber,
                 'user_id'         => $user->id,
                 'first_name'      => $data['first'],
@@ -91,11 +90,10 @@ class DatabaseSeeder extends Seeder
                 'email_add'       => $data['email'],
             ]);
 
-            // Create Employment Details
+            // Create Employment Details — keyed on employee_id (employee table PK)
             EmploymentDetail::create([
-                'user_id'             => $user->id,
-                'department'          => $data['dept']->name,
-                'dept_code'           => $data['dept']->code,
+                'employee_id'         => $emp->id,
+                'department_id'       => $data['dept']->id,
                 'position'            => $data['pos'],
                 'employment_status'   => 'Regular',
                 'hiring_date'         => '2024-01-15',

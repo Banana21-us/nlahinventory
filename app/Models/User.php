@@ -25,9 +25,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'username',
         'password',
         'employee_number',
-        'department_id',
-        'role',
         'email_verified_at',
+        'is_active',
     ];
 
     /**
@@ -67,6 +66,23 @@ class User extends Authenticatable implements MustVerifyEmail
             ->implode('');
     }
 
+    /**
+     * Derive role from employment_details.position (exact match).
+     * Positions mapped here must match what is stored in employment_details.
+     * Add position strings below as new roles are defined.
+     */
+    public function getRoleAttribute(): string
+    {
+        return match($this->employmentDetail?->position) {
+            'HR Manager'  => 'HR',
+            'Maintenance' => 'Maintenance',
+            'Inspector'   => 'Inspector',
+            'Cashier'     => 'Cashier',
+            'Staff'       => 'Staff',
+            default       => 'pending',
+        };
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'HR';
@@ -88,18 +104,24 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->role === 'Disable';
     }
-    public function employmentDetail()
-    {
-        return $this->hasOne(\App\Models\EmploymentDetail::class, 'user_id');
-    }
-
     public function employee()
     {
         return $this->hasOne(\App\Models\Employee::class, 'user_id');
     }
 
-    public function department()
+    /**
+     * Employment details via the employee record linked to this user account.
+     */
+    public function employmentDetail()
     {
-        return $this->belongsTo(\App\Models\Department::class, 'department_id');
+        return $this->hasOneThrough(
+            \App\Models\EmploymentDetail::class,
+            \App\Models\Employee::class,
+            'user_id',       // FK on employee → users
+            'employee_id',   // FK on employment_details → employee
+            'id',            // local key on users
+            'id'             // local key on employee
+        );
     }
+
 }

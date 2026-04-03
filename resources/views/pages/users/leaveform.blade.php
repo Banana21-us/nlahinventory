@@ -86,21 +86,23 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Nature of Leave *</label>
-                        <select
-                            wire:model.live="leave_type"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
-                            <option value="">Select Type…</option>
-                            <option value="Vacation Leave">Vacation Leave (VL)</option>
-                            <option value="Sick Leave">Sick Leave (SL)</option>
-                            <option value="Pay-Off">Pay-Off</option>
-                            <option value="Compassionate Leave">Compassionate Leave</option>
-                            <option value="Leave Without Pay">Leave Without Pay (LWOP)</option>
-                            <option value="Birthday Leave">Birthday Leave</option>
-                            <option value="Single Parent Leave">Single Parent Leave</option>
-                            <option value="Maternity Leave">Maternity Leave</option>
-                            <option value="Paternity Leave">Paternity Leave</option>
-                        </select>
-                        @error('leave_type') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        <x-custom-select
+                            wire-property="leave_type"
+                            :current="$leave_type"
+                            :options="[
+                                ['value' => 'Vacation Leave',    'label' => 'Vacation Leave (VL)'],
+                                ['value' => 'Sick Leave',        'label' => 'Sick Leave (SL)'],
+                                ['value' => 'Pay-Off',           'label' => 'Pay-Off'],
+                                ['value' => 'Compassionate Leave','label' => 'Compassionate Leave'],
+                                ['value' => 'Leave Without Pay', 'label' => 'Leave Without Pay (LWOP)'],
+                                ['value' => 'Birthday Leave',    'label' => 'Birthday Leave'],
+                                ['value' => 'Single Parent Leave','label' => 'Single Parent Leave'],
+                                ['value' => 'Maternity Leave',   'label' => 'Maternity Leave'],
+                                ['value' => 'Paternity Leave',   'label' => 'Paternity Leave'],
+                            ]"
+                            placeholder="Select Type…"
+                            :error="$errors->first('leave_type')"
+                        />
                     </div>
 
                     <div class="md:col-span-2 brand-bg-primary-light rounded-md border border-blue-100 px-4 py-3 flex items-center justify-between"
@@ -150,12 +152,16 @@
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Duration</label>
                         <div class="flex items-center gap-2">
-                            <select wire:model.live="day_part"
-                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
-                                <option value="Full">Full Day</option>
-                                <option value="AM">AM Half</option>
-                                <option value="PM">PM Half</option>
-                            </select>
+                            <x-custom-select
+                                wire-property="day_part"
+                                :current="$day_part"
+                                :options="[
+                                    ['value' => 'Full', 'label' => 'Full Day'],
+                                    ['value' => 'AM',   'label' => 'AM Half'],
+                                    ['value' => 'PM',   'label' => 'PM Half'],
+                                ]"
+                                placeholder="Full Day"
+                            />
                             <div class="px-3 py-2 brand-bg-teal-light rounded-md font-bold brand-text-teal text-sm shrink-0 border border-teal-100 whitespace-nowrap">
                                 {{ $total_days }}d
                             </div>

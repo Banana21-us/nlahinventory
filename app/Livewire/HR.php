@@ -16,7 +16,7 @@ class HR extends Component
     public ?int $selectedId = null;
 
     // Form fields
-    public $employee_number, $department_id, $name, $username, $email, $password, $password_confirmation, $role = 'Staff';
+    public $employee_number, $name, $username, $email, $password, $password_confirmation;
 
     protected function rules(): array
     {
@@ -27,7 +27,6 @@ class HR extends Component
             'name'            => ['required', 'string', 'max:255'],
             'email'           => ['required', 'email', $this->isEditing ? "unique:users,email,{$id}" : 'unique:users,email'],
             'password'        => $this->isEditing ? ['nullable', 'confirmed', 'min:8'] : ['required', 'confirmed', 'min:8'],
-            'role'            => ['required', 'in:Staff,HR,Maintenance,Inspector,Cashier,Disable'],
         ];
     }
 
@@ -37,12 +36,11 @@ class HR extends Component
 
         User::create([
             'employee_number'   => $this->employee_number,
-            'department_id'     => $this->department_id,
             'name'              => $this->name,
             'username'          => $this->username,
             'email'             => $this->email,
             'password'          => Hash::make($this->password),
-            'role'              => $this->role,
+            'is_active'         => true,
             'email_verified_at' => now(),
         ]);
 
@@ -54,16 +52,14 @@ class HR extends Component
     {
         $user = User::findOrFail($id);
 
-        $this->selectedId          = $user->id;
-        $this->employee_number     = $user->employee_number;
-        $this->department_id       = $user->department_id;
-        $this->name                = $user->name;
-        $this->username            = $user->username;
-        $this->email               = $user->email;
-        $this->role                = $user->role;
-        $this->password            = null;
+        $this->selectedId            = $user->id;
+        $this->employee_number       = $user->employee_number;
+        $this->name                  = $user->name;
+        $this->username              = $user->username;
+        $this->email                 = $user->email;
+        $this->password              = null;
         $this->password_confirmation = null;
-        $this->isEditing           = true;
+        $this->isEditing             = true;
     }
 
     public function update(): void
@@ -74,26 +70,33 @@ class HR extends Component
 
         $data = [
             'employee_number' => $this->employee_number,
-            'department_id'   => $this->department_id,
             'name'            => $this->name,
             'username'        => $this->username,
             'email'           => $this->email,
-            'role'            => $this->role,
         ];
 
         if ($this->password) {
             $data['password'] = Hash::make($this->password);
         }
 
-        // Kill active sessions when disabling a user
-        if ($this->role === 'Disable') {
-            DB::table('sessions')->where('user_id', $user->id)->delete();
-        }
-
         $user->update($data);
 
         $this->resetForm();
         session()->flash('message', 'User updated successfully.');
+    }
+
+    public function toggleActive(int $id): void
+    {
+        $user = User::findOrFail($id);
+        $user->is_active = ! $user->is_active;
+        $user->save();
+
+        // Kill active sessions when deactivating
+        if (! $user->is_active) {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        }
+
+        session()->flash('message', $user->is_active ? 'Account activated.' : 'Account deactivated.');
     }
 
     public function confirmDelete(int $id): void
@@ -112,16 +115,16 @@ class HR extends Component
     private function resetForm(): void
     {
         $this->reset([
-            'employee_number', 'department_id', 'name', 'username',
+            'employee_number', 'name', 'username',
             'email', 'password', 'password_confirmation',
             'selectedId', 'isEditing', 'showForm', 'confirmingDeletion',
         ]);
-        $this->role = 'Staff';
     }
 
     public function render()
     {
         $users = User::query()
+            ->with(['employmentDetail'])
             ->when($this->search, fn ($q) =>
                 $q->where(fn ($q) =>
                     $q->where('name', 'like', "%{$this->search}%")

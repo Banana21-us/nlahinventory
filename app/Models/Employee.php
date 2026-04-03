@@ -28,6 +28,6 @@ class Employee extends Model
 
     public function employmentDetail()
     {
-        return $this->hasOne(EmploymentDetail::class, 'user_id', 'user_id');
+        return $this->hasOne(EmploymentDetail::class, 'employee_id', 'id');
     }
 }

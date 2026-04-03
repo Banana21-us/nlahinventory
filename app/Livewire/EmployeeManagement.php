@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmploymentDetail;
 use App\Models\User;
@@ -26,7 +27,7 @@ class EmployeeManagement extends Component
     public $contact_person, $contact_number;
 
     // Employment Detail (employment_details table)
-    public $department, $dept_code, $position, $rank;
+    public $department_id, $position, $rank;
     public $employment_status = 'Probationary', $hiring_date, $regularization_date;
     public $license_no, $license_expiry, $re_membership = false;
     public $philhealth_no, $pagibig_no, $tin_no, $sss_no, $gsis_no;
@@ -40,7 +41,7 @@ class EmployeeManagement extends Component
             'first_name'         => ['required', 'string', 'max:255'],
             'birth_date'         => ['required', 'date'],
             'gender'             => ['required', 'in:Male,Female'],
-            'department'         => ['required', 'string', 'max:255'],
+            'department_id'      => ['required', 'integer', 'exists:departments,id'],
             'position'           => ['required', 'string', 'max:255'],
             'employment_status'  => ['required', 'in:Probationary,Regular,Contractual,Casual'],
             'hiring_date'        => ['required', 'date'],
@@ -52,7 +53,7 @@ class EmployeeManagement extends Component
         $this->validate();
 
         DB::transaction(function () {
-            Employee::create([
+            $emp = Employee::create([
                 'employee_number' => $this->employee_number,
                 'user_id'         => $this->user_id ?: null,
                 'biometric_id'    => $this->biometric_id ?: null,
@@ -78,12 +79,10 @@ class EmployeeManagement extends Component
                 'contact_number'  => $this->contact_number,
             ]);
 
-            if ($this->user_id) {
-                EmploymentDetail::updateOrCreate(
-                    ['user_id' => $this->user_id],
-                    $this->employmentDetailData()
-                );
-            }
+            EmploymentDetail::updateOrCreate(
+                ['employee_id' => $emp->id],
+                $this->employmentDetailData()
+            );
         });
 
         $this->resetForm();
@@ -125,25 +124,22 @@ class EmployeeManagement extends Component
         $this->contact_person  = $employee->contact_person;
         $this->contact_number  = $employee->contact_number;
 
-        if ($employee->user_id) {
-            $detail = EmploymentDetail::where('user_id', $employee->user_id)->first();
-            if ($detail) {
-                $this->department          = $detail->department;
-                $this->dept_code           = $detail->dept_code;
-                $this->position            = $detail->position;
-                $this->rank                = $detail->rank;
-                $this->employment_status   = $detail->employment_status;
-                $this->hiring_date         = $detail->hiring_date?->format('Y-m-d');
-                $this->regularization_date = $detail->regularization_date?->format('Y-m-d');
-                $this->license_no          = $detail->license_no;
-                $this->license_expiry      = $detail->license_expiry?->format('Y-m-d');
-                $this->re_membership       = (bool) $detail->re_membership;
-                $this->philhealth_no       = $detail->philhealth_no;
-                $this->pagibig_no          = $detail->pagibig_no;
-                $this->tin_no              = $detail->tin_no;
-                $this->sss_no              = $detail->sss_no;
-                $this->gsis_no             = $detail->gsis_no;
-            }
+        $detail = EmploymentDetail::where('employee_id', $employee->id)->first();
+        if ($detail) {
+            $this->department_id       = $detail->department_id;
+            $this->position            = $detail->position;
+            $this->rank                = $detail->rank;
+            $this->employment_status   = $detail->employment_status;
+            $this->hiring_date         = $detail->hiring_date?->format('Y-m-d');
+            $this->regularization_date = $detail->regularization_date?->format('Y-m-d');
+            $this->license_no          = $detail->license_no;
+            $this->license_expiry      = $detail->license_expiry?->format('Y-m-d');
+            $this->re_membership       = (bool) $detail->re_membership;
+            $this->philhealth_no       = $detail->philhealth_no;
+            $this->pagibig_no          = $detail->pagibig_no;
+            $this->tin_no              = $detail->tin_no;
+            $this->sss_no              = $detail->sss_no;
+            $this->gsis_no             = $detail->gsis_no;
         }
 
         $this->isEditing = true;
@@ -182,12 +178,10 @@ class EmployeeManagement extends Component
                 'contact_number'  => $this->contact_number,
             ]);
 
-            if ($this->user_id) {
-                EmploymentDetail::updateOrCreate(
-                    ['user_id' => $this->user_id],
-                    $this->employmentDetailData()
-                );
-            }
+            EmploymentDetail::updateOrCreate(
+                ['employee_id' => $employee->id],
+                $this->employmentDetailData()
+            );
         });
 
         $this->resetForm();
@@ -203,9 +197,7 @@ class EmployeeManagement extends Component
     public function delete(): void
     {
         $employee = Employee::findOrFail($this->selectedId);
-        if ($employee->user_id) {
-            EmploymentDetail::where('user_id', $employee->user_id)->delete();
-        }
+        EmploymentDetail::where('employee_id', $employee->id)->delete();
         $employee->delete();
         $this->resetForm();
         session()->flash('message', 'Employee deleted successfully.');
@@ -214,8 +206,7 @@ class EmployeeManagement extends Component
     private function employmentDetailData(): array
     {
         return [
-            'department'          => $this->department,
-            'dept_code'           => $this->dept_code,
+            'department_id'       => $this->department_id,
             'position'            => $this->position,
             'rank'                => $this->rank,
             'employment_status'   => $this->employment_status,
@@ -241,7 +232,7 @@ class EmployeeManagement extends Component
             'religion', 'blood_type', 'height', 'weight',
             'mobile_no', 'telephone', 'email_add', 'p_address', 'c_address',
             'contact_person', 'contact_number',
-            'department', 'dept_code', 'position', 'rank',
+            'department_id', 'position', 'rank',
             'hiring_date', 'regularization_date',
             'license_no', 'license_expiry',
             'philhealth_no', 'pagibig_no', 'tin_no', 'sss_no', 'gsis_no',
@@ -256,7 +247,7 @@ class EmployeeManagement extends Component
     public function render()
     {
         $employees = Employee::query()
-            ->with('employmentDetail')
+            ->with(['employmentDetail.department'])
             ->when($this->search, fn ($q) =>
                 $q->where(fn ($inner) =>
                     $inner->where('last_name', 'like', "%{$this->search}%")
@@ -267,13 +258,14 @@ class EmployeeManagement extends Component
             ->latest()
             ->get();
 
-        $users = User::orderBy('name')->get(['id', 'name', 'employee_number']);
+        $users       = User::orderBy('name')->get(['id', 'name', 'employee_number']);
+        $departments = Department::orderBy('name')->get(['id', 'name', 'code']);
 
         $viewEmployee = $this->isViewing && $this->selectedId
-            ? Employee::with('employmentDetail')->find($this->selectedId)
+            ? Employee::with(['employmentDetail.department'])->find($this->selectedId)
             : null;
 
-        return view('pages.HR.employee-management', compact('employees', 'users', 'viewEmployee'))
+        return view('pages.HR.employee-management', compact('employees', 'users', 'departments', 'viewEmployee'))
             ->layout('layouts.app');
     }
 }

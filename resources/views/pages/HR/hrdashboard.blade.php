@@ -343,7 +343,7 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-bold text-gray-900 truncate">{{ $leave->user->name }}</p>
-                                <p class="text-[11px] text-gray-400 truncate">{{ $leave->user->department?->name ?? '—' }} · {{ $leave->leave_type }}</p>
+                                <p class="text-[11px] text-gray-400 truncate">{{ $leave->user->employmentDetail?->department?->name ?? '—' }} · {{ $leave->leave_type }}</p>
                                 <p class="text-[11px] text-gray-500 mt-0.5">
                                     {{ $leave->start_date->format('M d') }} – {{ $leave->end_date->format('M d, Y') }} &nbsp;·&nbsp; {{ $leave->total_days }}d
                                 </p>
@@ -426,7 +426,7 @@
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-gray-900 truncate">{{ $leave->user->name }}</p>
                             <p class="text-[11px] text-gray-400 truncate">{{ $leave->leave_type }} · {{ $leave->total_days }}d</p>
-                            <p class="text-[11px] text-gray-400">{{ $leave->user->department?->name ?? '—' }}</p>
+                            <p class="text-[11px] text-gray-400">{{ $leave->user->employmentDetail?->department?->name ?? '—' }}</p>
                         </div>
                         <span class="badge shrink-0" style="background:#dcfce7;color:#166534;">Approved</span>
                     </div>

@@ -47,12 +47,18 @@ class HrdashboardController extends Controller
         try {
             $totalEmployees = User::count();
             
-            // Count users by role
-            $staff = User::where('role', 'Staff')->count();
-            $hr = User::where('role', 'HR')->count();
-            $deptHeads = User::where('role', 'Department_Head')->count();
-            $maintenance = User::where('role', 'Maintenance')->count();
-            $inspectors = User::where('role', 'Inspector')->count();
+            // Count users by position (role column removed — derived from employment_details.position)
+            $positionCounts = DB::table('employment_details')
+                ->select('position', DB::raw('count(*) as total'))
+                ->whereNotNull('position')
+                ->groupBy('position')
+                ->pluck('total', 'position');
+
+            $staff      = $positionCounts->get('Staff', 0);
+            $hr         = $positionCounts->get('HR Manager', 0);
+            $deptHeads  = $positionCounts->get('Department_Head', 0);
+            $maintenance = $positionCounts->get('Maintenance', 0);
+            $inspectors = $positionCounts->get('Inspector', 0);
             
             // Current employees on leave
             $onLeave = Leave::where('status', 'approved')
@@ -109,8 +115,10 @@ class HrdashboardController extends Controller
     private function getRoleDistribution()
     {
         try {
-            $roles = User::select('role', DB::raw('count(*) as total'))
-                ->groupBy('role')
+            $roles = DB::table('employment_details')
+                ->select('position as role', DB::raw('count(*) as total'))
+                ->whereNotNull('position')
+                ->groupBy('position')
                 ->get();
             
             $colors = [

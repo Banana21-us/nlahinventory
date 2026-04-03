@@ -40,7 +40,7 @@ class FortifyServiceProvider extends ServiceProvider
            $user = User::where('username', $request->username)->first();
 
             if ($user && Hash::check($request->password, $user->password)) {
-                if ($user->role === 'Disable') {
+                if (! $user->is_active) {
                     return null; // Reject login silently, shows auth.failed message
                 }
                 return $user;
@@ -80,13 +80,17 @@ class FortifyServiceProvider extends ServiceProvider
                         return redirect()->route('verification.notice');
                     }
 
-                    return match($user->role) {
-                        'HR'          => redirect()->route('HR.userlist'),
-                        'Staff'       => redirect()->route('medmission.dashboard'),
-                        'Maintenance' => redirect()->route('Maintenance.checklist.check'),
-                        'Inspector'   => redirect()->route('Maintenance.checklist.verify'),
-                        'Cashier'     => redirect()->route('pos.dashboard'),
-                        default       => redirect()->route('logout')->withErrors(['email' => 'Your account is disabled. Please contact the administrator.']),
+                    // Access the position column via the relationship
+                    $position = $user->employmentDetail?->position;
+
+                    return match($position) {
+                        'HR Manager'   => redirect()->route('HR.hrdashboard'),
+                        'Housekeeping'  => redirect()->route('Maintenance.dashboard'),
+                        'Maintenance_Head'    => redirect()->route('Maintenance.checklist.verify'),
+                        'Cashier'      => redirect()->route('pos.dashboard'),
+                        'Staff'        => redirect()->route('users.leaveform'),
+                        // default        => redirect()->route('users.waiting')
+                        //     ->withErrors(['email' => 'Your position is not assigned to a dashboard.']),
                     };
                 }
             };

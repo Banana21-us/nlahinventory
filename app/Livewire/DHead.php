@@ -187,7 +187,9 @@ class DHead extends Component
 
     private function notifyHR(Leave $leave): void
     {
-        $hrUsers = User::where('role', 'HR')->whereNotNull('email')->get();
+        $hrUsers = User::whereHas('employmentDetail', fn ($q) => $q->where('position', 'HR Manager'))
+            ->whereNotNull('email')
+            ->get();
 
         foreach ($hrUsers as $hr) {
             try {

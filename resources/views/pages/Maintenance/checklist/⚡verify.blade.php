@@ -58,7 +58,7 @@ new class extends Component {
             return;
         }
 
-        if ($this->periodType === 'daily' && !$this->showDailyChecklist) {
+        if (in_array($this->periodType, ['daily', 'nightly'], true) && !$this->showDailyChecklist) {
             $this->dispatch('notify', message: __('Please select a date first.'), type: 'error');
             return;
         }
@@ -106,7 +106,7 @@ new class extends Component {
 
         // Replace all whereBetween/whereDate on cleaning_datetime in exportToPdf:
 
-if ($this->periodType === 'daily') {
+if (in_array($this->periodType, ['daily', 'nightly'], true)) {
     $startOfWeek = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY)->toDateString();
     $endOfWeek   = Carbon::parse($this->selectedDate)->endOfWeek(Carbon::SUNDAY)->toDateString();
     $recordsQuery->whereBetween('cleaning_date', [$startOfWeek, $endOfWeek]);
@@ -125,7 +125,8 @@ if ($this->periodType === 'daily') {
 }
 
         $records = $recordsQuery->get();
-        $data = $this->buildPdfExportData($records);
+        $partNames = $areaParts->pluck('name', 'location_area_part_id')->toArray();
+        $data = $this->buildPdfExportData($records, $partNames);
         $data = array_merge($data, [
             'location' => $location,
             'areaParts' => $areaParts,
@@ -161,7 +162,7 @@ if ($this->periodType === 'daily') {
         }
     }
 
-    private function buildPdfExportData(\Illuminate\Support\Collection $records): array
+    private function buildPdfExportData(\Illuminate\Support\Collection $records, array $partNames = []): array
 {
     $normalizedRecords = $records->map(function ($record): array {
         return [
@@ -177,21 +178,33 @@ if ($this->periodType === 'daily') {
     });
     // rest of method unchanged...
 
-        $comments = [];
+        $commentsMap = [];
         foreach ($normalizedRecords as $record) {
-            foreach (['verifier_comments', 'maintenance_comments'] as $commentField) {
+            foreach (['maintenance_comments', 'verifier_comments'] as $commentField) {
                 $comment = $record[$commentField];
-                if ($comment !== '') {
-                    $comments[$comment] = $comment;
+                if ($comment === '') {
+                    continue;
                 }
+                $person = $commentField === 'verifier_comments'
+                    ? ($record['verifier_name'] ?: $record['maintenance_name'])
+                    : $record['maintenance_name'];
+                $key = $record['cleaning_date'].'|'.$person.'|'.$comment;
+                $commentsMap[$key] = [
+                    'date'      => $record['cleaning_date'],
+                    'person'    => $person,
+                    'type'      => $commentField === 'verifier_comments' ? 'Verifier' : 'Staff',
+                    'text'      => $comment,
+                    'area_name' => $partNames[$record['location_area_part_id']] ?? '',
+                    'frequency' => ucfirst($this->periodType),
+                ];
             }
         }
 
         $data = [
-            'comments' => array_values($comments),
+            'comments' => array_values($commentsMap),
         ];
 
-        if ($this->periodType === 'daily') {
+        if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             $startOfWeek = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY);
             $days = [];
             $recordMap = [];
@@ -208,7 +221,8 @@ if ($this->periodType === 'daily') {
             }
 
             foreach ($normalizedRecords as $record) {
-                $recordMap[$record['location_area_part_id']][$record['cleaning_date']][$record['shift']] = true;
+                $initials = $this->formatInitials($record['maintenance_name']);
+                $recordMap[$record['location_area_part_id']][$record['cleaning_date']][$record['shift']] = $initials ?: '✓';
 
                 if ($record['maintenance_name'] !== '') {
                     $maintenanceByDate[$record['cleaning_date']][$record['maintenance_name']] = true;
@@ -227,20 +241,24 @@ if ($this->periodType === 'daily') {
             $data['verifierByDate'] = collect($verifierByDate)
                 ->map(fn (array $names) => $this->formatInitialsList(array_keys($names)))
                 ->all();
-            $data['periodLabel'] = 'Week of '.$startOfWeek->format('M d').' - '.$startOfWeek->copy()->endOfWeek(Carbon::SUNDAY)->format('M d, Y');
+            $data['periodLabel'] = 'Week of '.$startOfWeek->format('M d').' – '.$startOfWeek->copy()->endOfWeek(Carbon::SUNDAY)->format('M d, Y');
 
             return $data;
         }
 
         if ($this->periodType === 'weekly') {
             $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? Carbon::parse($this->selectedDate)->startOfWeek(Carbon::SUNDAY)->toDateString();
-            $weekEnd = $this->weeklyWeeks['w1']['end_date'] ?? Carbon::parse($weekStart)->endOfWeek(Carbon::SATURDAY)->toDateString();
+            $weekEnd   = $this->weeklyWeeks['w1']['end_date'] ?? Carbon::parse($weekStart)->endOfWeek(Carbon::SATURDAY)->toDateString();
             $recordMap = [];
             $maintenanceNames = [];
             $verifierNames = [];
 
             foreach ($normalizedRecords as $record) {
-                $recordMap[$record['location_area_part_id']] = true;
+                $initials = $this->formatInitials($record['maintenance_name']);
+                $existing = $recordMap[$record['location_area_part_id']] ?? null;
+                $recordMap[$record['location_area_part_id']] = $existing
+                    ? $existing.($initials ? ' '.$initials : '')
+                    : ($initials ?: '✓');
 
                 if ($record['maintenance_name'] !== '') {
                     $maintenanceNames[$record['maintenance_name']] = true;
@@ -254,7 +272,7 @@ if ($this->periodType === 'daily') {
             $data['recordMap'] = $recordMap;
             $data['maintenanceInitials'] = $this->formatInitialsList(array_keys($maintenanceNames));
             $data['verifierInitials'] = $this->formatInitialsList(array_keys($verifierNames));
-            $data['periodLabel'] = Carbon::parse($weekStart)->format('M d').' - '.Carbon::parse($weekEnd)->format('M d, Y');
+            $data['periodLabel'] = Carbon::parse($weekStart)->format('M d').' – '.Carbon::parse($weekEnd)->format('M d, Y');
 
             return $data;
         }
@@ -265,7 +283,11 @@ if ($this->periodType === 'daily') {
         $verifierNames = [];
 
         foreach ($normalizedRecords as $record) {
-            $recordMap[$record['location_area_part_id']] = true;
+            $initials = $this->formatInitials($record['maintenance_name']);
+            $existing = $recordMap[$record['location_area_part_id']] ?? null;
+            $recordMap[$record['location_area_part_id']] = $existing
+                ? $existing.($initials ? ' '.$initials : '')
+                : ($initials ?: '✓');
 
             if ($record['maintenance_name'] !== '') {
                 $maintenanceNames[$record['maintenance_name']] = true;
@@ -563,10 +585,10 @@ if ($this->periodType === 'daily') {
     private function resolveCleaningDate(string $dayKey): ?string
 {
     return match ($this->periodType) {
-        'daily'   => $this->selectedDate !== '' ? $this->selectedDate : null,
-        'weekly'  => Carbon::now('Asia/Manila')->toDateString(),
-        'monthly' => Carbon::now('Asia/Manila')->toDateString(),
-        default   => $this->weekDates[$dayKey] ?? null,
+        'daily', 'nightly' => $this->selectedDate !== '' ? $this->selectedDate : null,
+        'weekly'           => Carbon::now('Asia/Manila')->toDateString(),
+        'monthly'          => Carbon::now('Asia/Manila')->toDateString(),
+        default            => $this->weekDates[$dayKey] ?? null,
     };
 }
 
@@ -864,10 +886,10 @@ if ($this->periodType === 'daily') {
 
             foreach ($records as $record) {
                 $dayKey = match ($this->periodType) {
-                    'daily'   => 'selected',
-                    'weekly'  => $this->weekKeyFromDate(Carbon::parse($record->cleaning_date)),
-                    'monthly' => $this->monthKeyFromDate(Carbon::parse($record->cleaning_date)),
-                    default   => strtolower(Carbon::parse($record->cleaning_date)->format('D')),
+                    'daily', 'nightly' => 'selected',
+                    'weekly'           => $this->weekKeyFromDate(Carbon::parse($record->cleaning_date)),
+                    'monthly'          => $this->monthKeyFromDate(Carbon::parse($record->cleaning_date)),
+                    default            => strtolower(Carbon::parse($record->cleaning_date)->format('D')),
                 };
 
                 if ($dayKey === null) {
@@ -992,7 +1014,7 @@ if ($this->periodType === 'daily') {
         $currentMonthStart = Carbon::now('Asia/Manila')->startOfMonth()->toDateString();
 
         return match ($this->periodType) {
-            'daily' => $this->selectedDate > $today,
+            'daily', 'nightly' => $this->selectedDate > $today,
             'weekly' => ($this->weeklyWeeks[$dayKey]['start_date'] ?? $today) > $today,
             'monthly' => (
                 ($this->monthlyPeriods[$dayKey]['start_date'] ?? $today) > $today
@@ -1447,7 +1469,7 @@ if ($this->periodType === 'daily') {
                         <div class="rounded-xl border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4 dark:border-zinc-700 dark:from-zinc-900 dark:to-zinc-800">
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div class="space-y-1">
-                                    <flux:heading size="lg">{{ __('Daily Checklist') }}</flux:heading>
+                                    <flux:heading size="lg">{{ __('Checklist') }}</flux:heading>
                                     <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
                                         <span class="rounded-full bg-sky-100 px-2.5 py-0.5 font-medium text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
                                             {{ $selectedLocation }}

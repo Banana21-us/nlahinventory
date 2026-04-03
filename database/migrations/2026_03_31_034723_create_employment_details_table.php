@@ -13,11 +13,10 @@ return new class extends Migration
     {
         Schema::create('employment_details', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id'); // Manual reference to users table
+            $table->unsignedBigInteger('employee_id'); // FK to employee table
             
             // Professional Details
-            $table->string('department');
-            $table->string('dept_code')->nullable();
+            $table->unsignedBigInteger('department_id')->nullable(); // FK to departments table
             $table->string('position');
             $table->string('rank')->nullable();
             $table->enum('employment_status', ['Probationary', 'Regular', 'Contractual', 'Casual']);

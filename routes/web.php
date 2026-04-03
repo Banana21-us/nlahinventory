@@ -36,6 +36,8 @@ use App\Livewire\DHead;
 use App\Livewire\PayrollCompliance;
 use App\Livewire\EmployeeManagement;
 use App\Livewire\AttendanceManagement;
+use App\Livewire\DepartmentManagement;
+use App\Livewire\MaintenanceDashboard;
 // Route::get('/', function () {
 //     return view('welcome');
 // })->name('home');
@@ -68,16 +70,16 @@ Route::post('/email/resend', function (Request $request) {
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 // Staff routes
-Route::middleware(['auth', 'verified', 'can:access-medical'])
-    ->prefix('medmission') 
-    ->name('medmission.')  
-    ->group(function () {
-        Route::get('/dashboard', Dashboard::class)->name('dashboard');
-        Route::get('/dispense', DispenseMedicine::class)->name('dispense');
-        Route::get('/medicines', Medicines::class)->name('medicines');
-        Route::get('/patients', PatientManager::class)->name('patients');
-        Route::get('/patients/{id}', PatientDetail::class)->name('patient.details');
-    });
+// Route::middleware(['auth', 'verified', 'can:access-medical'])
+//     ->prefix('medmission') 
+//     ->name('medmission.')  
+//     ->group(function () {
+//         Route::get('/dashboard', Dashboard::class)->name('dashboard');
+//         Route::get('/dispense', DispenseMedicine::class)->name('dispense');
+//         Route::get('/medicines', Medicines::class)->name('medicines');
+//         Route::get('/patients', PatientManager::class)->name('patients');
+//         Route::get('/patients/{id}', PatientDetail::class)->name('patient.details');
+//     });
     
 // HR Routes
 Route::middleware('can:access-hr-only')->group(function () {
@@ -88,10 +90,12 @@ Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/payroll-compliance', PayrollCompliance::class)->name('HR.payroll-compliance');
     Route::get('/HR/employees', EmployeeManagement::class)->name('HR.employees');
     Route::get('/HR/attendance', AttendanceManagement::class)->name('HR.attendance');
+    Route::get('/HR/departments', DepartmentManagement::class)->name('HR.departments');
 });
 
 // Maintenance routes
 Route::middleware(['auth','can:access-maintenance'])->group(function () {
+    Route::get('/Maintenance/dashboard', MaintenanceDashboard::class)->name('Maintenance.dashboard');
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
@@ -135,5 +139,6 @@ Route::get('/leave/{leave}/respond/{action}', [LeaveResponseController::class, '
 // under dev
 Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
 Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
+Route::get('/waiting', fn() => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
 
 require __DIR__.'/settings.php';

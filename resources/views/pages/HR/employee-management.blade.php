@@ -41,6 +41,11 @@
     .brand-edit-btn:hover    { background-color: #cde0ef; }
 
     @keyframes shrink { from { width: 100% } to { width: 0% } }
+    @keyframes beat {
+        0%, 100% { transform: scale(1);   opacity: 1; }
+        40%       { transform: scale(1.5); opacity: 1; }
+        60%       { transform: scale(.9);  opacity: .8; }
+    }
 </style>
 
     {{-- PAGE HEADER --}}
@@ -278,17 +283,16 @@
                 {{-- TAB: Employment Details --}}
                 <div x-show="tab === 'employment'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Department *</label>
-                        <input type="text" wire:model="department"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                        @error('department') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Department Code</label>
-                        <input type="text" wire:model="dept_code" placeholder="e.g. NURS"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        <select wire:model="department_id"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
+                            <option value="">— Select Department —</option>
+                            @foreach($departments as $dept)
+                                <option value="{{ $dept->id }}">{{ $dept->name }} ({{ $dept->code }})</option>
+                            @endforeach
+                        </select>
+                        @error('department_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
@@ -465,19 +469,34 @@
                                 {{ $emp->employee_number }}
                             </td>
 
+                            <!-- under development -->
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">
-                                        {{ strtoupper(substr($emp->last_name, 0, 1)) }}
+                                    <div class="relative">
+                                        
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">
+                                            {{ strtoupper(substr($emp->last_name, 0, 1)) }}
+                                            
+                                        </div>
+
+                                        
                                     </div>
+
                                     <div>
-                                        <p class="text-sm font-bold text-gray-900">{{ $emp->last_name }}, {{ $emp->first_name }} {{ $emp->middle_name ? substr($emp->middle_name,0,1).'.' : '' }}</p>
+                                        <p class="text-sm font-bold text-gray-900">
+                                            {{ $emp->last_name }}, {{ $emp->first_name }} {{ $emp->middle_name ? substr($emp->middle_name,0,1).'.' : '' }}
+                                            
+                                            @if(is_null($emp->user_id))
+                                            <span class="absolute -top-2 -right-2 text-red-500 text-[500px] font-black text-sm leading-none select-none"
+                                                style="animation: beat 1s ease-in-out infinite;"> &ensp; !</span>
+                                            @endif
+                                        </p>
                                         <p class="text-xs text-gray-400">{{ $emp->gender }}</p>
                                     </div>
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ $emp->employmentDetail?->department ?? '—' }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">{{ $emp->employmentDetail?->department?->name ?? '—' }}</td>
 
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $emp->employmentDetail?->position ?? '—' }}</td>
 
@@ -551,7 +570,7 @@
                                     </h3>
                                     <p class="text-sm text-gray-500 font-mono">{{ $viewEmployee->employee_number }}</p>
                                     @if($viewEmployee->employmentDetail)
-                                        <p class="text-sm brand-text-teal font-semibold">{{ $viewEmployee->employmentDetail->position }} — {{ $viewEmployee->employmentDetail->department }}</p>
+                                        <p class="text-sm brand-text-teal font-semibold">{{ $viewEmployee->employmentDetail->position }} — {{ $viewEmployee->employmentDetail->department?->name ?? '—' }}</p>
                                     @endif
                                 </div>
                             </div>
@@ -598,8 +617,7 @@
                             {{-- Employment --}}
                             <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Employment Details</p>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm mb-6">
-                                <div><span class="block text-xs text-gray-400 font-semibold">Department</span>{{ $detail->department }}</div>
-                                <div><span class="block text-xs text-gray-400 font-semibold">Dept Code</span>{{ $detail->dept_code ?? '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">Department</span>{{ $detail->department?->name ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">Position</span>{{ $detail->position }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">Rank</span>{{ $detail->rank ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">Status</span>{{ $detail->employment_status }}</div>
@@ -849,17 +867,16 @@
                             {{-- Edit: Employment --}}
                             <div x-show="tab === 'employment'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                                <div>
+                                <div class="md:col-span-2">
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Department *</label>
-                                    <input type="text" wire:model="department"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                    @error('department') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Department Code</label>
-                                    <input type="text" wire:model="dept_code"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    <select wire:model="department_id"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
+                                        <option value="">— Select Department —</option>
+                                        @foreach($departments as $dept)
+                                            <option value="{{ $dept->id }}">{{ $dept->name }} ({{ $dept->code }})</option>
+                                        @endforeach
+                                    </select>
+                                    @error('department_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
                                 <div>
