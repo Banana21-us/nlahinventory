@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Leave;
+use App\Mail\LeaveCancellationRequestMail;
 use App\Mail\LeaveRequestMail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -146,15 +147,15 @@ class LeaveForm extends Component
 
     private function notifyDeptHead(Leave $leave): void
     {
-        $user       = Auth::user()->load('department.deptHead');
-        $deptHead   = $user->department?->deptHead;
+        $user     = Auth::user()->load('employmentDetail.department.deptHead');
+        $deptHead = $user->employmentDetail?->department?->deptHead;
 
         if (! $deptHead?->email) {
             return; // No dept head configured — skip silently
         }
 
         try {
-            Mail::to($deptHead->email)->send(new LeaveRequestMail($leave->load('user.department.deptHead')));
+            Mail::to($deptHead->email)->send(new LeaveRequestMail($leave->load('user.employmentDetail.department')));
         } catch (\Exception) {
             // Mail failure must not break the leave submission
         }
@@ -169,6 +170,63 @@ class LeaveForm extends Component
         $this->day_part         = 'Full';
         $this->total_days       = 0;
         $this->availableCredits = 0;
+    }
+
+    // ─── Cancel / Delete ──────────────────────────────────────────────────────
+
+    public function deletePending(int $id): void
+    {
+        $leave = Leave::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+
+        if ($leave->dept_head_status !== 'pending') {
+            session()->flash('error', 'This leave has already been reviewed and cannot be deleted.');
+            return;
+        }
+
+        $leave->delete();
+        session()->flash('message', 'Leave application deleted.');
+    }
+
+    public function cancelLeave(int $id): void
+    {
+        $leave = Leave::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+
+        if ($leave->dept_head_status !== 'approved' || $leave->hr_status !== 'pending') {
+            session()->flash('error', 'This leave cannot be cancelled at this stage.');
+            return;
+        }
+
+        $leave->update(['hr_status' => 'cancelled']);
+        session()->flash('message', 'Leave application cancelled.');
+    }
+
+    public function requestCancellation(int $id): void
+    {
+        $leave = Leave::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+
+        if ($leave->hr_status !== 'approved') {
+            session()->flash('error', 'Only fully approved leaves can request cancellation.');
+            return;
+        }
+
+        $leave->update(['hr_status' => 'cancellation_requested']);
+        $this->notifyHROfCancellation($leave->fresh(['user.employmentDetail.department']));
+        session()->flash('message', 'Cancellation request submitted. HR will review and confirm.');
+    }
+
+    private function notifyHROfCancellation(Leave $leave): void
+    {
+        $hrUsers = \App\Models\User::whereHas('employmentDetail', fn ($q) => $q->where('position', 'HR Manager'))
+            ->whereNotNull('email')
+            ->get();
+
+        foreach ($hrUsers as $hr) {
+            try {
+                Mail::to($hr->email)->send(new LeaveCancellationRequestMail($leave));
+            } catch (\Exception) {
+                // Mail failure must not block the action
+            }
+        }
     }
 
     // ─── Render ───────────────────────────────────────────────────────────────

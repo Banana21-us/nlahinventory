@@ -16,7 +16,13 @@
       "Bash(php -r \"echo 'pdo_odbc: '.\\(extension_loaded\\('pdo_odbc'\\)?'YES':'NO'\\).PHP_EOL; echo 'odbc: '.\\(extension_loaded\\('odbc'\\)?'YES':'NO'\\).PHP_EOL; echo 'COM: '.\\(class_exists\\('COM'\\)?'YES':'NO'\\).PHP_EOL;\")",
       "Bash(php -r \"echo PHP_BINARY.PHP_EOL; echo php_ini_loaded_file\\(\\).PHP_EOL;\")",
       "Bash(taskkill //F //PID 10212 //PID 22136)",
-      "Bash(php -l \"D:/web/app/Livewire/AttendanceManagement.php\")"
+      "Bash(php -l \"D:/web/app/Livewire/AttendanceManagement.php\")",
+      "Bash(php -l d:/nlahweb/nlahinventory/app/Livewire/LeaveForm.php)",
+      "Bash(php -l d:/nlahweb/nlahinventory/app/Livewire/DHead.php)",
+      "Bash(php -l d:/nlahweb/nlahinventory/app/Livewire/HrLeaveManagement.php)",
+      "Bash(php -l d:/nlahweb/nlahinventory/app/Models/Leave.php)",
+      "Bash(php -l d:/nlahweb/nlahinventory/app/Mail/LeaveCancellationRequestMail.php)",
+      "Bash(php -l d:/nlahweb/nlahinventory/app/Mail/LeaveCancellationResultMail.php)"
     ]
   }
 }

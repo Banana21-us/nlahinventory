@@ -42,7 +42,7 @@
       </div>
       <div class="card-row">
         <span class="label">Department: </span>
-        <span class="value">{{ $leave->user->department?->name ?? 'N/A' }}</span>
+        <span class="value">{{ $leave->user->employmentDetail?->department?->name ?? 'N/A' }}</span>
       </div>
       <div class="card-row">
         <span class="label">Leave Type: </span>

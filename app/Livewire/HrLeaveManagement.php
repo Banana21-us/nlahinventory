@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Mail\LeaveCancellationResultMail;
+use App\Mail\LeaveHRResultMail;
 use App\Mail\LeaveStatusUpdateMail;
 use App\Models\Leave;
 use App\Models\User;
@@ -25,7 +27,7 @@ class HrLeaveManagement extends Component
     #[Computed]
     public function leaves()
     {
-        return Leave::with(['user.department'])
+        return Leave::with(['user.employmentDetail.department'])
             ->when($this->search, function ($query) {
                 $query->whereHas('user', function ($q) {
                     $q->where('username', 'like', '%' . $this->search . '%')
@@ -43,6 +45,12 @@ class HrLeaveManagement extends Component
     public function pendingCount()
     {
         return Leave::where('hr_status', 'pending')->count();
+    }
+
+    #[Computed]
+    public function cancellationCount()
+    {
+        return Leave::where('hr_status', 'cancellation_requested')->count();
     }
 
     #[Computed]
@@ -65,7 +73,7 @@ class HrLeaveManagement extends Component
     public function selectedLeave()
     {
         return $this->selectedLeaveId
-            ? Leave::with(['user.department', 'user.employmentDetail'])->find($this->selectedLeaveId)
+            ? Leave::with(['user.employmentDetail.department'])->find($this->selectedLeaveId)
             : null;
     }
 
@@ -86,7 +94,9 @@ class HrLeaveManagement extends Component
             'approved_by'    => Auth::id(),
         ]);
 
-        $this->notifyEmployee($leave->fresh(['user.department']));
+        $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
+        $this->notifyEmployee($fresh);
+        $this->notifyDeptHead($fresh);
 
         session()->flash('message', "Leave for {$leave->user->name} has been approved.");
         $this->closeModal();
@@ -108,10 +118,82 @@ class HrLeaveManagement extends Component
             'remarks'          => $this->hrRemarks,
         ]);
 
-        $this->notifyEmployee($leave->fresh(['user.department']));
+        $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
+        $this->notifyEmployee($fresh);
+        $this->notifyDeptHead($fresh);
 
         session()->flash('message', 'Leave request rejected.');
         $this->closeModal();
+    }
+
+    public function approveCancellation()
+    {
+        $leave = Leave::findOrFail($this->selectedLeaveId);
+
+        $leave->update([
+            'hr_status'   => 'cancelled',
+            'remarks'     => $this->hrRemarks ?: 'Cancellation approved by HR.',
+            'approved_by' => Auth::id(),
+        ]);
+
+        $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
+        $this->notifyCancellationResult($fresh);
+
+        session()->flash('message', "Cancellation approved for {$leave->user->name}. Credits have been restored.");
+        $this->closeModal();
+    }
+
+    public function rejectCancellation()
+    {
+        $this->validate([
+            'hrRemarks' => 'required|min:5',
+        ], [
+            'hrRemarks.required' => 'Please explain why the cancellation is denied.',
+        ]);
+
+        $leave = Leave::findOrFail($this->selectedLeaveId);
+
+        $leave->update([
+            'hr_status' => 'approved',
+            'remarks'   => $this->hrRemarks,
+        ]);
+
+        $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
+        $this->notifyCancellationResult($fresh);
+
+        session()->flash('message', "Cancellation denied for {$leave->user->name}. Leave remains active.");
+        $this->closeModal();
+    }
+
+    private function notifyCancellationResult(Leave $leave): void
+    {
+        // Notify the employee (staff or DHead who filed the leave)
+        $staffEmail = $leave->user?->email;
+        if ($staffEmail) {
+            try {
+                Mail::to($staffEmail)->send(new LeaveCancellationResultMail($leave, 'staff'));
+            } catch (\Exception $e) {
+                Log::error('LeaveCancellationResultMail (staff) failed', [
+                    'leave_id' => $leave->id,
+                    'email'    => $staffEmail,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Notify the dept head (FYI — skip if the leave owner IS the dept head)
+        $deptHeadEmail = $leave->deptHead?->email;
+        if ($deptHeadEmail && $deptHeadEmail !== $staffEmail) {
+            try {
+                Mail::to($deptHeadEmail)->send(new LeaveCancellationResultMail($leave, 'dhead'));
+            } catch (\Exception $e) {
+                Log::error('LeaveCancellationResultMail (dhead) failed', [
+                    'leave_id' => $leave->id,
+                    'email'    => $deptHeadEmail,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     private function notifyEmployee(Leave $leave): void
@@ -126,6 +208,24 @@ class HrLeaveManagement extends Component
             Mail::to($email)->send(new LeaveStatusUpdateMail($leave));
         } catch (\Exception $e) {
             Log::error('LeaveStatusUpdateMail failed', [
+                'leave_id' => $leave->id,
+                'email'    => $email,
+                'error'    => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function notifyDeptHead(Leave $leave): void
+    {
+        $email = $leave->deptHead?->email;
+        if (! $email) {
+            return;
+        }
+
+        try {
+            Mail::to($email)->send(new LeaveHRResultMail($leave));
+        } catch (\Exception $e) {
+            Log::error('LeaveHRResultMail failed', [
                 'leave_id' => $leave->id,
                 'email'    => $email,
                 'error'    => $e->getMessage(),

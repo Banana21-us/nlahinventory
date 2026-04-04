@@ -2,11 +2,14 @@
 
 namespace App\Livewire;
 
+use App\Mail\LeaveCancellationRequestMail;
+use App\Mail\LeaveDHeadDecisionMail;
 use App\Mail\LeaveHRNotificationMail;
 use App\Models\Leave;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
 
@@ -127,7 +130,7 @@ class DHead extends Component
             ]);
 
             // Notify all HR users
-            $this->notifyHR($leave->load('user.department'));
+            $this->notifyHR($leave->load('user.employmentDetail.department'));
 
             $this->form = [
                 'leave_type' => '',
@@ -144,6 +147,49 @@ class DHead extends Component
             session()->flash('message', 'Leave application submitted successfully!');
         } catch (\Exception $e) {
             session()->flash('error', 'Something went wrong. Please try again.');
+        }
+    }
+
+    // ─── Cancel / Delete Own Leaves ───
+    public function cancelMyLeave(int $id): void
+    {
+        $leave = Leave::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+
+        if ($leave->hr_status !== 'pending') {
+            session()->flash('error', 'This leave can no longer be deleted at this stage.');
+            return;
+        }
+
+        $leave->delete();
+        session()->flash('message', 'Leave application removed.');
+    }
+
+    public function requestCancellation(int $id): void
+    {
+        $leave = Leave::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+
+        if ($leave->hr_status !== 'approved') {
+            session()->flash('error', 'Only fully approved leaves can request cancellation.');
+            return;
+        }
+
+        $leave->update(['hr_status' => 'cancellation_requested']);
+        $this->notifyHROfCancellation($leave->fresh(['user.employmentDetail.department']));
+        session()->flash('message', 'Cancellation request submitted. HR will review and confirm.');
+    }
+
+    private function notifyHROfCancellation(Leave $leave): void
+    {
+        $hrUsers = User::whereHas('employmentDetail', fn ($q) => $q->where('position', 'HR Manager'))
+            ->whereNotNull('email')
+            ->get();
+
+        foreach ($hrUsers as $hr) {
+            try {
+                Mail::to($hr->email)->send(new LeaveCancellationRequestMail($leave));
+            } catch (\Exception) {
+                // Mail failure must not block the action
+            }
         }
     }
 
@@ -169,10 +215,14 @@ class DHead extends Component
             'dept_head_approved_at' => now(),
         ]);
 
-        // If approved, notify HR so they can take final action
+        $fresh = $this->selectedLeave->fresh(['user.employmentDetail.department']);
+
+        // Always notify the staff member of the dept head's decision
+        $this->notifyStaff($fresh);
+
+        // If approved, forward to HR for final action
         if ($status === 'approved') {
-            $leave = $this->selectedLeave->fresh(['user.department']);
-            $this->notifyHR($leave);
+            $this->notifyHR($fresh);
         }
 
         $this->reset(['showReviewModal', 'selectedLeave', 'remarks']);
@@ -183,6 +233,24 @@ class DHead extends Component
     public function closeModal(): void
     {
         $this->reset(['showReviewModal', 'selectedLeave', 'remarks']);
+    }
+
+    private function notifyStaff(Leave $leave): void
+    {
+        $email = $leave->user?->email;
+        if (! $email) {
+            return;
+        }
+
+        try {
+            Mail::to($email)->send(new LeaveDHeadDecisionMail($leave));
+        } catch (\Exception $e) {
+            Log::error('LeaveDHeadDecisionMail failed', [
+                'leave_id' => $leave->id,
+                'email'    => $email,
+                'error'    => $e->getMessage(),
+            ]);
+        }
     }
 
     private function notifyHR(Leave $leave): void

@@ -268,31 +268,39 @@
 </div>
 
 {{-- ══════════════════════════════════════════════ --}}
-{{-- WEEKLY TABLE --}}
+{{-- WEEKLY TABLE — all 52 weeks grouped by month --}}
 {{-- ══════════════════════════════════════════════ --}}
 @elseif ($periodType === 'weekly')
+@php $monthGroups = collect($weeks ?? [])->groupBy('month'); @endphp
 <table class="ct">
     <thead>
         <tr class="row-top">
-            <th style="width:80%; text-align:left; padding-left:7px;">Area / Item</th>
-            <th>{{ $periodLabel }}</th>
+            <th rowspan="2" style="width:26%; text-align:left; padding-left:7px;">Area / Item</th>
+            @foreach ($monthGroups as $mon => $mWeeks)
+                <th colspan="{{ count($mWeeks) }}" style="font-size:6.5px; padding:3px 1px; border-left:1px solid #b2dde2;">
+                    {{ $mWeeks->first()['month_label'] }}
+                </th>
+            @endforeach
         </tr>
         <tr class="row-sub">
-            <th style="text-align:left; padding-left:7px;"></th>
-            <th>Status</th>
+            @foreach ($weeks ?? [] as $w => $week)
+                <th style="font-size:5px; padding:1px 0;">{{ $week['label'] }}</th>
+            @endforeach
         </tr>
     </thead>
     <tbody>
         @foreach ($areaParts as $area)
-        @php $ini = $recordMap[$area->location_area_part_id] ?? null; @endphp
         <tr>
             <td class="col-item">{{ $area->name }}</td>
-            <td class="{{ $ini ? 'cell-done' : 'cell-empty' }}" style="padding:3px 2px;">
+            @foreach ($weeks ?? [] as $w => $week)
+            @php $ini = $recordMap[$area->location_area_part_id][$w] ?? null; @endphp
+            <td class="{{ $ini ? 'cell-done' : 'cell-empty' }}" style="padding:2px 1px; text-align:center;">
                 @if($ini)
-                    <span class="mark">●</span>
-                    <span class="ini">{{ $ini }}</span>
+                    <span style="color:#097b86; font-size:7px; font-weight:bold; display:block; line-height:1.1;">●</span>
+                    <span style="color:#6a8f95; font-size:4.5px; display:block; line-height:1.1;">{{ $ini }}</span>
                 @endif
             </td>
+            @endforeach
         </tr>
         @endforeach
     </tbody>
@@ -310,31 +318,32 @@
 </div>
 
 {{-- ══════════════════════════════════════════════ --}}
-{{-- MONTHLY TABLE --}}
+{{-- MONTHLY TABLE — all 12 months of the year    --}}
 {{-- ══════════════════════════════════════════════ --}}
 @else
 <table class="ct">
     <thead>
         <tr class="row-top">
-            <th style="width:80%; text-align:left; padding-left:7px;">Area / Item</th>
-            <th>{{ $periodLabel }}</th>
-        </tr>
-        <tr class="row-sub">
-            <th style="text-align:left; padding-left:7px;"></th>
-            <th>Status</th>
+            <th style="width:35%; text-align:left; padding-left:7px;">Area / Item</th>
+            @foreach ($months ?? [] as $num => $label)
+                <th style="font-size:7px; padding:4px 2px;">{{ $label }}</th>
+            @endforeach
         </tr>
     </thead>
     <tbody>
         @foreach ($areaParts as $area)
-        @php $ini = $recordMap[$area->location_area_part_id] ?? null; @endphp
+        @php $partId = $area->location_area_part_id; @endphp
         <tr>
             <td class="col-item">{{ $area->name }}</td>
+            @foreach ($months ?? [] as $num => $label)
+            @php $ini = $recordMap[$partId][$num] ?? null; @endphp
             <td class="{{ $ini ? 'cell-done' : 'cell-empty' }}" style="padding:3px 2px;">
                 @if($ini)
                     <span class="mark">●</span>
                     <span class="ini">{{ $ini }}</span>
                 @endif
             </td>
+            @endforeach
         </tr>
         @endforeach
     </tbody>

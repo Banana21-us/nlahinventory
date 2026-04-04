@@ -128,9 +128,10 @@ class Leave extends Model
         }
 
         // All-time VL used (carryover means we look at total usage, not just this year)
+        // cancellation_requested still counts until HR confirms the cancellation
         $totalUsed = self::where('user_id', $userId)
             ->whereIn('leave_type', $vlTypes)
-            ->whereIn('hr_status', ['pending', 'approved'])
+            ->whereIn('hr_status', ['pending', 'approved', 'cancellation_requested'])
             ->sum('total_days');
 
         return max(0, $totalEarned - $totalUsed);
@@ -145,7 +146,7 @@ class Leave extends Model
 
         $usedSL = self::where('user_id', $userId)
             ->whereIn('leave_type', $slTypes)
-            ->whereIn('hr_status', ['pending', 'approved'])
+            ->whereIn('hr_status', ['pending', 'approved', 'cancellation_requested'])
             ->whereYear('start_date', now()->year)
             ->sum('total_days');
 

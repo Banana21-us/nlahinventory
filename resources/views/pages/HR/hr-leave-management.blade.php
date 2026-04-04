@@ -64,6 +64,12 @@
                 <span class="flex h-2 w-2 rounded-full brand-bg-accent animate-pulse"></span>
                 <span class="text-xs font-bold brand-text-accent uppercase tracking-wide">{{ $this->pendingCount }} Pending Review</span>
             </div>
+            @if($this->cancellationCount > 0)
+            <div class="flex items-center px-4 py-2 bg-amber-50 border border-amber-300 rounded-lg gap-2">
+                <span class="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span class="text-xs font-bold text-amber-700 uppercase tracking-wide">{{ $this->cancellationCount }} Cancel Request{{ $this->cancellationCount > 1 ? 's' : '' }}</span>
+            </div>
+            @endif
             <div class="flex items-center px-4 py-2 bg-green-50 border border-green-100 rounded-lg">
                 <span class="text-xs font-bold text-green-700 uppercase tracking-wide">{{ $this->approvedTodayCount }} Approved Today</span>
             </div>
@@ -98,6 +104,8 @@
                     <option value="pending">Pending Only</option>
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
+                    <option value="cancellation_requested">Cancel Requests</option>
+                    <option value="cancelled">Cancelled</option>
                 </select>
 
                 {{-- Search --}}
@@ -140,7 +148,7 @@
                                     <div>
                                         <div class="text-sm font-bold text-gray-900">{{ $leave->user->username }}</div>
                                         <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
-                                            {{ $leave->user->department?->name ?? 'General' }}
+                                            {{ $leave->user->employmentDetail?->department?->name ?? 'General' }}
                                         </div>
                                     </div>
                                 </div>
@@ -182,14 +190,19 @@
                             <td class="px-6 py-4">
                                 @php
                                     $hrStyles = [
-                                        'approved' => 'background-color:#dcfce7;color:#166534;border:1px solid #86efac;',
-                                        'rejected' => 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5;',
-                                        'pending'  => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
+                                        'approved'               => 'background-color:#dcfce7;color:#166534;border:1px solid #86efac;',
+                                        'rejected'               => 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5;',
+                                        'pending'                => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
+                                        'cancelled'              => 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;',
+                                        'cancellation_requested' => 'background-color:#fef3c7;color:#92400e;border:1px solid #f59e0b;',
+                                    ];
+                                    $hrLabel = [
+                                        'cancellation_requested' => 'Cancel Requested',
                                     ];
                                 @endphp
                                 <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
                                       style="{{ $hrStyles[$leave->hr_status] ?? $hrStyles['pending'] }}">
-                                    {{ ucfirst($leave->hr_status) }}
+                                    {{ $hrLabel[$leave->hr_status] ?? ucfirst($leave->hr_status) }}
                                 </span>
                             </td>
 
@@ -346,28 +359,52 @@
                         </div>
 
                         {{-- Action Footer --}}
-                        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex flex-row-reverse gap-3">
-                            <button wire:click="approve" wire:loading.attr="disabled"
-                                class="brand-btn-teal inline-flex justify-center items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold shadow-sm active:scale-95 transition-all">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                                <span wire:loading.remove wire:target="approve">Approve</span>
-                                <span wire:loading wire:target="approve" class="flex items-center gap-2">
-                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                                    </svg>
-                                    Saving…
-                                </span>
-                            </button>
-                            <button wire:click="reject" wire:loading.attr="disabled"
-                                class="inline-flex justify-center items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-200 hover:bg-red-50 transition-colors active:scale-95">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                                Reject
-                            </button>
+                        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                            @if($this->selectedLeave->hr_status === 'cancellation_requested')
+                                {{-- Cancellation request: approve or deny --}}
+                                <div class="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 font-medium">
+                                    This employee has requested to cancel an approved leave. Approving will restore their credits.
+                                </div>
+                                <div class="flex flex-row-reverse gap-3">
+                                    <button wire:click="approveCancellation" wire:loading.attr="disabled"
+                                        class="inline-flex justify-center items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 text-sm font-bold shadow-sm active:scale-95 transition-all">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        <span wire:loading.remove wire:target="approveCancellation">Approve Cancellation</span>
+                                        <span wire:loading wire:target="approveCancellation">Saving…</span>
+                                    </button>
+                                    <button wire:click="rejectCancellation" wire:loading.attr="disabled"
+                                        class="inline-flex justify-center items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors active:scale-95">
+                                        Deny Cancellation
+                                    </button>
+                                </div>
+                            @else
+                                {{-- Normal leave: approve or reject --}}
+                                <div class="flex flex-row-reverse gap-3">
+                                    <button wire:click="approve" wire:loading.attr="disabled"
+                                        class="brand-btn-teal inline-flex justify-center items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold shadow-sm active:scale-95 transition-all">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        <span wire:loading.remove wire:target="approve">Approve</span>
+                                        <span wire:loading wire:target="approve" class="flex items-center gap-2">
+                                            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                            </svg>
+                                            Saving…
+                                        </span>
+                                    </button>
+                                    <button wire:click="reject" wire:loading.attr="disabled"
+                                        class="inline-flex justify-center items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-200 hover:bg-red-50 transition-colors active:scale-95">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                        Reject
+                                    </button>
+                                </div>
+                            @endif
                         </div>
 
                     @endif

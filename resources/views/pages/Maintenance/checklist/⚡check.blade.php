@@ -151,9 +151,10 @@ new class extends Component {
         $this->selectedLocationId = $matched['id'] ?? null;
         if ($matched !== null) {
             $this->selectedLocation = $matched['display_name'];
-        } else {
-            $this->showDailyChecklist = false;
+            // Location changed while inside checklist — stay on current date, just reload data
         }
+        // Do NOT reset showDailyChecklist here: mid-type no-match is transient.
+        // Only clearSelectedLocation() should force the user back to the calendar.
         $this->loadAreaParts();
         $this->loadExistingSlots();
     }
@@ -162,7 +163,8 @@ new class extends Component {
     {
         $this->selectedLocation = '';
         $this->selectedLocationId = null;
-        $this->showDailyChecklist = false;
+        // Keep showDailyChecklist as-is so the user stays on the current date
+        // and can immediately type a new location without going back to the calendar.
         $this->selectedSlots = [];
         $this->loadAreaParts();
         $this->loadExistingSlots();
@@ -1013,63 +1015,84 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     $firstVisibleDate = $calendarBase->copy()->startOfWeek(\Carbon\Carbon::SUNDAY);
                     $cellCount = 42;
                 @endphp
-                <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-                    <div class="mb-3 flex items-center justify-between">
-                        <button
-                            type="button"
-                            wire:click="previousCalendarMonth"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            aria-label="{{ __('Previous month') }}"
-                        >
-                            &#8249;
+                <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+
+                    {{-- Calendar Header --}}
+                    <div class="flex items-center justify-between px-5 py-4" style="background: linear-gradient(135deg, #1e3a5f 0%, #097b86 100%);">
+                        <button type="button" wire:click="previousCalendarMonth"
+                                class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                aria-label="{{ __('Previous month') }}">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                            </svg>
                         </button>
-                        <div class="text-3xl font-extrabold leading-none">
-                            <span class="text-zinc-900 dark:text-zinc-100">{{ $calendarBase->format('F') }}</span>
-                            <span class="text-rose-500">{{ $calendarBase->format('Y') }}</span>
+                        <div class="text-center">
+                            <p class="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-white/55">
+                                {{ $periodType === 'nightly' ? 'Nightly' : 'Daily' }} — Pick a Date
+                            </p>
+                            <p class="text-lg font-bold leading-none text-white">
+                                {{ $calendarBase->format('F') }}
+                                <span class="font-normal text-white/60">{{ $calendarBase->format('Y') }}</span>
+                            </p>
                         </div>
-                        <button
-                            type="button"
-                            wire:click="nextCalendarMonth"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            aria-label="{{ __('Next month') }}"
-                        >
-                            &#8250;
+                        <button type="button" wire:click="nextCalendarMonth"
+                                class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                aria-label="{{ __('Next month') }}">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                            </svg>
                         </button>
                     </div>
 
-                    <div class="grid gap-y-2 text-center text-xs font-semibold uppercase tracking-wide text-zinc-400" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
+                    {{-- Day-of-week headers --}}
+                    <div class="grid border-b border-zinc-100 dark:border-zinc-700/50" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
                         @foreach ($weekdayHeaders as $weekdayHeader)
-                            <div>{{ $weekdayHeader }}</div>
+                            <div class="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                {{ $weekdayHeader }}
+                            </div>
                         @endforeach
                     </div>
 
-                    <div class="mt-2 grid gap-y-2 text-center" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
+                    {{-- Day grid --}}
+                    <div class="grid gap-1 p-3" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
                         @for ($cell = 0; $cell < $cellCount; $cell++)
                             @php
                                 $cellDateObj = $firstVisibleDate->copy()->addDays($cell);
-                                $cellDate = $cellDateObj->toDateString();
-                                $dayNumber = $cellDateObj->day;
+                                $cellDate    = $cellDateObj->toDateString();
+                                $dayNumber   = $cellDateObj->day;
                                 $isCurrentMonth = $cellDateObj->month === $calendarBase->month;
-                                $isSelected = $cellDate === $selectedDate;
-                                $isToday = $cellDate === $today;
-                                $isFuture = $cellDate > $today;
+                                $isSelected  = $cellDate === $selectedDate;
+                                $isToday     = $cellDate === $today;
+                                $isFuture    = $cellDate > $today;
                             @endphp
-
-                            <button
-                                type="button"
-                                wire:click="selectCalendarDate('{{ $cellDate }}')"
-                                @disabled($isFuture)
-                                class="group relative flex h-14 items-center justify-center rounded-md {{ $isSelected ? 'bg-zinc-200/80 dark:bg-zinc-700/60' : '' }} {{ $isFuture ? 'cursor-not-allowed opacity-40' : '' }}"
-                            >
-                                <span class="inline-flex h-9 w-9 items-center justify-center rounded-full text-3xl/[1] font-semibold transition {{ $isSelected ? 'bg-sky-500 text-white shadow-sm' : ($isCurrentMonth ? ($isFuture ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-100 dark:hover:bg-zinc-700') : ($isFuture ? 'text-zinc-300 dark:text-zinc-600' : 'text-zinc-300 hover:bg-zinc-200 dark:text-zinc-500 dark:hover:bg-zinc-700')) }}">
-                                    {{ $dayNumber }}
-                                </span>
+                            <button type="button"
+                                    wire:click="selectCalendarDate('{{ $cellDate }}')"
+                                    @disabled($isFuture)
+                                    class="relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
+                                        {{ $isSelected ? 'text-white shadow-md' : '' }}
+                                        {{ $isToday && ! $isSelected ? 'ring-2 ring-offset-1' : '' }}
+                                        {{ ! $isSelected && ! $isFuture && $isCurrentMonth ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
+                                        {{ ! $isCurrentMonth && ! $isFuture ? 'text-zinc-300 hover:bg-zinc-50 dark:text-zinc-600 dark:hover:bg-zinc-800' : '' }}
+                                        {{ $isFuture ? 'cursor-not-allowed opacity-30' : '' }}"
+                                    style="{{ $isSelected ? 'background: linear-gradient(135deg, #1e3a5f, #097b86);' : '' }}
+                                           {{ $isToday && ! $isSelected ? 'ring-color: #097b86;' : '' }}">
+                                {{ $dayNumber }}
                                 @if ($isToday && ! $isSelected)
-                                    <span class="absolute bottom-0.5 left-1/2 h-1.5 w-1.5 mt-10 -translate-x-1/2 rounded-full bg-sky-500"></span>
+                                    <span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style="background-color:#097b86;"></span>
                                 @endif
                             </button>
                         @endfor
                     </div>
+
+                    {{-- Selected date footer --}}
+                    @if ($selectedDate)
+                        <div class="border-t border-zinc-100 px-4 py-2 text-center text-[11px] font-medium text-zinc-400 dark:border-zinc-700/50 dark:text-zinc-500">
+                            Selected:
+                            <span class="font-semibold text-zinc-600 dark:text-zinc-300">
+                                {{ \Carbon\Carbon::parse($selectedDate)->format('l, F d Y') }}
+                            </span>
+                        </div>
+                    @endif
                 </div>
             @endif
 
@@ -1090,68 +1113,55 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                         ? ($weeklyWeeks['w1']['start_date'] ?? now('Asia/Manila')->toDateString())
                         : ($monthlyPeriods['m1']['start_date'] ?? now('Asia/Manila')->toDateString());
                 @endphp
-                <div class="mb-4 rounded-xl border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4 dark:border-zinc-700 dark:from-zinc-900 dark:to-zinc-800">
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div class="space-y-1">
-                            <flux:heading size="lg">
-                                {{ $periodType === 'weekly' ? __('Weekly Checklist') : __('Monthly Checklist') }}
-                            </flux:heading>
-                            <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-                                <span class="rounded-full bg-sky-100 px-2.5 py-0.5 font-medium text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
-                                    {{ $selectedLocation }}
-                                </span>
-                            </div>
+                {{-- Weekly / Monthly header card --}}
+                <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900 mb-3">
+                    <div class="flex items-center justify-between px-5 py-4" style="background: linear-gradient(135deg, #1e3a5f 0%, #097b86 100%);">
+                        <button type="button"
+                                wire:click="{{ $periodType === 'weekly' ? 'previousWeeklyPeriod' : 'previousMonthlyPeriod' }}"
+                                class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                aria-label="{{ __('Previous period') }}">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <div class="text-center">
+                            <p class="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-white/55">
+                                {{ $periodType === 'weekly' ? 'Weekly Checklist' : 'Monthly Checklist' }}
+                            </p>
+                            <p class="text-lg font-bold leading-none text-white">
+                                {{ \Carbon\Carbon::parse($activeDate)->format('F') }}
+                                <span class="font-normal text-white/60">{{ \Carbon\Carbon::parse($activeDate)->format('Y') }}</span>
+                            </p>
+                            <p class="mt-1 text-xs font-medium text-white/70">{{ $activeLabel }}</p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button
-                                type="button"
+                        <button type="button"
+                                wire:click="{{ $periodType === 'weekly' ? 'nextWeeklyPeriod' : 'nextMonthlyPeriod' }}"
+                                class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                aria-label="{{ __('Next period') }}">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between px-5 py-3">
+                        <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold text-white" style="background-color:#097b86;">
+                            {{ $selectedLocation }}
+                        </span>
+                        <button type="button"
                                 id="openDailyCameraBtn"
                                 data-frequency="{{ $periodType }}"
                                 data-day-key="{{ $periodType === 'weekly' ? 'w1' : 'm1' }}"
                                 data-date-label="{{ \Carbon\Carbon::parse($activeDate)->format('M d, Y') }}"
                                 data-location="{{ $selectedLocation }}"
                                 data-captured-by="{{ auth()->user()?->name ?? '' }}"
-                                class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                                aria-label="{{ __('Open camera') }}"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4z" />
-                                    <path d="M10 8a3 3 0 100 6 3 3 0 000-6z" />
-                                </svg>
-                                {{ __('Camera') }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="mb-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-                    <div class="mb-1 flex items-center justify-between">
-                        <button
-                            type="button"
-                            wire:click="{{ $periodType === 'weekly' ? 'previousWeeklyPeriod' : 'previousMonthlyPeriod' }}"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            aria-label="{{ __('Previous period') }}"
-                        >
-                            &#8249;
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                                aria-label="{{ __('Open camera') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4z" />
+                                <path d="M10 8a3 3 0 100 6 3 3 0 000-6z" />
+                            </svg>
+                            Camera
                         </button>
-                        <div class="text-3xl font-extrabold leading-none">
-                            <span class="text-zinc-900 dark:text-zinc-100">
-                                {{ \Carbon\Carbon::parse($activeDate)->format('F') }}
-                            </span>
-                            <span class="text-rose-500">
-                                {{ \Carbon\Carbon::parse($activeDate)->format('Y') }}
-                            </span>
-                        </div>
-                        <button
-                            type="button"
-                            wire:click="{{ $periodType === 'weekly' ? 'nextWeeklyPeriod' : 'nextMonthlyPeriod' }}"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            aria-label="{{ __('Next period') }}"
-                        >
-                            &#8250;
-                        </button>
-                    </div>
-                    <div class="mt-3 flex items-center justify-between">
-                        <span class="mx-auto text-sm font-semibold text-zinc-700 dark:text-zinc-200">{{ $activeLabel }}</span>
                     </div>
                 </div>
                 <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">

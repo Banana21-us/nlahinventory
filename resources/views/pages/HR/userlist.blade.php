@@ -242,13 +242,17 @@
                                 @endif
                             </td>
 
-                            <td class="px-6 py-4">
-                                <button wire:click="toggleActive({{ $user->id }})"
-                                    wire:loading.attr="disabled"
-                                    wire:target="toggleActive({{ $user->id }})"
-                                    title="{{ $user->is_active ? 'Click to deactivate' : 'Click to activate' }}"
-                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors border-2 border-black focus:outline-none focus:ring-4 focus:ring-yellow-400 {{ $user->is_active ? 'bg-green-600' : 'bg-red-600' }}">
-                                    <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform {{ $user->is_active ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                            <td class="px-6 py-4" wire:ignore>
+                                <button
+                                    x-data="{ on: {{ $user->is_active ? 'true' : 'false' }} }"
+                                    x-on:click="on = !on; $wire.toggleActive({{ $user->id }})"
+                                    :title="on ? 'Click to deactivate' : 'Click to activate'"
+                                    :class="on ? 'bg-green-600' : 'bg-red-600'"
+                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ease-in-out border-2 border-black focus:outline-none focus:ring-4 focus:ring-yellow-400">
+                                    <span
+                                        :style="on ? 'transform: translateX(1.5rem)' : 'transform: translateX(0.25rem)'"
+                                        style="transition: transform 300ms ease-in-out;"
+                                        class="inline-block h-4 w-4 rounded-full bg-white shadow"></span>
                                 </button>
                             </td>
 

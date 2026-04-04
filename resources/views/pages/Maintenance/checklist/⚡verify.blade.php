@@ -111,17 +111,13 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
     $endOfWeek   = Carbon::parse($this->selectedDate)->endOfWeek(Carbon::SUNDAY)->toDateString();
     $recordsQuery->whereBetween('cleaning_date', [$startOfWeek, $endOfWeek]);
 } elseif ($this->periodType === 'weekly') {
-    $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? null;
-    $weekEnd   = $this->weeklyWeeks['w1']['end_date'] ?? null;
-    if ($weekStart && $weekEnd) {
-        $recordsQuery->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
-    }
+    $refDate = $this->weeklyWeeks['w1']['start_date'] ?? ($this->weeklyStart ?: $this->selectedDate);
+    $year = $refDate ? Carbon::parse($refDate)->year : now()->year;
+    $recordsQuery->whereBetween('cleaning_date', ["{$year}-01-01", "{$year}-12-31"]);
 } elseif ($this->periodType === 'monthly') {
-    $monthStart = $this->monthlyPeriods['m1']['start_date'] ?? null;
-    $monthEnd   = $this->monthlyPeriods['m1']['end_date'] ?? null;
-    if ($monthStart && $monthEnd) {
-        $recordsQuery->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
-    }
+    $refDate = $this->monthlyPeriods['m1']['start_date'] ?? ($this->monthlyStart ?: $this->selectedDate);
+    $year = $refDate ? Carbon::parse($refDate)->year : now()->year;
+    $recordsQuery->whereBetween('cleaning_date', ["{$year}-01-01", "{$year}-12-31"]);
 }
 
         $records = $recordsQuery->get();
@@ -247,61 +243,91 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         }
 
         if ($this->periodType === 'weekly') {
-            $weekStart = $this->weeklyWeeks['w1']['start_date'] ?? Carbon::parse($this->selectedDate)->startOfWeek(Carbon::SUNDAY)->toDateString();
-            $weekEnd   = $this->weeklyWeeks['w1']['end_date'] ?? Carbon::parse($weekStart)->endOfWeek(Carbon::SATURDAY)->toDateString();
+            $refDate = $this->weeklyWeeks['w1']['start_date'] ?? ($this->weeklyStart ?: $this->selectedDate);
+            $year = $refDate ? Carbon::parse($refDate)->year : now()->year;
+
+            // Build weeks 1–52 for the year, grouped by month
+            $weeks = [];
+            for ($w = 1; $w <= 52; $w++) {
+                $monday = Carbon::now()->setISODate($year, $w, 1);
+                if ($monday->year > $year) break;
+                $weeks[$w] = [
+                    'label'       => 'W'.str_pad($w, 2, '0', STR_PAD_LEFT),
+                    'month'       => (int) $monday->format('n'),
+                    'month_label' => $monday->format('M'),
+                ];
+            }
+
             $recordMap = [];
             $maintenanceNames = [];
             $verifierNames = [];
 
             foreach ($normalizedRecords as $record) {
+                $date    = Carbon::parse($record['cleaning_date']);
+                $weekNum = (int) $date->isoWeek();
+                if ($date->year < $year) $weekNum = 1;
+                if ($date->year > $year) $weekNum = count($weeks);
+                if (!isset($weeks[$weekNum])) continue;
+
                 $initials = $this->formatInitials($record['maintenance_name']);
-                $existing = $recordMap[$record['location_area_part_id']] ?? null;
-                $recordMap[$record['location_area_part_id']] = $existing
+                $existing = $recordMap[$record['location_area_part_id']][$weekNum] ?? null;
+                $recordMap[$record['location_area_part_id']][$weekNum] = $existing
                     ? $existing.($initials ? ' '.$initials : '')
                     : ($initials ?: '✓');
 
                 if ($record['maintenance_name'] !== '') {
                     $maintenanceNames[$record['maintenance_name']] = true;
                 }
-
                 if ($record['verifier_name'] !== '' && $record['verifier_status'] === 'YES') {
                     $verifierNames[$record['verifier_name']] = true;
                 }
             }
 
-            $data['recordMap'] = $recordMap;
+            $data['weeks']              = $weeks;
+            $data['recordMap']          = $recordMap;
+            $data['year']               = $year;
             $data['maintenanceInitials'] = $this->formatInitialsList(array_keys($maintenanceNames));
-            $data['verifierInitials'] = $this->formatInitialsList(array_keys($verifierNames));
-            $data['periodLabel'] = Carbon::parse($weekStart)->format('M d').' – '.Carbon::parse($weekEnd)->format('M d, Y');
+            $data['verifierInitials']   = $this->formatInitialsList(array_keys($verifierNames));
+            $data['periodLabel']        = 'Year '.$year;
 
             return $data;
         }
 
-        $monthStart = $this->monthlyPeriods['m1']['start_date'] ?? Carbon::parse($this->selectedDate)->startOfMonth()->toDateString();
+        // Monthly — full year, 12 columns
+        $refDate = $this->monthlyPeriods['m1']['start_date'] ?? ($this->monthlyStart ?: $this->selectedDate);
+        $year = $refDate ? Carbon::parse($refDate)->year : now()->year;
+
+        $months = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $months[$m] = Carbon::create($year, $m, 1)->format('M');
+        }
+
         $recordMap = [];
         $maintenanceNames = [];
         $verifierNames = [];
 
         foreach ($normalizedRecords as $record) {
+            $month    = (int) Carbon::parse($record['cleaning_date'])->format('n');
             $initials = $this->formatInitials($record['maintenance_name']);
-            $existing = $recordMap[$record['location_area_part_id']] ?? null;
-            $recordMap[$record['location_area_part_id']] = $existing
+            $existing = $recordMap[$record['location_area_part_id']][$month] ?? null;
+            $recordMap[$record['location_area_part_id']][$month] = $existing
                 ? $existing.($initials ? ' '.$initials : '')
                 : ($initials ?: '✓');
 
             if ($record['maintenance_name'] !== '') {
                 $maintenanceNames[$record['maintenance_name']] = true;
             }
-
             if ($record['verifier_name'] !== '' && $record['verifier_status'] === 'YES') {
                 $verifierNames[$record['verifier_name']] = true;
             }
         }
 
-        $data['recordMap'] = $recordMap;
+        $data['months']             = $months;
+        $data['recordMap']          = $recordMap;
+        $data['year']               = $year;
         $data['maintenanceInitials'] = $this->formatInitialsList(array_keys($maintenanceNames));
-        $data['verifierInitials'] = $this->formatInitialsList(array_keys($verifierNames));
-        $data['periodLabel'] = Carbon::parse($monthStart)->format('F Y');
+        $data['verifierInitials']   = $this->formatInitialsList(array_keys($verifierNames));
+        $data['periodLabel']        = 'Year '.$year;
 
         return $data;
     }
@@ -446,9 +472,10 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         $this->selectedLocationId = $matched['id'] ?? null;
         if ($matched !== null) {
             $this->selectedLocation = $matched['display_name'];
-        } else {
-            $this->showDailyChecklist = false;
+            // Location swapped while inside checklist — stay on current date, just reload data
         }
+        // Do NOT reset showDailyChecklist here: mid-type no-match is transient.
+        // Only clearSelectedLocation() should force the user back to the calendar.
         $this->loadAreaParts();
         $this->loadExistingSlots();
     }
@@ -457,7 +484,8 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
     {
         $this->selectedLocation = '';
         $this->selectedLocationId = null;
-        $this->showDailyChecklist = false;
+        // Keep showDailyChecklist as-is so the user stays on the current date
+        // and can immediately type a new location without going back to the calendar.
         $this->selectedSlots = [];
         $this->loadAreaParts();
         $this->loadExistingSlots();
@@ -1256,59 +1284,83 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                         $firstVisibleDate = $calendarBase->copy()->startOfWeek(\Carbon\Carbon::SUNDAY);
                         $cellCount = 42;
                     @endphp
-                    <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-                        <div class="mb-3 flex items-center justify-between">
-                            <button
-                                type="button"
-                                wire:click="previousCalendarMonth"
-                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                                aria-label="{{ __('Previous month') }}">
-                                &#8249;
+                    <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+
+                        {{-- Calendar Header --}}
+                        <div class="flex items-center justify-between px-5 py-4" style="background: linear-gradient(135deg, #1e3a5f 0%, #097b86 100%);">
+                            <button type="button" wire:click="previousCalendarMonth"
+                                    class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                    aria-label="{{ __('Previous month') }}">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                                </svg>
                             </button>
-                            <div class="text-3xl font-extrabold leading-none">
-                                <span class="text-zinc-900 dark:text-zinc-100">{{ $calendarBase->format('F') }}</span>
-                                <span class="text-rose-500">{{ $calendarBase->format('Y') }}</span>
+                            <div class="text-center">
+                                <p class="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-white/55">
+                                    {{ $periodType === 'nightly' ? 'Nightly' : 'Daily' }} — Pick a Date
+                                </p>
+                                <p class="text-lg font-bold leading-none text-white">
+                                    {{ $calendarBase->format('F') }}
+                                    <span class="font-normal text-white/60">{{ $calendarBase->format('Y') }}</span>
+                                </p>
                             </div>
-                            <button
-                                type="button"
-                                wire:click="nextCalendarMonth"
-                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                                aria-label="{{ __('Next month') }}">
-                                &#8250;
+                            <button type="button" wire:click="nextCalendarMonth"
+                                    class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                    aria-label="{{ __('Next month') }}">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                </svg>
                             </button>
                         </div>
 
-                        <div class="grid gap-y-2 text-center text-xs font-semibold uppercase tracking-wide text-zinc-400" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
+                        {{-- Day-of-week headers --}}
+                        <div class="grid border-b border-zinc-100 dark:border-zinc-700/50" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
                             @foreach ($weekdayHeaders as $weekdayHeader)
-                                <div>{{ $weekdayHeader }}</div>
+                                <div class="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                    {{ $weekdayHeader }}
+                                </div>
                             @endforeach
                         </div>
 
-                        <div class="mt-2 grid gap-y-2 text-center" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
+                        {{-- Day grid --}}
+                        <div class="grid gap-1 p-3" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
                             @for ($cell = 0; $cell < $cellCount; $cell++)
                                 @php
                                     $cellDateObj = $firstVisibleDate->copy()->addDays($cell);
-                                    $cellDate = $cellDateObj->toDateString();
-                                    $dayNumber = $cellDateObj->day;
+                                    $cellDate    = $cellDateObj->toDateString();
+                                    $dayNumber   = $cellDateObj->day;
                                     $isCurrentMonth = $cellDateObj->month === $calendarBase->month;
-                                    $isSelected = $cellDate === $selectedDate;
-                                    $isToday = $cellDate === $today;
-                                    $isFuture = $cellDate > $today;
+                                    $isSelected  = $cellDate === $selectedDate;
+                                    $isToday     = $cellDate === $today;
+                                    $isFuture    = $cellDate > $today;
                                 @endphp
-                                <button
-                                    type="button"
-                                    wire:click="selectCalendarDate('{{ $cellDate }}')"
-                                    @disabled($isFuture)
-                                    class="group relative flex h-14 items-center justify-center rounded-md {{ $isSelected ? 'bg-zinc-200/80 dark:bg-zinc-700/60' : '' }} {{ $isFuture ? 'cursor-not-allowed opacity-40' : '' }}">
-                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-full text-3xl/[1] font-semibold transition {{ $isSelected ? 'bg-sky-500 text-white shadow-sm' : ($isCurrentMonth ? ($isFuture ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-100 dark:hover:bg-zinc-700') : ($isFuture ? 'text-zinc-300 dark:text-zinc-600' : 'text-zinc-300 hover:bg-zinc-200 dark:text-zinc-500 dark:hover:bg-zinc-700')) }}">
-                                        {{ $dayNumber }}
-                                    </span>
+                                <button type="button"
+                                        wire:click="selectCalendarDate('{{ $cellDate }}')"
+                                        @disabled($isFuture)
+                                        class="relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
+                                            {{ $isSelected ? 'text-white shadow-md' : '' }}
+                                            {{ $isToday && ! $isSelected ? 'ring-2 ring-offset-1' : '' }}
+                                            {{ ! $isSelected && ! $isFuture && $isCurrentMonth ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
+                                            {{ ! $isCurrentMonth && ! $isFuture ? 'text-zinc-300 hover:bg-zinc-50 dark:text-zinc-600 dark:hover:bg-zinc-800' : '' }}
+                                            {{ $isFuture ? 'cursor-not-allowed opacity-30' : '' }}"
+                                        style="{{ $isSelected ? 'background: linear-gradient(135deg, #1e3a5f, #097b86);' : '' }}">
+                                    {{ $dayNumber }}
                                     @if ($isToday && ! $isSelected)
-                                        <span class="absolute bottom-0.5 left-1/2 h-1.5 w-1.5 mt-10 -translate-x-1/2 rounded-full bg-sky-500"></span>
+                                        <span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style="background-color:#097b86;"></span>
                                     @endif
                                 </button>
                             @endfor
                         </div>
+
+                        {{-- Selected date footer --}}
+                        @if ($selectedDate)
+                            <div class="border-t border-zinc-100 px-4 py-2 text-center text-[11px] font-medium text-zinc-400 dark:border-zinc-700/50 dark:text-zinc-500">
+                                Selected:
+                                <span class="font-semibold text-zinc-600 dark:text-zinc-300">
+                                    {{ \Carbon\Carbon::parse($selectedDate)->format('l, F d Y') }}
+                                </span>
+                            </div>
+                        @endif
                     </div>
                 @endif
 
@@ -1328,29 +1380,34 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                             ? ($weeklyWeeks['w1']['start_date'] ?? now('Asia/Manila')->toDateString())
                             : ($monthlyPeriods['m1']['start_date'] ?? now('Asia/Manila')->toDateString());
                     @endphp
-                    <div class="mb-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-                        <div class="mb-1 flex items-center justify-between">
-                            <button
-                                type="button"
-                                wire:click="{{ $periodType === 'weekly' ? 'previousWeeklyPeriod' : 'previousMonthlyPeriod' }}"
-                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                                aria-label="{{ __('Previous period') }}">
-                                &#8249;
+                    <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900 mb-3">
+                        <div class="flex items-center justify-between px-5 py-4" style="background: linear-gradient(135deg, #1e3a5f 0%, #097b86 100%);">
+                            <button type="button"
+                                    wire:click="{{ $periodType === 'weekly' ? 'previousWeeklyPeriod' : 'previousMonthlyPeriod' }}"
+                                    class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                    aria-label="{{ __('Previous period') }}">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                                </svg>
                             </button>
-                            <div class="text-3xl font-extrabold leading-none">
-                                <span class="text-zinc-900 dark:text-zinc-100">{{ \Carbon\Carbon::parse($activeDate)->format('F') }}</span>
-                                <span class="text-rose-500">{{ \Carbon\Carbon::parse($activeDate)->format('Y') }}</span>
+                            <div class="text-center">
+                                <p class="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-white/55">
+                                    {{ $periodType === 'weekly' ? 'Weekly Checklist' : 'Monthly Checklist' }}
+                                </p>
+                                <p class="text-lg font-bold leading-none text-white">
+                                    {{ \Carbon\Carbon::parse($activeDate)->format('F') }}
+                                    <span class="font-normal text-white/60">{{ \Carbon\Carbon::parse($activeDate)->format('Y') }}</span>
+                                </p>
+                                <p class="mt-1 text-xs font-medium text-white/70">{{ $activeLabel }}</p>
                             </div>
-                            <button
-                                type="button"
-                                wire:click="{{ $periodType === 'weekly' ? 'nextWeeklyPeriod' : 'nextMonthlyPeriod' }}"
-                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                                aria-label="{{ __('Next period') }}">
-                                &#8250;
+                            <button type="button"
+                                    wire:click="{{ $periodType === 'weekly' ? 'nextWeeklyPeriod' : 'nextMonthlyPeriod' }}"
+                                    class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                    aria-label="{{ __('Next period') }}">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                </svg>
                             </button>
-                        </div>
-                        <div class="mt-3 text-center text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-                            {{ $activeLabel }}
                         </div>
                     </div>
 

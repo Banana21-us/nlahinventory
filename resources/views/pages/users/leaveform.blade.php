@@ -282,6 +282,7 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Dept Head</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">HR Status</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Feedback</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
@@ -293,10 +294,11 @@
                             'pending'  => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
                         ];
                         $hrBadge = [
-                            'approved'  => 'background-color:#dcfce7;color:#166534;border:1px solid #86efac;',
-                            'rejected'  => 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5;',
-                            'pending'   => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
-                            'cancelled' => 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;',
+                            'approved'                => 'background-color:#dcfce7;color:#166534;border:1px solid #86efac;',
+                            'rejected'                => 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5;',
+                            'pending'                 => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
+                            'cancelled'               => 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;',
+                            'cancellation_requested'  => 'background-color:#fef3c7;color:#92400e;border:1px solid #f59e0b;',
                         ];
                         $typeBadge = [
                             'Vacation Leave'      => 'background-color:#e6f4f5;color:#027c8b;border:1px solid #a5d8dd;',
@@ -350,7 +352,7 @@
                             <td class="px-6 py-4">
                                 <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
                                       style="{{ $hrBadge[$leave->hr_status] ?? $hrBadge['pending'] }}">
-                                    {{ ucfirst($leave->hr_status) }}
+                                    {{ $leave->hr_status === 'cancellation_requested' ? 'Cancel Requested' : ucfirst($leave->hr_status) }}
                                 </span>
                             </td>
 
@@ -362,10 +364,65 @@
                                 @endif
                             </td>
 
+                            {{-- Action: delete/cancel/request cancellation --}}
+                            <td class="px-6 py-4 text-right" wire:key="action-{{ $leave->id }}">
+                                @if($leave->dept_head_status === 'pending')
+                                    <div x-data="{ confirm: false }" class="flex items-center justify-end gap-1">
+                                        <button x-show="!confirm" @click.prevent="confirm = true"
+                                                class="px-2.5 py-1 rounded text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors">
+                                            Delete
+                                        </button>
+                                        <template x-if="confirm">
+                                            <span class="flex items-center gap-1">
+                                                <span class="text-xs text-red-500 font-medium">Sure?</span>
+                                                <button wire:click="deletePending({{ $leave->id }})"
+                                                        class="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded transition-colors">Yes</button>
+                                                <button @click="confirm = false"
+                                                        class="text-xs text-gray-400 hover:text-gray-600 px-1">No</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                @elseif($leave->dept_head_status === 'approved' && $leave->hr_status === 'pending')
+                                    <div x-data="{ confirm: false }" class="flex items-center justify-end gap-1">
+                                        <button x-show="!confirm" @click.prevent="confirm = true"
+                                                class="px-2.5 py-1 rounded text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors">
+                                            Cancel
+                                        </button>
+                                        <template x-if="confirm">
+                                            <span class="flex items-center gap-1">
+                                                <span class="text-xs text-orange-500 font-medium">Sure?</span>
+                                                <button wire:click="cancelLeave({{ $leave->id }})"
+                                                        class="text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 px-2 py-0.5 rounded transition-colors">Yes</button>
+                                                <button @click="confirm = false"
+                                                        class="text-xs text-gray-400 hover:text-gray-600 px-1">No</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                @elseif($leave->hr_status === 'approved')
+                                    <div x-data="{ confirm: false }" class="flex items-center justify-end gap-1">
+                                        <button x-show="!confirm" @click.prevent="confirm = true"
+                                                class="px-2.5 py-1 rounded text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors whitespace-nowrap">
+                                            Cancel Leave
+                                        </button>
+                                        <template x-if="confirm">
+                                            <span class="flex items-center gap-1">
+                                                <span class="text-xs text-purple-600 font-medium">Request?</span>
+                                                <button wire:click="requestCancellation({{ $leave->id }})"
+                                                        class="text-xs font-bold text-white bg-purple-500 hover:bg-purple-600 px-2 py-0.5 rounded transition-colors">Yes</button>
+                                                <button @click="confirm = false"
+                                                        class="text-xs text-gray-400 hover:text-gray-600 px-1">No</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                @else
+                                    <span class="text-xs text-gray-300">—</span>
+                                @endif
+                            </td>
+
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-14 text-center">
+                            <td colspan="8" class="px-6 py-14 text-center">
                                 <div class="flex flex-col items-center text-gray-400">
                                     <svg class="w-10 h-10 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"

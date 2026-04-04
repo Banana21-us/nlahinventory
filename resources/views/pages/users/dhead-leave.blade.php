@@ -407,6 +407,7 @@
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Dept Head</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">HR Status</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Feedback</th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Action</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-100">
@@ -420,10 +421,11 @@
                                     'Solo Parent'=> 'background:#e6f4f5;color:#027c8b;',
                                 ];
                                 $hrColors = [
-                                    'pending'   => 'background:#fef8e7;color:#b45309;',
-                                    'approved'  => 'background:#e6f4f5;color:#027c8b;',
-                                    'rejected'  => 'background:#fef2f2;color:#dc2626;',
-                                    'cancelled' => 'background:#f3f4f6;color:#6b7280;',
+                                    'pending'                => 'background:#fef8e7;color:#b45309;',
+                                    'approved'               => 'background:#e6f4f5;color:#027c8b;',
+                                    'rejected'               => 'background:#fef2f2;color:#dc2626;',
+                                    'cancelled'              => 'background:#f3f4f6;color:#6b7280;',
+                                    'cancellation_requested' => 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;',
                                 ];
                             @endphp
                             <tr class="brand-row-hover transition-colors">
@@ -461,7 +463,7 @@
                                 <td class="px-6 py-4">
                                     <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
                                           style="{{ $hrColors[$leave->hr_status ?? 'pending'] ?? '' }}">
-                                        {{ $leave->hr_status ?? 'pending' }}
+                                        {{ $leave->hr_status === 'cancellation_requested' ? 'Cancel Requested' : ucfirst($leave->hr_status ?? 'pending') }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">
@@ -473,10 +475,48 @@
                                         <span class="text-xs text-gray-300">—</span>
                                     @endif
                                 </td>
+                                {{-- Action --}}
+                                <td class="px-6 py-4 text-right" wire:key="dhead-action-{{ $leave->id }}">
+                                    @if($leave->hr_status === 'pending')
+                                        <div x-data="{ confirm: false }" class="flex items-center justify-end gap-1">
+                                            <button x-show="!confirm" @click.prevent="confirm = true"
+                                                    class="px-2.5 py-1 rounded text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors">
+                                                Delete
+                                            </button>
+                                            <template x-if="confirm">
+                                                <span class="flex items-center gap-1">
+                                                    <span class="text-xs text-red-500 font-medium">Sure?</span>
+                                                    <button wire:click="cancelMyLeave({{ $leave->id }})"
+                                                            class="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded transition-colors">Yes</button>
+                                                    <button @click="confirm = false"
+                                                            class="text-xs text-gray-400 hover:text-gray-600 px-1">No</button>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    @elseif($leave->hr_status === 'approved')
+                                        <div x-data="{ confirm: false }" class="flex items-center justify-end gap-1">
+                                            <button x-show="!confirm" @click.prevent="confirm = true"
+                                                    class="px-2.5 py-1 rounded text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors whitespace-nowrap">
+                                                Cancel Leave
+                                            </button>
+                                            <template x-if="confirm">
+                                                <span class="flex items-center gap-1">
+                                                    <span class="text-xs text-purple-600 font-medium">Request?</span>
+                                                    <button wire:click="requestCancellation({{ $leave->id }})"
+                                                            class="text-xs font-bold text-white bg-purple-500 hover:bg-purple-600 px-2 py-0.5 rounded transition-colors">Yes</button>
+                                                    <button @click="confirm = false"
+                                                            class="text-xs text-gray-400 hover:text-gray-600 px-1">No</button>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-gray-300">—</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-14 text-center">
+                                <td colspan="8" class="px-6 py-14 text-center">
                                     <div class="flex flex-col items-center text-gray-400">
                                         <svg class="w-10 h-10 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
