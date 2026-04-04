@@ -27,7 +27,7 @@ npm run build
 
 ## Architecture
 
-**NLAH (New Life Adventist Hospital) Management System** — a multi-module Laravel 12 + Livewire 4 app serving hospital staff across four main domains.
+**NLAH (Northern Luzon Adventist Hospital) Management System** — a multi-module Laravel 12 + Livewire 4 app serving hospital staff across four main domains.
 
 ### Modules & Access Control
 
