@@ -9,11 +9,13 @@
     "dependencies": {
         "@google/genai": "^1.47.0",
         "@tailwindcss/postcss": "^4.2.1",
+        "alpinejs": "^3.15.11",
         "axios": "^1.7.4",
         "concurrently": "^9.0.1",
         "daisyui": "^5.5.19",
         "flowbite": "^4.0.1",
         "laravel-vite-plugin": "^2.0",
+        "sortablejs": "^1.15.7",
         "vite": "^7.3.1",
         "volt": "^0.2.0"
     },

@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Dispensing;
 use App\Models\Medicine;
 use App\Models\Patient;
+use App\Services\AuditService;
 use Livewire\Component;
 
 class DispenseMedicine extends Component
@@ -41,6 +42,8 @@ class DispenseMedicine extends Component
             return;
         }
 
+        $oldQuantity = $medicine->quantity;
+
         \DB::transaction(function () use ($medicine) {
             // 1. Record the dispensing
             Dispensing::create([
@@ -54,6 +57,15 @@ class DispenseMedicine extends Component
             // 2. Subtract from the medicine table
             $medicine->decrement('quantity', $this->quantity_dispensed);
         });
+
+        AuditService::log(
+            action: 'medicine_dispensed',
+            module: 'medical',
+            modelType: 'Medicine',
+            modelId: $medicine->id,
+            oldValues: ['quantity' => $oldQuantity],
+            newValues: ['quantity' => $medicine->fresh()->quantity],
+        );
 
         $this->reset(['medicine_id', 'quantity_dispensed']);
         session()->flash('message', 'Medicine successfully dispensed!');

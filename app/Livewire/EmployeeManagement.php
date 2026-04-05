@@ -217,6 +217,8 @@ class EmployeeManagement extends Component
         $this->validate();
 
         $employee = Employee::findOrFail($this->selectedId);
+        $oldDetail = EmploymentDetail::where('employee_id', $employee->id)->first();
+        $positionChanged = $oldDetail && $oldDetail->position !== $this->position;
 
         DB::transaction(function () use ($employee) {
             $employee->update([
@@ -250,6 +252,12 @@ class EmployeeManagement extends Component
                 $this->employmentDetailData()
             );
         });
+
+        // Invalidate sessions when position changes (permissions may have changed)
+        if ($positionChanged && $employee->user_id) {
+            $user = User::find($employee->user_id);
+            $user?->invalidateSessions();
+        }
 
         $this->resetForm();
         session()->flash('message', 'Employee updated successfully.');

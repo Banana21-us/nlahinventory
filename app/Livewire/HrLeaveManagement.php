@@ -6,6 +6,7 @@ use App\Mail\LeaveCancellationResultMail;
 use App\Mail\LeaveHRResultMail;
 use App\Mail\LeaveStatusUpdateMail;
 use App\Models\Leave;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -100,6 +101,15 @@ class HrLeaveManagement extends Component
         $this->notifyEmployee($fresh);
         $this->notifyDeptHead($fresh);
 
+        AuditService::log(
+            action: 'leave_approved',
+            module: 'hr',
+            modelType: 'Leave',
+            modelId: $leave->id,
+            oldValues: ['hr_status' => 'pending'],
+            newValues: ['hr_status' => 'approved'],
+        );
+
         session()->flash('message', "Leave for {$leave->user->name} has been approved.");
         $this->closeModal();
     }
@@ -123,6 +133,15 @@ class HrLeaveManagement extends Component
         $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
         $this->notifyEmployee($fresh);
         $this->notifyDeptHead($fresh);
+
+        AuditService::log(
+            action: 'leave_rejected',
+            module: 'hr',
+            modelType: 'Leave',
+            modelId: $leave->id,
+            oldValues: ['hr_status' => 'pending'],
+            newValues: ['hr_status' => 'rejected'],
+        );
 
         session()->flash('message', 'Leave request rejected.');
         $this->closeModal();

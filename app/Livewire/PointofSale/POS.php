@@ -7,6 +7,7 @@ use App\Models\Inventory;
 use App\Models\Item;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -32,6 +33,8 @@ class POS extends Component
     public string $payment_method = 'Cash';
 
     public $paid_amount = 0;
+
+    public bool $processing = false;
 
     // Credit confirmation state
     public bool $showCreditConfirm = false;
@@ -550,6 +553,10 @@ class POS extends Component
 
     public function checkout(): void
     {
+        if ($this->processing) {
+            return;
+        }
+
         if (empty($this->cart)) {
             $this->notify('danger', 'Empty Cart', 'Add items to the cart before checking out.');
 
@@ -615,6 +622,11 @@ class POS extends Component
 
     private function processCheckout(): void
     {
+        if ($this->processing) {
+            return;
+        }
+
+        $this->processing = true;
         $isCredit = $this->payment_method === 'Credit';
 
         try {
@@ -684,6 +696,14 @@ class POS extends Component
 
             DB::commit();
 
+            AuditService::log(
+                action: 'pos_transaction',
+                module: 'pos',
+                modelType: 'Sale',
+                modelId: $sale->id,
+                newValues: ['total' => $sale->total, 'payment_method' => $this->payment_method],
+            );
+
             // Reset state
             $this->cart = [];
             $this->search = '';
@@ -703,6 +723,8 @@ class POS extends Component
         } catch (\Exception $e) {
             DB::rollBack();
             $this->notify('danger', 'Sale Failed', $e->getMessage() ?: 'Something went wrong. Please try again.');
+        } finally {
+            $this->processing = false;
         }
     }
 

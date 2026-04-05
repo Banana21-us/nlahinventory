@@ -269,4 +269,55 @@
     </div>
     @endif
 
+    {{-- ═══════ LIVE LOCATION STATUS GRID ═══════ --}}
+    <div wire:poll.30000ms class="mt-8">
+        <h2 class="text-base font-bold m-text-primary mb-3">Live Location Status</h2>
+
+        {{-- Active Staff --}}
+        @if (isset($activeStaff) && $activeStaff->isNotEmpty())
+            <div class="flex flex-wrap gap-2 mb-4">
+                @foreach ($activeStaff as $staff)
+                    <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 text-sm">
+                        <span class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                              style="background: linear-gradient(135deg, #1e3a5f, #097b86);">
+                            {{ strtoupper(substr($staff['name'] ?? '?', 0, 2)) }}
+                        </span>
+                        <span class="font-medium text-zinc-700">{{ $staff['name'] }}</span>
+                        <span class="text-xs text-zinc-400">{{ $staff['done'] }}/{{ $staff['total'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- Legend --}}
+        <div class="flex flex-wrap gap-3 mb-3 text-xs text-zinc-500">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>Approved</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span>Completed</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>In Progress</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>Flagged</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-zinc-300 inline-block"></span>Not Started</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            @foreach ($locationStatuses ?? [] as $entry)
+                @php
+                    $statusDot = match($entry['status']) {
+                        'approved'    => 'bg-green-500',
+                        'completed'   => 'bg-yellow-400',
+                        'in_progress' => 'bg-blue-500',
+                        'flagged'     => 'bg-red-500',
+                        default       => 'bg-zinc-300',
+                    };
+                @endphp
+                <div class="m-card p-3 flex items-start gap-2">
+                    <span class="w-3 h-3 rounded-full {{ $statusDot }} mt-0.5 flex-none"></span>
+                    <div class="min-w-0">
+                        <div class="text-xs font-semibold text-zinc-800 truncate">{{ $entry['location']->name }}</div>
+                        <div class="text-[10px] text-zinc-400">{{ $entry['location']->floor }}</div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
 </div>

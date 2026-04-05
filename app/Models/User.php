@@ -5,8 +5,10 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
@@ -107,6 +109,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isDisabled(): bool
     {
         return $this->role === 'Disable';
+    }
+
+    public function maintenanceSlots(): HasMany
+    {
+        return $this->hasMany(MaintenanceSlot::class, 'user_id', 'id');
+    }
+
+    public function maintenanceRounds(): HasMany
+    {
+        return $this->hasMany(MaintenanceRound::class, 'user_id', 'id');
+    }
+
+    public function invalidateSessions(): void
+    {
+        DB::table('sessions')->where('user_id', $this->id)->delete();
     }
 
     public function employee()

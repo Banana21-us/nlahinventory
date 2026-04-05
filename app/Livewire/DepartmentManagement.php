@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Department;
 use App\Models\User;
+use App\Services\AuditService;
 use Livewire\Component;
 
 class DepartmentManagement extends Component
@@ -40,11 +41,13 @@ class DepartmentManagement extends Component
     {
         $this->validate();
 
-        Department::create([
+        $dept = Department::create([
             'name' => $this->name,
             'code' => strtoupper($this->code),
             'dept_head_id' => $this->dept_head_id ?: null,
         ]);
+
+        AuditService::log(action: 'department_created', module: 'hr', modelType: 'Department', modelId: $dept->id);
 
         $this->resetForm();
         session()->flash('message', 'Department created successfully.');
@@ -72,6 +75,8 @@ class DepartmentManagement extends Component
             'dept_head_id' => $this->dept_head_id ?: null,
         ]);
 
+        AuditService::log(action: 'department_updated', module: 'hr', modelType: 'Department', modelId: $dept->id);
+
         $this->resetForm();
         session()->flash('message', 'Department updated successfully.');
     }
@@ -84,7 +89,9 @@ class DepartmentManagement extends Component
 
     public function delete(): void
     {
-        Department::findOrFail($this->selectedId)->delete();
+        $id = $this->selectedId;
+        Department::findOrFail($id)->delete();
+        AuditService::log(action: 'department_deleted', module: 'hr', modelType: 'Department', modelId: $id);
         $this->resetForm();
         session()->flash('message', 'Department deleted successfully.');
     }

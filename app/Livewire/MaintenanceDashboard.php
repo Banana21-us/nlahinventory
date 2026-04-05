@@ -2,6 +2,10 @@
 
 namespace App\Livewire;
 
+use App\Models\Location;
+use App\Models\MaintenanceRound;
+use App\Models\MaintenanceRoundItem;
+use App\Models\MaintenanceRoundLock;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -70,6 +74,34 @@ class MaintenanceDashboard extends Component
         $this->modalPeriod = '';
     }
 
+    public function getLocationStatuses(): array
+    {
+        $today = Carbon::now('Asia/Manila')->toDateString();
+        $locations = Location::all();
+        $lockedIds = MaintenanceRoundLock::active()->pluck('location_area_id')->toArray();
+
+        $statuses = [];
+        foreach ($locations as $loc) {
+            $todayItems = MaintenanceRoundItem::where('location_area_id', $loc->id)
+                ->whereHas('round', fn ($q) => $q->whereDate('started_at', $today))
+                ->get();
+
+            if ($todayItems->isEmpty()) {
+                $statuses[$loc->id] = ['location' => $loc, 'status' => 'not_started'];
+            } elseif ($todayItems->contains('verification_status', 'flagged')) {
+                $statuses[$loc->id] = ['location' => $loc, 'status' => 'flagged'];
+            } elseif (in_array($loc->id, $lockedIds)) {
+                $statuses[$loc->id] = ['location' => $loc, 'status' => 'in_progress'];
+            } elseif ($todayItems->where('verification_status', 'approved')->isNotEmpty()) {
+                $statuses[$loc->id] = ['location' => $loc, 'status' => 'approved'];
+            } else {
+                $statuses[$loc->id] = ['location' => $loc, 'status' => 'completed'];
+            }
+        }
+
+        return $statuses;
+    }
+
     public function render()
     {
         $now = Carbon::now('Asia/Manila');
@@ -124,12 +156,26 @@ class MaintenanceDashboard extends Component
             ->limit(10)
             ->get();
 
+        $locationStatuses = $this->getLocationStatuses();
+
+        $activeStaff = MaintenanceRound::with(['user', 'items'])
+            ->where('status', 'in_progress')
+            ->whereDate('started_at', $now->toDateString())
+            ->get()
+            ->map(fn ($r) => [
+                'name' => $r->user?->name,
+                'done' => $r->items->whereIn('status', ['completed', 'skipped'])->count(),
+                'total' => $r->items->count(),
+            ]);
+
         return view('pages.Maintenance.dashboard', compact(
             'dailyTotal', 'dailyDone',
             'nightlyTotal', 'nightlyDone',
             'weeklyTotal', 'weeklyDone',
             'monthlyTotal', 'monthlyDone',
             'recentRecords',
+            'locationStatuses',
+            'activeStaff',
         ))->layout('layouts.app');
     }
 }

@@ -22,6 +22,13 @@
                 {{ __('Dashboard') }}
             </flux:sidebar.item>
             <flux:sidebar.item
+                icon="rectangle-stack"
+                :href="route('maintenance.slots')"
+                :current="request()->routeIs('maintenance.slots') || request()->routeIs('maintenance.round')"
+                wire:navigate="wire:navigate">
+                {{ __('My Rounds') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item
                 icon="clipboard-document-check"
                 :href="route('Maintenance.checklist.check')"
                 :current="request()->routeIs('Maintenance.checklist.check')"
@@ -41,10 +48,17 @@
             @can('access-verify')
             <flux:sidebar.item
                 icon="magnifying-glass"
+                :href="route('maintenance.verify')"
+                :current="request()->routeIs('maintenance.verify')"
+                wire:navigate="wire:navigate">
+                {{ __('Verify Rounds') }}
+            </flux:sidebar.item>
+            <flux:sidebar.item
+                icon="clipboard-document-list"
                 :href="route('Maintenance.checklist.verify')"
                 :current="request()->routeIs('Maintenance.checklist.verify')"
                 wire:navigate="wire:navigate">
-                {{ __('Verify') }}
+                {{ __('Old Checklist') }}
             </flux:sidebar.item>
             <flux:sidebar.item
                     icon="calendar"
@@ -284,6 +298,7 @@
 
         {{ $slot }}
 
+        @stack('scripts')
         @fluxScripts
     </body>
 </html>

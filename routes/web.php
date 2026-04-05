@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LeaveResponseController;
+use App\Http\Controllers\MaintenancePhotoController;
 use App\Http\Controllers\NewsEventController;
 use App\Livewire\AttendanceManagement;
 use App\Livewire\Dashboard;
@@ -14,6 +15,9 @@ use App\Livewire\HR;
 use App\Livewire\HRCorner;
 use App\Livewire\HrLeaveManagement;
 use App\Livewire\LeaveForm;
+use App\Livewire\Maintenance\RoundRunner;
+use App\Livewire\Maintenance\SlotManager;
+use App\Livewire\Maintenance\VerifierDashboard;
 use App\Livewire\MaintenanceDashboard;
 use App\Livewire\Medicines;
 use App\Livewire\News;
@@ -94,11 +98,15 @@ Route::middleware(['auth', 'can:access-maintenance'])->group(function () {
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
+    Route::get('/maintenance/slots', SlotManager::class)->name('maintenance.slots');
+    Route::get('/maintenance/round/{round}', RoundRunner::class)->name('maintenance.round');
+    Route::post('/maintenance/upload-photo', [MaintenancePhotoController::class, 'store'])->name('maintenance.photo.upload');
 });
 // Verify routes
 Route::middleware(['auth', 'can:access-verify'])->group(function () {
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
+    Route::get('/maintenance/verify', VerifierDashboard::class)->name('maintenance.verify');
 });
 // Cashier routes
 Route::middleware(['auth', 'can:access-cashier-only'])->group(function () {

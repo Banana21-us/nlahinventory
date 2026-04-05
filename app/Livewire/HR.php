@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 
 class HR extends Component
@@ -41,7 +42,9 @@ class HR extends Component
             'username' => ['required', 'string', $this->isEditing ? "unique:users,username,{$id}" : 'unique:users,username'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', $this->isEditing ? "unique:users,email,{$id}" : 'unique:users,email'],
-            'password' => $this->isEditing ? ['nullable', 'confirmed', 'min:8'] : ['required', 'confirmed', 'min:8'],
+            'password' => $this->isEditing
+                ? ['nullable', 'confirmed', Password::defaults()]
+                : ['required', 'confirmed', Password::defaults()],
         ];
     }
 
