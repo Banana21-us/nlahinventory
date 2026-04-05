@@ -9,11 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('employment_details', function (Blueprint $table) {
-            $table->dropColumn(['department', 'dept_code']);
-        });
-
-        Schema::table('employment_details', function (Blueprint $table) {
-            $table->unsignedBigInteger('department_id')->nullable()->after('user_id');
+            if (Schema::hasColumn('employment_details', 'department')) {
+                $table->dropColumn('department');
+            }
+            if (Schema::hasColumn('employment_details', 'dept_code')) {
+                $table->dropColumn('dept_code');
+            }
+            if (! Schema::hasColumn('employment_details', 'department_id')) {
+                $table->unsignedBigInteger('department_id')->nullable()->after('employee_id');
+            }
         });
     }
 

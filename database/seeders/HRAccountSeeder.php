@@ -23,10 +23,10 @@ class HRAccountSeeder extends Seeder
 
         // Create (or update) the HR user — match on email so duplicates never happen
         $user = User::updateOrCreate(
-            ['email' => 'glenlozada0@gmail.com'],
+            ['email' => 'rcpanelo@adventisthealth-pan.com'],
             [
                 'employee_number' => $empNumber,
-                'name' => 'Glen Lozada',
+                'name' => 'Ryniel Panelo',
                 'username' => 'hradmin',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password123'),
@@ -39,9 +39,9 @@ class HRAccountSeeder extends Seeder
             ['employee_number' => $empNumber],
             [
                 'user_id' => $user->id,
-                'last_name' => 'Lozada',
-                'first_name' => 'Glen',
-                'middle_name' => 'Santos',
+                'last_name' => 'Panelo',
+                'first_name' => 'Ryniel',
+                'middle_name' => '',
                 'birth_date' => '1990-05-15',
                 'place_of_birth' => 'Sison, Pangasinan',
                 'gender' => 'Male',
@@ -52,10 +52,10 @@ class HRAccountSeeder extends Seeder
                 'height' => '170',
                 'weight' => '68',
                 'mobile_no' => '09171234567',
-                'email_add' => 'glenlozada0@gmail.com',
+                'email_add' => 'rcpanelo@adventisthealth-pan.com',
                 'p_address' => 'Brgy. Center, Sison, Pangasinan',
                 'c_address' => 'Brgy. Center, Sison, Pangasinan',
-                'contact_person' => 'Maria Lozada',
+                'contact_person' => 'Mrs. Panelo',
                 'contact_number' => '09281234567',
             ]
         );
@@ -88,6 +88,6 @@ class HRAccountSeeder extends Seeder
         $this->command->info('HR account ready.');
         $this->command->line('  Username : hradmin');
         $this->command->line('  Password : password123');
-        $this->command->line('  Email    : glenlozada0@gmail.com');
+        $this->command->line('  Email    : rcpanelo@adventisthealth-pan.com');
     }
 }

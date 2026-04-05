@@ -9,16 +9,6 @@
         <form method="POST" action="{{ route('register') }}" class="flex flex-col gap-6">
             @csrf
 
-            <!-- Employee Number -->
-            <flux:input
-                name="employee_number"
-                :label="__('Employee Number')"
-                :value="old('employee_number')"
-                type="text"
-                required
-                placeholder="EMP-0001"
-            />
-            
             <!-- Name -->
             <flux:input
                 name="name"
@@ -41,8 +31,38 @@
                 placeholder="juan.delacruz"
             />
 
-        
+            <!-- Employee Number -->
+            <flux:input
+                name="employee_number"
+                :label="__('Employee Number')"
+                :value="old('employee_number')"
+                type="text"
+                required
+                placeholder="EMP-0001"
+            />
 
+            <!-- Department -->
+            <div>
+                <flux:select name="department_id" :label="__('Department')" required>
+                    <option value="" disabled {{ old('department_id') ? '' : 'selected' }}>{{ __('Select your department') }}</option>
+                    @foreach($departments as $dept)
+                        <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                            {{ $dept->name }} ({{ $dept->code }})
+                        </option>
+                    @endforeach
+                </flux:select>
+                @error('department_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <!-- Role -->
+            <flux:select name="role" :label="__('Role')" required>
+                <option value="" disabled selected>{{ __('Select your role') }}</option>
+                <option value="staff" {{ old('role') == 'staff' ? 'selected' : '' }}>{{ __('Staff') }}</option>
+                <option value="maintenance" {{ old('role') == 'maintenance' ? 'selected' : '' }}>{{ __('Maintenance') }}</option>
+                <option value="inspector" {{ old('role') == 'inspector' ? 'selected' : '' }}>{{ __('Inspector') }}</option>
+            </flux:select>
             
             <!-- Email Address -->
             <flux:input
