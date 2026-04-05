@@ -14,8 +14,8 @@ class LeaveCancellationResultMail extends Mailable
     use Queueable, SerializesModels;
 
     /**
-     * @param Leave  $leave       The leave record (hr_status will be 'cancelled' or 'approved' = denied)
-     * @param string $recipientRole  'staff' or 'dhead' — controls wording in the template
+     * @param  Leave  $leave  The leave record (hr_status will be 'cancelled' or 'approved' = denied)
+     * @param  string  $recipientRole  'staff' or 'dhead' — controls wording in the template
      */
     public function __construct(
         public Leave $leave,
@@ -24,7 +24,7 @@ class LeaveCancellationResultMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $name   = $this->leave->user?->name ?? 'Staff';
+        $name = $this->leave->user?->name ?? 'Staff';
         $result = $this->leave->hr_status === 'cancelled' ? 'Approved' : 'Denied';
 
         return new Envelope(
@@ -37,9 +37,9 @@ class LeaveCancellationResultMail extends Mailable
         return new Content(
             view: 'emails.leave-cancellation-result',
             with: [
-                'leave'         => $this->leave,
+                'leave' => $this->leave,
                 'recipientRole' => $this->recipientRole,
-                'portalUrl'     => $this->recipientRole === 'dhead'
+                'portalUrl' => $this->recipientRole === 'dhead'
                     ? route('users.dhead-leave')
                     : route('users.leaveform'),
             ],

@@ -2,11 +2,12 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
+use App\Models\EmploymentDetail;
 use App\Models\Leave;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class LeaveForm extends Component
@@ -14,22 +15,32 @@ class LeaveForm extends Component
     use WithFileUploads;
 
     public $showForm = false;
+
     public $search = '';
 
     public $leave_type;
+
     public $start_date;
+
     public $end_date;
+
     public $day_part = 'Full';
+
     public $total_days = 0;
+
     public $reason;
+
     public $reliever;
+
     public $attachment;
 
     public $availableCredits = 0;
+
     public $department;
 
     // Leave types that consume VL credits
     const VL_TYPES = ['Vacation Leave', 'Birthday Leave'];
+
     const SL_TYPES = ['Sick Leave'];
 
     protected function rules()
@@ -37,10 +48,10 @@ class LeaveForm extends Component
         return [
             'leave_type' => 'required|string',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
-            'reason'     => 'required|string|min:5',
-            'day_part'   => 'required|in:Full,AM,PM',
-            'reliever'   => 'nullable|string',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'reason' => 'required|string|min:5',
+            'day_part' => 'required|in:Full,AM,PM',
+            'reliever' => 'nullable|string',
             'attachment' => 'nullable|file|max:5120',
         ];
     }
@@ -48,7 +59,7 @@ class LeaveForm extends Component
     public function mount()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 
@@ -62,45 +73,45 @@ class LeaveForm extends Component
      * SL: 3 days regardless of seniority
      */
     public function computeAvailableCredits(): float
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    // Pull hiring_date from employment_details relationship
-    $employment = \App\Models\EmploymentDetail::where('user_id', $user->id)->first();
-    $hireDate   = $employment?->hiring_date ?? $user->created_at;
+        // Pull hiring_date from employment_details relationship
+        $employment = EmploymentDetail::where('user_id', $user->id)->first();
+        $hireDate = $employment?->hiring_date ?? $user->created_at;
 
-    $yearsInService = Carbon::parse($hireDate)->diffInYears(now());
+        $yearsInService = Carbon::parse($hireDate)->diffInYears(now());
 
-    $vlEntitlement = match(true) {
-        $yearsInService >= 15 => 20,
-        $yearsInService >= 7  => 15,
-        default               => 10,
-    };
+        $vlEntitlement = match (true) {
+            $yearsInService >= 15 => 20,
+            $yearsInService >= 7 => 15,
+            default => 10,
+        };
 
-    $slEntitlement = 3;
+        $slEntitlement = 3;
 
-    $usedVL = Leave::where('user_id', $user->id)
-        ->whereIn('leave_type', self::VL_TYPES)
-        ->whereIn('hr_status', ['pending', 'approved'])
-        ->whereYear('start_date', now()->year)
-        ->sum('total_days');
+        $usedVL = Leave::where('user_id', $user->id)
+            ->whereIn('leave_type', self::VL_TYPES)
+            ->whereIn('hr_status', ['pending', 'approved'])
+            ->whereYear('start_date', now()->year)
+            ->sum('total_days');
 
-    $usedSL = Leave::where('user_id', $user->id)
-        ->whereIn('leave_type', self::SL_TYPES)
-        ->whereIn('hr_status', ['pending', 'approved'])
-        ->whereYear('start_date', now()->year)
-        ->sum('total_days');
+        $usedSL = Leave::where('user_id', $user->id)
+            ->whereIn('leave_type', self::SL_TYPES)
+            ->whereIn('hr_status', ['pending', 'approved'])
+            ->whereYear('start_date', now()->year)
+            ->sum('total_days');
 
-    if (in_array($this->leave_type, self::SL_TYPES)) {
-        return max(0, $slEntitlement - $usedSL);
+        if (in_array($this->leave_type, self::SL_TYPES)) {
+            return max(0, $slEntitlement - $usedSL);
+        }
+
+        if (in_array($this->leave_type, self::VL_TYPES)) {
+            return max(0, $vlEntitlement - $usedVL);
+        }
+
+        return 0;
     }
-
-    if (in_array($this->leave_type, self::VL_TYPES)) {
-        return max(0, $vlEntitlement - $usedVL);
-    }
-
-    return 0;
-}
 
     public function updated($propertyName)
     {
@@ -117,8 +128,8 @@ class LeaveForm extends Component
     {
         if ($this->start_date && $this->end_date) {
             $start = Carbon::parse($this->start_date);
-            $end   = Carbon::parse($this->end_date);
-            $days  = $start->diffInDays($end) + 1;
+            $end = Carbon::parse($this->end_date);
+            $days = $start->diffInDays($end) + 1;
 
             $this->total_days = ($this->day_part !== 'Full')
                 ? $days - 0.5
@@ -136,6 +147,7 @@ class LeaveForm extends Component
         if (in_array($this->leave_type, self::VL_TYPES) || in_array($this->leave_type, self::SL_TYPES)) {
             if ($this->total_days > $this->availableCredits) {
                 $this->addError('leave_type', "Insufficient leave credits. You only have {$this->availableCredits} day(s) available.");
+
                 return;
             }
         }
@@ -146,31 +158,31 @@ class LeaveForm extends Component
                 : null;
 
             Leave::create([
-                'user_id'          => auth()->id(),
-                'leave_type'       => $this->leave_type,
-                'start_date'       => $this->start_date,
-                'end_date'         => $this->end_date,
-                'day_part'         => $this->day_part,
-                'total_days'       => $this->total_days,
-                'reason'           => $this->reason,
-                'reliever'         => $this->reliever,
-                'attachment'       => $filePath,
-                'date_requested'   => now()->toDateString(),
+                'user_id' => auth()->id(),
+                'leave_type' => $this->leave_type,
+                'start_date' => $this->start_date,
+                'end_date' => $this->end_date,
+                'day_part' => $this->day_part,
+                'total_days' => $this->total_days,
+                'reason' => $this->reason,
+                'reliever' => $this->reliever,
+                'attachment' => $filePath,
+                'date_requested' => now()->toDateString(),
                 'dept_head_status' => 'pending',
-                'hr_status'        => 'pending',
+                'hr_status' => 'pending',
             ]);
 
             $this->reset(['leave_type', 'start_date', 'end_date', 'day_part',
-                          'total_days', 'reason', 'reliever', 'attachment']);
+                'total_days', 'reason', 'reliever', 'attachment']);
             $this->total_days = 0;
-            $this->day_part   = 'Full';
-            $this->showForm   = false;
+            $this->day_part = 'Full';
+            $this->showForm = false;
             $this->availableCredits = $this->computeAvailableCredits();
 
             session()->flash('message', 'Leave application submitted successfully!');
 
         } catch (\Exception $e) {
-            Log::error('Leave submission error: ' . $e->getMessage());
+            Log::error('Leave submission error: '.$e->getMessage());
             session()->flash('error', 'Something went wrong. Please try again.');
         }
     }
@@ -181,7 +193,7 @@ class LeaveForm extends Component
             'leaves' => Leave::where('user_id', auth()->id())
                 ->where(function ($q) {
                     $q->where('leave_type', 'like', "%{$this->search}%")
-                      ->orWhere('reason',     'like', "%{$this->search}%");
+                        ->orWhere('reason', 'like', "%{$this->search}%");
                 })
                 ->latest()
                 ->get(),

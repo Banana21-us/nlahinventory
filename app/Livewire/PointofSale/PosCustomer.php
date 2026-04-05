@@ -13,42 +13,59 @@ class PosCustomer extends Component
     use WithPagination;
 
     // Form visibility
-    public bool $showForm           = false;
-    public bool $isEditing          = false;
-    public bool $confirmingDeletion = false;
-    public bool $showHistory        = false;
+    public bool $showForm = false;
 
-    public ?int $editingId   = null;
-    public ?int $deletingId  = null;
-    public ?int $historyId   = null;
+    public bool $isEditing = false;
+
+    public bool $confirmingDeletion = false;
+
+    public bool $showHistory = false;
+
+    public ?int $editingId = null;
+
+    public ?int $deletingId = null;
+
+    public ?int $historyId = null;
 
     // Form fields
-    public string $name    = '';
+    public string $name = '';
+
     public string $balance = '500';
+
     public string $charges = '0';
-    public string $phone   = '';
-    public string $status  = 'active';
+
+    public string $phone = '';
+
+    public string $status = 'active';
 
     // Search / filter
-    public string $search       = '';
+    public string $search = '';
+
     public string $filterStatus = '';
 
     protected $queryString = [
-        'search'       => ['except' => ''],
+        'search' => ['except' => ''],
         'filterStatus' => ['except' => ''],
     ];
 
-    public function updatingSearch(): void       { $this->resetPage(); }
-    public function updatingFilterStatus(): void { $this->resetPage(); }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterStatus(): void
+    {
+        $this->resetPage();
+    }
 
     protected function rules(): array
     {
         return [
-            'name'    => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'balance' => 'required|numeric',
             'charges' => 'required|numeric|min:0',
-            'phone'   => 'nullable|string|max:20',
-            'status'  => 'required|in:active,inactive',
+            'phone' => 'nullable|string|max:20',
+            'status' => 'required|in:active,inactive',
         ];
     }
 
@@ -58,12 +75,10 @@ class PosCustomer extends Component
     public function customers()
     {
         return Customer::query()
-            ->when($this->search, fn($q) =>
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('phone', 'like', '%' . $this->search . '%')
+            ->when($this->search, fn ($q) => $q->where('name', 'like', '%'.$this->search.'%')
+                ->orWhere('phone', 'like', '%'.$this->search.'%')
             )
-            ->when($this->filterStatus, fn($q) =>
-                $q->where('status', $this->filterStatus)
+            ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus)
             )
             ->latest()
             ->paginate(10);
@@ -73,8 +88,8 @@ class PosCustomer extends Component
     public function summary()
     {
         return [
-            'total'    => Customer::count(),
-            'active'   => Customer::where('status', 'active')->count(),
+            'total' => Customer::count(),
+            'active' => Customer::where('status', 'active')->count(),
             'inactive' => Customer::where('status', 'inactive')->count(),
             'credited' => Customer::where('charges', '>', 0)->count(),
         ];
@@ -83,14 +98,19 @@ class PosCustomer extends Component
     #[Computed]
     public function historyCustomer()
     {
-        if (! $this->historyId) return null;
+        if (! $this->historyId) {
+            return null;
+        }
+
         return Customer::find($this->historyId);
     }
 
     #[Computed]
     public function transactionHistory()
     {
-        if (! $this->historyId) return collect();
+        if (! $this->historyId) {
+            return collect();
+        }
 
         return Sale::with('saleItems.item')
             ->where('customer_id', $this->historyId)
@@ -102,14 +122,14 @@ class PosCustomer extends Component
 
     public function viewHistory(int $customerId): void
     {
-        $this->historyId    = $customerId;
-        $this->showHistory  = true;
+        $this->historyId = $customerId;
+        $this->showHistory = true;
     }
 
     public function closeHistory(): void
     {
         $this->showHistory = false;
-        $this->historyId   = null;
+        $this->historyId = null;
     }
 
     // ─── Save ────────────────────────────────────────────────────────────────
@@ -123,15 +143,15 @@ class PosCustomer extends Component
 
         if ($balance < 0) {
             $charges += abs($balance);
-            $balance  = 0;
+            $balance = 0;
         }
 
         Customer::create([
-            'name'    => trim($this->name),
+            'name' => trim($this->name),
             'balance' => $balance,
             'charges' => $charges,
-            'phone'   => trim($this->phone) ?: null,
-            'status'  => $this->status,
+            'phone' => trim($this->phone) ?: null,
+            'status' => $this->status,
         ]);
 
         session()->flash('message', "Customer '{$this->name}' has been added.");
@@ -146,11 +166,11 @@ class PosCustomer extends Component
         $customer = Customer::findOrFail($id);
 
         $this->editingId = $customer->id;
-        $this->name      = $customer->name;
-        $this->balance   = (string) $customer->balance;
-        $this->charges   = (string) $customer->charges;
-        $this->phone     = $customer->phone ?? '';
-        $this->status    = $customer->status;
+        $this->name = $customer->name;
+        $this->balance = (string) $customer->balance;
+        $this->charges = (string) $customer->charges;
+        $this->phone = $customer->phone ?? '';
+        $this->status = $customer->status;
         $this->isEditing = true;
     }
 
@@ -165,15 +185,15 @@ class PosCustomer extends Component
 
         if ($balance < 0) {
             $charges += abs($balance);
-            $balance  = 0;
+            $balance = 0;
         }
 
         $customer->update([
-            'name'    => trim($this->name),
+            'name' => trim($this->name),
             'balance' => $balance,
             'charges' => $charges,
-            'phone'   => trim($this->phone) ?: null,
-            'status'  => $this->status,
+            'phone' => trim($this->phone) ?: null,
+            'status' => $this->status,
         ]);
 
         session()->flash('message', "Customer '{$customer->name}' has been updated.");
@@ -185,19 +205,19 @@ class PosCustomer extends Component
 
     public function confirmDelete(int $id): void
     {
-        $this->deletingId        = $id;
+        $this->deletingId = $id;
         $this->confirmingDeletion = true;
     }
 
     public function delete(): void
     {
         $customer = Customer::findOrFail($this->deletingId);
-        $name     = $customer->name;
+        $name = $customer->name;
         $customer->delete();
 
         session()->flash('message', "Customer '{$name}' has been removed.");
         $this->confirmingDeletion = false;
-        $this->deletingId         = null;
+        $this->deletingId = null;
     }
 
     public function clearFilters(): void
@@ -211,7 +231,7 @@ class PosCustomer extends Component
         $this->reset(['name', 'phone', 'editingId', 'deletingId']);
         $this->balance = '500';
         $this->charges = '0';
-        $this->status  = 'active';
+        $this->status = 'active';
     }
 
     public function render()

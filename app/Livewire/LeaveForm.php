@@ -2,13 +2,14 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use App\Models\Leave;
 use App\Mail\LeaveCancellationRequestMail;
 use App\Mail\LeaveRequestMail;
+use App\Models\Leave;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use Carbon\Carbon;
+use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class LeaveForm extends Component
@@ -17,20 +18,29 @@ class LeaveForm extends Component
 
     // Form State
     public bool $showForm = false;
+
     public string $search = '';
 
     // Form Fields
     public string $leave_type = '';
+
     public ?string $start_date = null;
-    public ?string $end_date   = null;
-    public string $day_part    = 'Full';
-    public float $total_days   = 0;
-    public string $reason      = '';
-    public string $reliever    = '';
-    public $attachment         = null;
+
+    public ?string $end_date = null;
+
+    public string $day_part = 'Full';
+
+    public float $total_days = 0;
+
+    public string $reason = '';
+
+    public string $reliever = '';
+
+    public $attachment = null;
 
     // Leave type groups
     protected array $vlTypes = ['Vacation Leave', 'Birthday Leave'];
+
     protected array $slTypes = ['Sick Leave'];
 
     protected function rules(): array
@@ -38,10 +48,10 @@ class LeaveForm extends Component
         return [
             'leave_type' => 'required|string',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
-            'reason'     => 'required|string|min:5',
-            'day_part'   => 'required|in:Full,AM,PM',
-            'reliever'   => 'nullable|string|max:255',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'reason' => 'required|string|min:5',
+            'day_part' => 'required|in:Full,AM,PM',
+            'reliever' => 'nullable|string|max:255',
             'attachment' => 'nullable|file|max:5120',
         ];
     }
@@ -50,7 +60,7 @@ class LeaveForm extends Component
 
     public function updatedLeaveType(): void
     {
-        $this->total_days       = 0;
+        $this->total_days = 0;
         $this->availableCredits = $this->computeAvailableCredits();
     }
 
@@ -115,6 +125,7 @@ class LeaveForm extends Component
 
         if ($hasCreditCap && $this->total_days > $this->availableCredits) {
             $this->addError('total_days', "You only have {$this->availableCredits} day(s) remaining for this leave type.");
+
             return;
         }
 
@@ -124,30 +135,30 @@ class LeaveForm extends Component
         }
 
         $leave = Leave::create([
-            'user_id'          => auth()->id(),
-            'leave_type'       => $this->leave_type,
-            'start_date'       => $this->start_date,
-            'end_date'         => $this->end_date,
-            'day_part'         => $this->day_part,
-            'total_days'       => $this->total_days,
-            'reason'           => $this->reason,
-            'reliever'         => $this->reliever ?: null,
-            'attachment'       => $filePath,
-            'date_requested'   => now()->toDateString(),
+            'user_id' => auth()->id(),
+            'leave_type' => $this->leave_type,
+            'start_date' => $this->start_date,
+            'end_date' => $this->end_date,
+            'day_part' => $this->day_part,
+            'total_days' => $this->total_days,
+            'reason' => $this->reason,
+            'reliever' => $this->reliever ?: null,
+            'attachment' => $filePath,
+            'date_requested' => now()->toDateString(),
             'dept_head_status' => 'pending',
-            'hr_status'        => 'pending',
+            'hr_status' => 'pending',
         ]);
 
         // Notify the department head by email
         $this->notifyDeptHead($leave);
 
         $this->resetForm();
-        session()->flash('message', 'Leave application submitted successfully! Reference #' . $leave->id);
+        session()->flash('message', 'Leave application submitted successfully! Reference #'.$leave->id);
     }
 
     private function notifyDeptHead(Leave $leave): void
     {
-        $user     = Auth::user()->load('employmentDetail.department.deptHead');
+        $user = Auth::user()->load('employmentDetail.department.deptHead');
         $deptHead = $user->employmentDetail?->department?->deptHead;
 
         if (! $deptHead?->email) {
@@ -167,8 +178,8 @@ class LeaveForm extends Component
             'leave_type', 'start_date', 'end_date', 'day_part',
             'total_days', 'reason', 'reliever', 'attachment', 'showForm',
         ]);
-        $this->day_part         = 'Full';
-        $this->total_days       = 0;
+        $this->day_part = 'Full';
+        $this->total_days = 0;
         $this->availableCredits = 0;
     }
 
@@ -180,6 +191,7 @@ class LeaveForm extends Component
 
         if ($leave->dept_head_status !== 'pending') {
             session()->flash('error', 'This leave has already been reviewed and cannot be deleted.');
+
             return;
         }
 
@@ -193,6 +205,7 @@ class LeaveForm extends Component
 
         if ($leave->dept_head_status !== 'approved' || $leave->hr_status !== 'pending') {
             session()->flash('error', 'This leave cannot be cancelled at this stage.');
+
             return;
         }
 
@@ -206,6 +219,7 @@ class LeaveForm extends Component
 
         if ($leave->hr_status !== 'approved') {
             session()->flash('error', 'Only fully approved leaves can request cancellation.');
+
             return;
         }
 
@@ -216,7 +230,7 @@ class LeaveForm extends Component
 
     private function notifyHROfCancellation(Leave $leave): void
     {
-        $hrUsers = \App\Models\User::whereHas('employmentDetail', fn ($q) => $q->where('position', 'HR Manager'))
+        $hrUsers = User::whereHas('employmentDetail', fn ($q) => $q->where('position', 'HR Manager'))
             ->whereNotNull('email')
             ->get();
 
@@ -237,19 +251,17 @@ class LeaveForm extends Component
         $isSL = in_array($this->leave_type, $this->slTypes);
 
         $leaves = Leave::where('user_id', auth()->id())
-            ->when($this->search, fn ($q) =>
-                $q->where(fn ($q) =>
-                    $q->where('leave_type', 'like', "%{$this->search}%")
-                      ->orWhere('reason', 'like', "%{$this->search}%")
-                )
+            ->when($this->search, fn ($q) => $q->where(fn ($q) => $q->where('leave_type', 'like', "%{$this->search}%")
+                ->orWhere('reason', 'like', "%{$this->search}%")
+            )
             )
             ->latest()
             ->get();
 
         return view('pages.users.leaveform', [
-            'leaves'       => $leaves,
-            'creditLabel'  => $isVL ? 'Available VL Credits' : ($isSL ? 'Available SL Credits' : 'No Credit Cap'),
-            'showCredits'  => $isVL || $isSL,
+            'leaves' => $leaves,
+            'creditLabel' => $isVL ? 'Available VL Credits' : ($isSL ? 'Available SL Credits' : 'No Credit Cap'),
+            'showCredits' => $isVL || $isSL,
         ])->layout('layouts.app');
     }
 }

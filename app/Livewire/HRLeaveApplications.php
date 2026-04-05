@@ -2,12 +2,12 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use Livewire\WithPagination;
 use App\Models\Leave;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class HRLeaveApplications extends Component
 {
@@ -15,21 +15,31 @@ class HRLeaveApplications extends Component
 
     // Filters
     public $search = '';
+
     public $department = '';
+
     public $leaveType = '';
+
     public $status = '';
+
     public $dateFrom = '';
+
     public $dateTo = '';
-    
+
     // Sorting
     public $sortField = 'created_at';
+
     public $sortDirection = 'desc';
 
     // Leave action modals
     public $showViewModal = false;
+
     public $showActionModal = false;
+
     public $selectedLeave = null;
+
     public $actionRemarks = '';
+
     public $actionType = ''; // 'approved' or 'rejected'
 
     protected $queryString = ['search', 'department', 'leaveType', 'status', 'dateFrom', 'dateTo'];
@@ -50,7 +60,7 @@ class HRLeaveApplications extends Component
             'leaves' => $leaves,
             'departments' => $departments,
             'leaveTypes' => $leaveTypes,
-            'stats' => $stats
+            'stats' => $stats,
         ]);
     }
 
@@ -60,10 +70,10 @@ class HRLeaveApplications extends Component
             ->with('user') // Eager load user relationship
             ->when($this->search, function ($query) {
                 $query->whereHas('user', function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('employee_number', 'like', '%' . $this->search . '%');
+                    $q->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('employee_number', 'like', '%'.$this->search.'%');
                 })
-                ->orWhere('reason', 'like', '%' . $this->search . '%');
+                    ->orWhere('reason', 'like', '%'.$this->search.'%');
             })
             ->when($this->department, function ($query) {
                 $query->where('department', $this->department);
@@ -147,15 +157,16 @@ class HRLeaveApplications extends Component
 
     public function processLeaveAction()
     {
-        if (!$this->selectedLeave) {
+        if (! $this->selectedLeave) {
             session()->flash('error', 'Leave request not found.');
             $this->closeModal();
+
             return;
         }
 
         try {
             DB::beginTransaction();
-            
+
             $this->selectedLeave->status = $this->actionType;
             $this->selectedLeave->approved_by = auth()->user()->id; // Store user ID, not name
             $this->selectedLeave->remarks = $this->actionRemarks;
@@ -163,13 +174,13 @@ class HRLeaveApplications extends Component
 
             DB::commit();
 
-            session()->flash('message', 'Leave ' . $this->actionType . 'd successfully.');
-            
+            session()->flash('message', 'Leave '.$this->actionType.'d successfully.');
+
             $this->closeModal();
             $this->resetPage(); // Refresh pagination
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error processing leave: ' . $e->getMessage());
+            session()->flash('error', 'Error processing leave: '.$e->getMessage());
         }
     }
 
@@ -190,7 +201,7 @@ class HRLeaveApplications extends Component
 
     public function getStatusBadgeClass($status)
     {
-        return match($status) {
+        return match ($status) {
             'approved' => 'bg-green-100 text-green-800',
             'rejected' => 'bg-red-100 text-red-800',
             'pending' => 'bg-yellow-100 text-yellow-800',

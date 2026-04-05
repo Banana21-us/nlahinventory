@@ -4,7 +4,6 @@ namespace App\Livewire;
 
 use App\Models\Leave;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 

@@ -17,13 +17,13 @@ return new class extends Migration
             $table->date('attendance_date');
             $table->dateTime('clock_in');
             $table->dateTime('clock_out')->nullable();
-            
+
             // Calculated Hours
             $table->decimal('total_hours', 5, 2)->default(0);
             $table->decimal('regular_hours', 5, 2)->default(0);
             $table->decimal('night_diff_hours', 5, 2)->default(0); // Hours between 10PM - 6AM
             $table->decimal('overtime_hours', 5, 2)->default(0);
-            
+
             $table->integer('late_minutes')->default(0);
             $table->boolean('is_holiday')->default(false);
             $table->timestamps();

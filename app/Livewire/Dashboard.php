@@ -2,9 +2,8 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\Medicine;
-use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
 class Dashboard extends Component
 {
@@ -15,11 +14,10 @@ class Dashboard extends Component
             'total_items' => Medicine::count(),
             'active_stock' => Medicine::where('status', 'active')->count(),
             'low_stock' => Medicine::where('reorder_level', '>', 0)
-                                    ->where('status', 'active')->count(),
+                ->where('status', 'active')->count(),
         ];
 
         // Data for Category Distribution (Bar Chart)
-       
 
         // Data for Stock Status (Doughnut Chart)
         $statusData = [
@@ -30,7 +28,7 @@ class Dashboard extends Component
         return view('pages.Medmission.dashboard', [
             'stats' => $stats,
             'statusData' => $statusData,
-            'lowStockItems' => Medicine::where('reorder_level', '>', 0)->take(5)->get()
+            'lowStockItems' => Medicine::where('reorder_level', '>', 0)->take(5)->get(),
         ])->layout('layouts.app');
     }
 }

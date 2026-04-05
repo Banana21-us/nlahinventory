@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -11,7 +12,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
@@ -73,13 +74,13 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getRoleAttribute(): string
     {
-        return match($this->employmentDetail?->position) {
-            'HR Manager'  => 'HR',
+        return match ($this->employmentDetail?->position) {
+            'HR Manager' => 'HR',
             'Maintenance' => 'Maintenance',
-            'Inspector'   => 'Inspector',
-            'Cashier'     => 'Cashier',
-            'Staff'       => 'Staff',
-            default       => 'pending',
+            'Inspector' => 'Inspector',
+            'Cashier' => 'Cashier',
+            'Staff' => 'Staff',
+            default => 'pending',
         };
     }
 
@@ -92,21 +93,25 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->role === 'Staff';
     }
+
     public function isMaintenance(): bool
     {
         return $this->role === 'Maintenance';
     }
+
     public function isInspector(): bool
     {
         return $this->role === 'Inspector';
     }
+
     public function isDisabled(): bool
     {
         return $this->role === 'Disable';
     }
+
     public function employee()
     {
-        return $this->hasOne(\App\Models\Employee::class, 'user_id');
+        return $this->hasOne(Employee::class, 'user_id');
     }
 
     /**
@@ -115,13 +120,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function employmentDetail()
     {
         return $this->hasOneThrough(
-            \App\Models\EmploymentDetail::class,
-            \App\Models\Employee::class,
+            EmploymentDetail::class,
+            Employee::class,
             'user_id',       // FK on employee → users
             'employee_id',   // FK on employment_details → employee
             'id',            // local key on users
             'id'             // local key on employee
         );
     }
-
 }

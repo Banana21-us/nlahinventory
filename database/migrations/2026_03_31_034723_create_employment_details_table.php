@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('employment_details', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('employee_id'); // FK to employee table
-            
+
             // Professional Details
             $table->unsignedBigInteger('department_id')->nullable(); // FK to departments table
             $table->string('position');
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->enum('employment_status', ['Probationary', 'Regular', 'Contractual', 'Casual']);
             $table->date('hiring_date');
             $table->date('regularization_date')->nullable();
-            
+
             // Licensing (Important for Hospital Staff)
             $table->string('license_no')->nullable(); // PRC License
             $table->date('license_expiry')->nullable();

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('comment')->nullable();
             $table->unsignedTinyInteger('rating')->nullable();
             $table->dateTime('feedback_date')->nullable()->useCurrent();
-            
+
             // This replicates the specific timestamp behavior in your screenshot
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();

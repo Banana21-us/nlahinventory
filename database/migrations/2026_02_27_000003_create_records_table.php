@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->integer('location_area_part_id');
             $table->date('cleaning_date');
-            $table->enum('period_type', ['daily', 'weekly', 'monthly','nightly']);
+            $table->enum('period_type', ['daily', 'weekly', 'monthly', 'nightly']);
             $table->enum('shift', ['AM', 'PM'])->nullable();
             $table->enum('status', ['YES', 'NO']);
             $table->string('remarks');
@@ -27,9 +27,9 @@ return new class extends Migration
             $table->text('verifier_comments')->nullable();
 
             $table->unique(
-                            ['location_area_part_id', 'period_type', 'cleaning_date', 'shift'],
-                            'records_unique_combo'
-                        );
+                ['location_area_part_id', 'period_type', 'cleaning_date', 'shift'],
+                'records_unique_combo'
+            );
         });
     }
 

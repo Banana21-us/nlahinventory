@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Livewire\PointofSale;
 
 use App\Models\Customer;
@@ -29,10 +30,10 @@ class YearlyCustomerChart extends Component
         }
 
         return [
-            'months'        => $months,
-            'newCustomers'  => $newCustomers,
+            'months' => $months,
+            'newCustomers' => $newCustomers,
             'salesPerMonth' => $salesPerMonth,
-            'totalNew'      => array_sum($newCustomers),
+            'totalNew' => array_sum($newCustomers),
         ];
     }
 

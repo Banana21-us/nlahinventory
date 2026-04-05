@@ -14,34 +14,51 @@ use Livewire\Component;
 class POS extends Component
 {
     // Properties
-    public $items    = [];
+    public $items = [];
+
     public $customers = [];
-    public string $search   = '';
-    public string $barcode   = '';
-    public array  $cart     = [];
+
+    public string $search = '';
+
+    public string $barcode = '';
+
+    public array $cart = [];
+
     public string $category = 'all';
 
     // Checkout properties
-    public $customer_id           = null;
+    public $customer_id = null;
+
     public string $payment_method = 'Cash';
-    public $paid_amount           = 0;
+
+    public $paid_amount = 0;
 
     // Credit confirmation state
     public bool $showCreditConfirm = false;
-    public float $creditShortfall  = 0;
+
+    public float $creditShortfall = 0;
+
     public bool $showExtraUtensilsModal = false;
+
     public bool $showBudgetMealModal = false;
+
     public string $selectedBudgetRice = '';
+
     public string $selectedBudgetMeal = '';
+
     public string $selectedBudgetUtensil = '';
+
     public array $selectedBudgetUtensils = [];
+
     public array $budgetMealUtensilQuantities = [];
+
     public array $extraUtensilIds = [];
+
     public array $extraUtensilQuantities = [];
 
     public function mount(): void
     {
-        $this->items = Item::whereHas('inventory', fn($q) => $q->where('quantity', '>', 0))
+        $this->items = Item::whereHas('inventory', fn ($q) => $q->where('quantity', '>', 0))
             ->with('inventory')
             ->where('status', 'active')
             ->where(function ($query) {
@@ -55,19 +72,19 @@ class POS extends Component
 
     // ─── Computed ────────────────────────────────────────────────────────────
     #[Computed]
-public function filteredItems()
-{
-    return $this->items->filter(function ($item) {
-        $matchesSearch = empty($this->search)
-            || str_contains(strtolower($item->name), strtolower($this->search))
-            || str_contains(strtolower((string) $item->barcode), strtolower($this->search)); // ← add this
+    public function filteredItems()
+    {
+        return $this->items->filter(function ($item) {
+            $matchesSearch = empty($this->search)
+                || str_contains(strtolower($item->name), strtolower($this->search))
+                || str_contains(strtolower((string) $item->barcode), strtolower($this->search)); // ← add this
 
-        $matchesCategory = $this->category === 'all'
-            || strtolower((string) $item->type) === $this->category;
+            $matchesCategory = $this->category === 'all'
+                || strtolower((string) $item->type) === $this->category;
 
-        return $matchesSearch && $matchesCategory;
-    });
-}
+            return $matchesSearch && $matchesCategory;
+        });
+    }
 
     #[Computed]
     public function budgetMealRiceOptions()
@@ -162,20 +179,26 @@ public function filteredItems()
     #[Computed]
     public function subtotal(): float
     {
-        return collect($this->cart)->sum(fn($item) => $item['price'] * $item['quantity']);
+        return collect($this->cart)->sum(fn ($item) => $item['price'] * $item['quantity']);
     }
 
     #[Computed]
     public function change(): float
     {
-        if ($this->payment_method === 'Credit') return 0;
+        if ($this->payment_method === 'Credit') {
+            return 0;
+        }
+
         return max(0, (float) $this->paid_amount - $this->subtotal);
     }
 
     #[Computed]
     public function selectedCustomer()
     {
-        if (! $this->customer_id) return null;
+        if (! $this->customer_id) {
+            return null;
+        }
+
         return $this->customers->firstWhere('id', $this->customer_id);
     }
 
@@ -183,70 +206,76 @@ public function filteredItems()
 
     public function addToCart(int $itemId): void
     {
-        $item      = Item::find($itemId);
+        $item = Item::find($itemId);
         $inventory = Inventory::where('item_id', $itemId)->first();
 
         if (! $inventory || $inventory->quantity <= 0) {
             $this->notify('danger', 'Out of Stock', 'This item is out of stock!');
+
             return;
         }
 
         if (isset($this->cart[$itemId])) {
             if ($this->cart[$itemId]['quantity'] >= $inventory->quantity) {
                 $this->notify('danger', 'Stock Limit', "Only {$inventory->quantity} in stock.");
+
                 return;
             }
             $this->cart[$itemId]['quantity']++;
         } else {
             $this->cart[$itemId] = [
-                'id'       => $item->id,
-                'name'     => $item->name,
-                'price'    => $item->price,
+                'id' => $item->id,
+                'name' => $item->name,
+                'price' => $item->price,
                 'quantity' => 1,
             ];
         }
     }
 
     public function addToCartBybarcode(string $barcode): void
-{
-    $item = Item::where('barcode', $barcode)
-        ->where('status', 'active')
-        ->first();
+    {
+        $item = Item::where('barcode', $barcode)
+            ->where('status', 'active')
+            ->first();
 
-    if (! $item) {
-        $this->notify('danger', 'Item Not Found', "No active item found for barcode: {$barcode}");
-        return;
-    }
+        if (! $item) {
+            $this->notify('danger', 'Item Not Found', "No active item found for barcode: {$barcode}");
 
-    $inventory = Inventory::where('item_id', $item->id)->first();
-
-    if (! $inventory || $inventory->quantity <= 0) {
-        $this->notify('danger', 'Out of Stock', "{$item->name} is out of stock.");
-        return;
-    }
-
-    if (isset($this->cart[$item->id])) {
-        if ($this->cart[$item->id]['quantity'] >= $inventory->quantity) {
-            $this->notify('danger', 'Stock Limit', "Only {$inventory->quantity} in stock.");
             return;
         }
-        $this->cart[$item->id]['quantity']++;
-    } else {
-        $this->cart[$item->id] = [
-            'id'       => $item->id,
-            'name'     => $item->name,
-            'price'    => $item->price,
-            'quantity' => 1,
-        ];
-    }
 
-    $this->notify('success', 'Item Added', "{$item->name} added to cart.");
-}
+        $inventory = Inventory::where('item_id', $item->id)->first();
+
+        if (! $inventory || $inventory->quantity <= 0) {
+            $this->notify('danger', 'Out of Stock', "{$item->name} is out of stock.");
+
+            return;
+        }
+
+        if (isset($this->cart[$item->id])) {
+            if ($this->cart[$item->id]['quantity'] >= $inventory->quantity) {
+                $this->notify('danger', 'Stock Limit', "Only {$inventory->quantity} in stock.");
+
+                return;
+            }
+            $this->cart[$item->id]['quantity']++;
+        } else {
+            $this->cart[$item->id] = [
+                'id' => $item->id,
+                'name' => $item->name,
+                'price' => $item->price,
+                'quantity' => 1,
+            ];
+        }
+
+        $this->notify('success', 'Item Added', "{$item->name} added to cart.");
+    }
 
     public function openBudgetMealModal(): void
     {
         if ($this->budgetMealDisabled) {
             $this->notify('danger', 'Budget Meal Unavailable', 'Rice, a main meal, and utensils must all be in stock.');
+
             return;
         }
 
@@ -262,6 +291,7 @@ public function filteredItems()
     {
         if ($this->extraUtensilsDisabled) {
             $this->notify('danger', 'Extra Utensils Unavailable', 'No extra utensils are currently in stock.');
+
             return;
         }
 
@@ -335,6 +365,7 @@ public function filteredItems()
 
         if ($availableStock > 0 && $current >= $availableStock) {
             $this->notify('danger', 'Stock Limit', "Only {$availableStock} in stock.");
+
             return;
         }
 
@@ -352,6 +383,7 @@ public function filteredItems()
 
         if ($availableStock > 0 && $current >= $availableStock) {
             $this->notify('danger', 'Stock Limit', "Only {$availableStock} in stock.");
+
             return;
         }
 
@@ -403,10 +435,11 @@ public function filteredItems()
         if (! $rice || ! $meal || $utensils->isEmpty()) {
             session()->flash('budget_meal_alert', 'Please select at least one utensil for the budget meal.');
             $this->notify('danger', 'Missing Selection', 'Choose a rice, a meal, and at least one utensil to build the budget meal.');
+
             return;
         }
 
-        $cartId = 'budgetmeal_' . now()->timestamp . '_' . count($this->cart);
+        $cartId = 'budgetmeal_'.now()->timestamp.'_'.count($this->cart);
         $components = [
             [
                 'item_id' => $rice->id,
@@ -440,7 +473,7 @@ public function filteredItems()
             )),
             'quantity' => 1,
             'is_bundle' => true,
-            'bundle_label' => "{$rice->name} + {$meal->name} + " . $utensils->map(function ($utensil) {
+            'bundle_label' => "{$rice->name} + {$meal->name} + ".$utensils->map(function ($utensil) {
                 $quantity = max(1, (int) ($this->budgetMealUtensilQuantities[$utensil->id] ?? 1));
 
                 return $quantity > 1 ? "{$utensil->name} x{$quantity}" : $utensil->name;
@@ -459,10 +492,11 @@ public function filteredItems()
 
         if ($utensils->isEmpty()) {
             $this->notify('danger', 'Missing Selection', 'Choose at least one extra utensil.');
+
             return;
         }
 
-        $cartId = 'extrautensils_' . now()->timestamp . '_' . count($this->cart);
+        $cartId = 'extrautensils_'.now()->timestamp.'_'.count($this->cart);
         $components = [];
 
         foreach ($utensils as $utensil) {
@@ -501,7 +535,7 @@ public function filteredItems()
 
     public function updateQuantity(int $itemId, int $quantity): void
     {
-        $quantity  = max(1, $quantity);
+        $quantity = max(1, $quantity);
         $inventory = Inventory::where('item_id', $itemId)->first();
 
         if ($quantity > $inventory->quantity) {
@@ -518,6 +552,7 @@ public function filteredItems()
     {
         if (empty($this->cart)) {
             $this->notify('danger', 'Empty Cart', 'Add items to the cart before checking out.');
+
             return;
         }
 
@@ -525,6 +560,7 @@ public function filteredItems()
 
         if ($isCredit && ! $this->customer_id) {
             $this->notify('danger', 'No Customer', 'Please select a customer for credit payments.');
+
             return;
         }
 
@@ -532,13 +568,15 @@ public function filteredItems()
             $customer = Customer::find($this->customer_id);
             if (! $customer) {
                 $this->notify('danger', 'Customer Not Found', 'Selected customer does not exist.');
+
                 return;
             }
 
             // If balance is insufficient → show confirm modal instead of blocking
             if ((float) $customer->balance < $this->subtotal) {
-                $this->creditShortfall  = $this->subtotal - (float) $customer->balance;
+                $this->creditShortfall = $this->subtotal - (float) $customer->balance;
                 $this->showCreditConfirm = true;
+
                 return; // stop here — wait for user confirmation
             }
         }
@@ -546,11 +584,13 @@ public function filteredItems()
         // Cash/GCash: check paid amount
         if (! $isCredit && (float) $this->paid_amount <= 0) {
             session()->flash('checkout_alert', 'Enter the tendered amount before checking out.');
+
             return;
         }
 
         if (! $isCredit && (float) $this->paid_amount < $this->subtotal) {
             session()->flash('checkout_alert', 'Tendered amount is not enough for this order.');
+
             return;
         }
 
@@ -570,7 +610,7 @@ public function filteredItems()
     public function cancelCreditConfirm(): void
     {
         $this->showCreditConfirm = false;
-        $this->creditShortfall   = 0;
+        $this->creditShortfall = 0;
     }
 
     private function processCheckout(): void
@@ -581,10 +621,10 @@ public function filteredItems()
             DB::beginTransaction();
 
             $sale = Sale::create([
-                'customer_id'    => $this->customer_id ?: null,
+                'customer_id' => $this->customer_id ?: null,
                 'payment_method' => $this->payment_method,
-                'total'          => (int) $this->subtotal,
-                'paid_amount'    => $isCredit ? (int) $this->subtotal : (int) $this->paid_amount,
+                'total' => (int) $this->subtotal,
+                'paid_amount' => $isCredit ? (int) $this->subtotal : (int) $this->paid_amount,
             ]);
 
             foreach ($this->cart as $item) {
@@ -598,10 +638,10 @@ public function filteredItems()
                         }
 
                         SaleItem::create([
-                            'sale_id'  => $sale->id,
-                            'item_id'  => $component['item_id'],
+                            'sale_id' => $sale->id,
+                            'item_id' => $component['item_id'],
                             'quantity' => $requiredQuantity,
-                            'price'    => $component['price'],
+                            'price' => $component['price'],
                         ]);
 
                         $inventory->decrement('quantity', $requiredQuantity);
@@ -611,10 +651,10 @@ public function filteredItems()
                 }
 
                 SaleItem::create([
-                    'sale_id'  => $sale->id,
-                    'item_id'  => $item['id'],
+                    'sale_id' => $sale->id,
+                    'item_id' => $item['id'],
                     'quantity' => $item['quantity'],
-                    'price'    => $item['price'],
+                    'price' => $item['price'],
                 ]);
 
                 $inventory = Inventory::where('item_id', $item['id'])->first();
@@ -629,7 +669,7 @@ public function filteredItems()
 
             // Deduct from customer balance if credit
             if ($isCredit && $this->customer_id) {
-                $customer   = Customer::find($this->customer_id);
+                $customer = Customer::find($this->customer_id);
                 $newBalance = (float) $customer->balance - $this->subtotal;
 
                 if ($newBalance < 0) {
@@ -645,12 +685,12 @@ public function filteredItems()
             DB::commit();
 
             // Reset state
-            $this->cart              = [];
-            $this->search            = '';
-            $this->customer_id       = null;
-            $this->payment_method    = 'Cash';
-            $this->paid_amount       = 0;
-            $this->creditShortfall   = 0;
+            $this->cart = [];
+            $this->search = '';
+            $this->customer_id = null;
+            $this->payment_method = 'Cash';
+            $this->paid_amount = 0;
+            $this->creditShortfall = 0;
             $this->showCreditConfirm = false;
             $this->closeExtraUtensilsModal();
             $this->closeBudgetMealModal();

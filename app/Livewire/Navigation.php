@@ -10,7 +10,7 @@ class Navigation extends Component
     {
         // return view('livewire.navigation');
         return view('livewire.navigation', [
-         'role' => auth()->user()?->role ?? null,
-    ]);
+            'role' => auth()->user()?->role ?? null,
+        ]);
     }
 }

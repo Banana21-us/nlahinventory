@@ -22,7 +22,17 @@
       "Bash(php -l d:/nlahweb/nlahinventory/app/Livewire/HrLeaveManagement.php)",
       "Bash(php -l d:/nlahweb/nlahinventory/app/Models/Leave.php)",
       "Bash(php -l d:/nlahweb/nlahinventory/app/Mail/LeaveCancellationRequestMail.php)",
-      "Bash(php -l d:/nlahweb/nlahinventory/app/Mail/LeaveCancellationResultMail.php)"
+      "Bash(php -l d:/nlahweb/nlahinventory/app/Mail/LeaveCancellationResultMail.php)",
+      "Bash(ruflo --version)",
+      "Bash(ollama --version)",
+      "Bash(composer test:lint)",
+      "Bash(composer lint:*)",
+      "Bash(npx ruflo@latest init --wizard)",
+      "Bash(cmd /c \"ollama --version\")",
+      "Bash(cmd /c \"where ollama && ollama --version\")",
+      "Bash(powershell -Command 'ollama --version; if \\($LASTEXITCODE -ne 0\\) { Write-Host '\\\\''not in PATH'\\\\'' } else { Write-Host '\\\\''ok'\\\\'' }')",
+      "Bash(powershell -Command \"Test-Path 'C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.exe'; Test-Path 'C:\\\\Program Files\\\\Ollama\\\\ollama.exe'\")",
+      "Bash(powershell -Command \"& 'C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.exe' --version\")"
     ]
   }
 }

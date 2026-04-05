@@ -11,30 +11,50 @@ class PosSales extends Component
 {
     use WithPagination;
 
-    public string $search    = '';
-    public string $dateFrom  = '';
-    public string $dateTo    = '';
+    public string $search = '';
+
+    public string $dateFrom = '';
+
+    public string $dateTo = '';
+
     public string $payMethod = '';
 
     // View detail modal
-    public bool $showDetail  = false;
-    public ?int $detailId    = null;
+    public bool $showDetail = false;
+
+    public ?int $detailId = null;
 
     // Delete
     public bool $confirmingDeletion = false;
-    public ?int $deletingId         = null;
+
+    public ?int $deletingId = null;
 
     protected $queryString = [
-        'search'    => ['except' => ''],
-        'dateFrom'  => ['except' => ''],
-        'dateTo'    => ['except' => ''],
+        'search' => ['except' => ''],
+        'dateFrom' => ['except' => ''],
+        'dateTo' => ['except' => ''],
         'payMethod' => ['except' => ''],
     ];
 
-    public function updatingSearch(): void   { $this->resetPage(); }
-    public function updatingDateFrom(): void { $this->resetPage(); }
-    public function updatingDateTo(): void   { $this->resetPage(); }
-    public function updatingPayMethod(): void{ $this->resetPage(); }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingDateFrom(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingDateTo(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPayMethod(): void
+    {
+        $this->resetPage();
+    }
 
     // ─── Computed ────────────────────────────────────────────────────────────
 
@@ -43,18 +63,14 @@ class PosSales extends Component
     {
         return Sale::with(['customer', 'saleItems.item'])
             ->when($this->search, function ($q) {
-                $q->whereHas('customer', fn($c) =>
-                    $c->where('name', 'like', '%' . $this->search . '%')
+                $q->whereHas('customer', fn ($c) => $c->where('name', 'like', '%'.$this->search.'%')
                 );
             })
-            ->when($this->payMethod, fn($q) =>
-                $q->where('payment_method', $this->payMethod)
+            ->when($this->payMethod, fn ($q) => $q->where('payment_method', $this->payMethod)
             )
-            ->when($this->dateFrom, fn($q) =>
-                $q->whereDate('created_at', '>=', $this->dateFrom)
+            ->when($this->dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $this->dateFrom)
             )
-            ->when($this->dateTo, fn($q) =>
-                $q->whereDate('created_at', '<=', $this->dateTo)
+            ->when($this->dateTo, fn ($q) => $q->whereDate('created_at', '<=', $this->dateTo)
             )
             ->latest()
             ->paginate(10);
@@ -64,32 +80,30 @@ class PosSales extends Component
     public function summary()
     {
         $base = Sale::query()
-            ->when($this->search, fn($q) =>
-                $q->whereHas('customer', fn($c) =>
-                    $c->where('name', 'like', '%' . $this->search . '%')
-                )
+            ->when($this->search, fn ($q) => $q->whereHas('customer', fn ($c) => $c->where('name', 'like', '%'.$this->search.'%')
             )
-            ->when($this->payMethod, fn($q) =>
-                $q->where('payment_method', $this->payMethod)
             )
-            ->when($this->dateFrom, fn($q) =>
-                $q->whereDate('created_at', '>=', $this->dateFrom)
+            ->when($this->payMethod, fn ($q) => $q->where('payment_method', $this->payMethod)
             )
-            ->when($this->dateTo, fn($q) =>
-                $q->whereDate('created_at', '<=', $this->dateTo)
+            ->when($this->dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $this->dateFrom)
+            )
+            ->when($this->dateTo, fn ($q) => $q->whereDate('created_at', '<=', $this->dateTo)
             );
 
         return [
             'count' => $base->count(),
             'total' => $base->sum('total'),
-            'paid'  => $base->sum('paid_amount'),
+            'paid' => $base->sum('paid_amount'),
         ];
     }
 
     #[Computed]
     public function detail()
     {
-        if (! $this->detailId) return null;
+        if (! $this->detailId) {
+            return null;
+        }
+
         return Sale::with(['customer', 'saleItems.item'])->find($this->detailId);
     }
 
@@ -97,13 +111,13 @@ class PosSales extends Component
 
     public function viewDetail(int $id): void
     {
-        $this->detailId    = $id;
-        $this->showDetail  = true;
+        $this->detailId = $id;
+        $this->showDetail = true;
     }
 
     public function confirmDelete(int $id): void
     {
-        $this->deletingId        = $id;
+        $this->deletingId = $id;
         $this->confirmingDeletion = true;
     }
 
@@ -113,9 +127,9 @@ class PosSales extends Component
         $sale->saleItems()->delete();
         $sale->delete();
 
-        session()->flash('message', 'Sale #' . $this->deletingId . ' has been deleted.');
+        session()->flash('message', 'Sale #'.$this->deletingId.' has been deleted.');
         $this->confirmingDeletion = false;
-        $this->deletingId         = null;
+        $this->deletingId = null;
     }
 
     public function clearFilters(): void

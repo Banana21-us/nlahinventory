@@ -16,7 +16,7 @@ class Sale extends Model
     ];
 
     protected $casts = [
-        'total'       => 'integer',
+        'total' => 'integer',
         'paid_amount' => 'integer',
     ];
 

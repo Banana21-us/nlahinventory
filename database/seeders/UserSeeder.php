@@ -49,15 +49,15 @@ class UserSeeder extends Seeder
 
         foreach ($users as $user) {
             DB::table('users')->insert([
-                'employee_number'   => $user['employee_number'],
-                'name'              => $user['name'],
-                'email'             => $user['email'],
+                'employee_number' => $user['employee_number'],
+                'name' => $user['name'],
+                'email' => $user['email'],
                 'email_verified_at' => now(),
-                'password'          => Hash::make('password123'), // Default password
-                'role'              => $user['role'],
-                'remember_token'    => Str::random(10),
-                'created_at'        => now(),
-                'updated_at'        => now(),
+                'password' => Hash::make('password123'), // Default password
+                'role' => $user['role'],
+                'remember_token' => Str::random(10),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }

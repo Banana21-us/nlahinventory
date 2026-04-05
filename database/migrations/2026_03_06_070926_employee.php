@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('first_name');
             $table->string('middle_name')->nullable();
-            $table->string('extension')->nullable(); 
+            $table->string('extension')->nullable();
 
             $table->date('birth_date');
             $table->string('place_of_birth')->nullable();
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->string('citizenship')->default('Filipino');
             $table->string('religion')->nullable();
             $table->string('blood_type')->nullable();
-            
+
             $table->string('height')->nullable();
             $table->string('weight')->nullable();
 

@@ -13,7 +13,7 @@ class FeedbackController extends Controller
         $feedbacks = DB::table('feedbacks')
             ->orderBy('id', 'desc')
             ->get();
-        
+
         return response()->json($feedbacks);
     }
 
@@ -36,7 +36,7 @@ class FeedbackController extends Controller
             ]);
 
             return response()->json(['success' => true]);
-            
+
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Database error']);
         }

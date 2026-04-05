@@ -18,7 +18,7 @@ class LeaveResponseController extends Controller
         // If already processed, show a neutral message
         if ($leave->dept_head_status !== 'pending') {
             return view('emails.leave-response-done', [
-                'leave'  => $leave->load('user'),
+                'leave' => $leave->load('user'),
                 'action' => $leave->dept_head_status, // show whatever it already is
             ]);
         }
@@ -26,8 +26,8 @@ class LeaveResponseController extends Controller
         $leave->load('user');
 
         $leave->update([
-            'dept_head_status'      => $action,
-            'dept_head_id'          => $request->query('dhead'),
+            'dept_head_status' => $action,
+            'dept_head_id' => $request->query('dhead'),
             'dept_head_approved_at' => now(),
         ]);
 

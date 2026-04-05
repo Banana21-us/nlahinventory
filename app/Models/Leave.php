@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -33,13 +34,13 @@ class Leave extends Model
     ];
 
     protected $casts = [
-        'start_date'           => 'date',
-        'end_date'             => 'date',
-        'date_requested'       => 'date',
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'date_requested' => 'date',
         'dept_head_approved_at' => 'datetime',
-        'hr_approved_at'       => 'datetime',
-        'created_at'           => 'datetime',
-        'updated_at'           => 'datetime',
+        'hr_approved_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────
@@ -84,7 +85,7 @@ class Leave extends Model
     public function scopeBetweenDates($query, $startDate, $endDate)
     {
         return $query->whereBetween('start_date', [$startDate, $endDate])
-                     ->orWhereBetween('end_date', [$startDate, $endDate]);
+            ->orWhereBetween('end_date', [$startDate, $endDate]);
     }
 
     // ─── Credit Helpers ───────────────────────────────────────────────────────
@@ -102,14 +103,14 @@ class Leave extends Model
      */
     public static function availableVLCredits(int $userId): float
     {
-        $vlTypes  = ['Vacation Leave', 'Birthday Leave'];
+        $vlTypes = ['Vacation Leave', 'Birthday Leave'];
 
         $employeeId = \DB::table('employee')->where('user_id', $userId)->value('id');
-        $emp        = $employeeId ? \DB::table('employment_details')->where('employee_id', $employeeId)->first() : null;
-        $user     = \App\Models\User::find($userId);
-        $hireDate = \Carbon\Carbon::parse($emp?->hiring_date ?? $user->created_at);
+        $emp = $employeeId ? \DB::table('employment_details')->where('employee_id', $employeeId)->first() : null;
+        $user = User::find($userId);
+        $hireDate = Carbon::parse($emp?->hiring_date ?? $user->created_at);
 
-        $hireYear    = (int) $hireDate->format('Y');
+        $hireYear = (int) $hireDate->format('Y');
         $currentYear = (int) now()->format('Y');
 
         // Sum up entitlement for every year from hire to now (VL carries over)
@@ -118,12 +119,12 @@ class Leave extends Model
             // Years of service at the start of this year (0 for hire year)
             $yearsService = $year === $hireYear
                 ? 0
-                : (int) $hireDate->diffInYears(\Carbon\Carbon::create($year, 1, 1));
+                : (int) $hireDate->diffInYears(Carbon::create($year, 1, 1));
 
             $totalEarned += match (true) {
                 $yearsService >= 15 => 20,
-                $yearsService >= 7  => 15,
-                default             => 10,
+                $yearsService >= 7 => 15,
+                default => 10,
             };
         }
 

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
 
             // Just normal column (NO foreign key)
-                
+
             $table->string('generic_name', 150);
             $table->string('brand_name', 150)->nullable();
             $table->string('dosage_form', 50)->nullable();

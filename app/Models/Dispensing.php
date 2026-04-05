@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ class Dispensing extends Model
         'medicine_id',
         'quantity_dispensed',
         'dispensed_by',
-        'medmission_place'
+        'medmission_place',
     ];
 
     // Relationship to Patient

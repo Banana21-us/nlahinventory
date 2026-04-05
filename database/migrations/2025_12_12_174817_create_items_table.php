@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('type')->nullable();
             $table->string('image')->nullable();
             $table->unsignedInteger('price');
-            $table->enum('status',['active','inactive'])->default('active');
+            $table->enum('status', ['active', 'inactive'])->default('active');
             // add fields images, variations
             $table->timestamps();
         });

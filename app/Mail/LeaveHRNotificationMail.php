@@ -18,7 +18,7 @@ class LeaveHRNotificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[Leave — HR Action Required] ' . $this->leave->user->name . ' · ' . $this->leave->leave_type,
+            subject: '[Leave — HR Action Required] '.$this->leave->user->name.' · '.$this->leave->leave_type,
         );
     }
 
@@ -27,8 +27,8 @@ class LeaveHRNotificationMail extends Mailable
         return new Content(
             view: 'emails.leave-hr-notification',
             with: [
-                'leave'      => $this->leave,
-                'portalUrl'  => route('HR.hr-leave-management'),
+                'leave' => $this->leave,
+                'portalUrl' => route('HR.hr-leave-management'),
             ],
         );
     }

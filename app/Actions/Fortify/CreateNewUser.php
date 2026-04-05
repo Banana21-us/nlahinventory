@@ -16,8 +16,8 @@ class CreateNewUser implements CreatesNewUsers
     {
         Validator::make($input, [
             ...$this->profileRules(),
-            'username'        => ['required', 'string', 'max:255', 'unique:users'],
-            'password'        => $this->passwordRules(),
+            'username' => ['required', 'string', 'max:255', 'unique:users'],
+            'password' => $this->passwordRules(),
             'employee_number' => [
                 'required',
                 'string',
@@ -25,15 +25,15 @@ class CreateNewUser implements CreatesNewUsers
                 'unique:users,employee_number',
             ],
         ], [
-            'employee_number.exists'  => 'This employee number was not found. Please contact HR.',
-            'employee_number.unique'  => 'This employee number is already registered.',
+            'employee_number.exists' => 'This employee number was not found. Please contact HR.',
+            'employee_number.unique' => 'This employee number is already registered.',
         ])->validate();
 
         return User::create([
-            'name'            => $input['name'],
-            'username'        => $input['username'],
-            'email'           => $input['email'],
-            'password'        => $input['password'],
+            'name' => $input['name'],
+            'username' => $input['username'],
+            'email' => $input['email'],
+            'password' => $input['password'],
             'employee_number' => $input['employee_number'],
         ]);
     }

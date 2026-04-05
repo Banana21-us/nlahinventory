@@ -23,7 +23,7 @@ return new class extends Migration
             $table->text('reason');
             $table->string('reliever')->nullable(); // Optional: Who will cover during the leave
             $table->string('attachment')->nullable(); // Path to Medical Cert
-            
+
             // Date tracking
             $table->date('date_requested')->useCurrent();
 

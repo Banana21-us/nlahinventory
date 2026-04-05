@@ -29,7 +29,7 @@ class LeaveCancellationRequestMail extends Mailable
         return new Content(
             view: 'emails.leave-cancellation-request',
             with: [
-                'leave'     => $this->leave,
+                'leave' => $this->leave,
                 'portalUrl' => route('HR.hr-leave-management'),
             ],
         );

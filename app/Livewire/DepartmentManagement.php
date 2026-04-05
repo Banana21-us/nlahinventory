@@ -2,28 +2,36 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\Department;
 use App\Models\User;
+use Livewire\Component;
 
 class DepartmentManagement extends Component
 {
     public string $search = '';
+
     public bool $showForm = false;
+
     public bool $isEditing = false;
+
     public bool $confirmingDeletion = false;
+
     public ?int $selectedId = null;
 
-    public $name, $code, $dept_head_id;
+    public $name;
+
+    public $code;
+
+    public $dept_head_id;
 
     protected function rules(): array
     {
         return [
-            'name'         => ['required', 'string', 'max:255'],
-            'code'         => ['required', 'string', 'max:20',
-                               $this->isEditing
-                                   ? "unique:departments,code,{$this->selectedId}"
-                                   : 'unique:departments,code'],
+            'name' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:20',
+                $this->isEditing
+                    ? "unique:departments,code,{$this->selectedId}"
+                    : 'unique:departments,code'],
             'dept_head_id' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
@@ -33,8 +41,8 @@ class DepartmentManagement extends Component
         $this->validate();
 
         Department::create([
-            'name'         => $this->name,
-            'code'         => strtoupper($this->code),
+            'name' => $this->name,
+            'code' => strtoupper($this->code),
             'dept_head_id' => $this->dept_head_id ?: null,
         ]);
 
@@ -46,11 +54,11 @@ class DepartmentManagement extends Component
     {
         $dept = Department::findOrFail($id);
 
-        $this->selectedId   = $dept->id;
-        $this->name         = $dept->name;
-        $this->code         = $dept->code;
+        $this->selectedId = $dept->id;
+        $this->name = $dept->name;
+        $this->code = $dept->code;
         $this->dept_head_id = $dept->dept_head_id;
-        $this->isEditing    = true;
+        $this->isEditing = true;
     }
 
     public function update(): void
@@ -59,8 +67,8 @@ class DepartmentManagement extends Component
 
         $dept = Department::findOrFail($this->selectedId);
         $dept->update([
-            'name'         => $this->name,
-            'code'         => strtoupper($this->code),
+            'name' => $this->name,
+            'code' => strtoupper($this->code),
             'dept_head_id' => $this->dept_head_id ?: null,
         ]);
 
@@ -70,7 +78,7 @@ class DepartmentManagement extends Component
 
     public function confirmDelete(int $id): void
     {
-        $this->selectedId         = $id;
+        $this->selectedId = $id;
         $this->confirmingDeletion = true;
     }
 
@@ -93,11 +101,9 @@ class DepartmentManagement extends Component
     {
         $departments = Department::query()
             ->with('deptHead.employmentDetail')
-            ->when($this->search, fn ($q) =>
-                $q->where(fn ($inner) =>
-                    $inner->where('name', 'like', "%{$this->search}%")
-                          ->orWhere('code', 'like', "%{$this->search}%")
-                )
+            ->when($this->search, fn ($q) => $q->where(fn ($inner) => $inner->where('name', 'like', "%{$this->search}%")
+                ->orWhere('code', 'like', "%{$this->search}%")
+            )
             )
             ->orderBy('name')
             ->get();

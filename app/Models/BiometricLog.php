@@ -11,7 +11,7 @@ class BiometricLog extends Model
     ];
 
     protected $casts = [
-        'punch_time'   => 'datetime',
+        'punch_time' => 'datetime',
         'is_processed' => 'boolean',
     ];
 

@@ -22,7 +22,7 @@ class LateAlertMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Attendance Notice – Late Arrival on ' . $this->summary->attendance_date->format('F d, Y'),
+            subject: 'Attendance Notice – Late Arrival on '.$this->summary->attendance_date->format('F d, Y'),
         );
     }
 

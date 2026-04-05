@@ -12,40 +12,50 @@ class PosItems extends Component
 
     // Form visibility
     public bool $showForm = false;
+
     public bool $isEditing = false;
+
     public bool $confirmingDeletion = false;
 
     // Form fields
     public ?int $editingId = null;
+
     public ?int $deletingId = null;
+
     public string $barcode = '';
+
     public string $name = '';
+
     public string $type = '';
+
     public $image = null;          // new upload (TemporaryUploadedFile)
+
     public ?string $existingImage = null; // path of current saved image
+
     public $price = '0';
+
     public string $status = 'active';
 
     protected function rules(): array
     {
         return [
-            'name'   => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'barcode' => 'required|string|unique:items,barcode|max:255',
-            'type'   => 'nullable|string|max:100',
-            'image'  => 'nullable|image|max:2048',
-            'price'  => 'required|integer|min:0',
+            'type' => 'nullable|string|max:100',
+            'image' => 'nullable|image|max:2048',
+            'price' => 'required|integer|min:0',
             'status' => 'required|in:active,inactive',
         ];
     }
 
     protected $messages = [
-        'name.required'  => 'Item name is required.',
+        'name.required' => 'Item name is required.',
         'barcode.required' => 'Barcode is required.',
         'barcode.unique' => 'Barcode already exists.',
         'price.required' => 'Price is required.',
-        'price.integer'  => 'Price must be a whole number.',
-        'image.image'    => 'File must be an image.',
-        'image.max'      => 'Image may not exceed 2 MB.',
+        'price.integer' => 'Price must be a whole number.',
+        'image.image' => 'File must be an image.',
+        'image.max' => 'Image may not exceed 2 MB.',
     ];
 
     // ─── Save (Create) ───────────────────────────────────────────────────────
@@ -60,11 +70,11 @@ class PosItems extends Component
         }
 
         Item::create([
-            'name'   => trim($this->name),
+            'name' => trim($this->name),
             'barcode' => trim($this->barcode),
-            'type'   => trim($this->type) ?: null,
-            'image'  => $imagePath,
-            'price'  => (int) $this->price,
+            'type' => trim($this->type) ?: null,
+            'image' => $imagePath,
+            'price' => (int) $this->price,
             'status' => $this->status,
         ]);
 
@@ -79,15 +89,15 @@ class PosItems extends Component
     {
         $item = Item::findOrFail($id);
 
-        $this->editingId     = $item->id;
-        $this->name          = $item->name;
-        $this->barcode       = $item->barcode;
-        $this->type          = $item->type ?? '';
+        $this->editingId = $item->id;
+        $this->name = $item->name;
+        $this->barcode = $item->barcode;
+        $this->type = $item->type ?? '';
         $this->existingImage = $item->image;
-        $this->image         = null;
-        $this->price         = (int) $item->price;
-        $this->status        = $item->status;
-        $this->isEditing     = true;
+        $this->image = null;
+        $this->price = (int) $item->price;
+        $this->status = $item->status;
+        $this->isEditing = true;
     }
 
     public function update(): void
@@ -106,11 +116,11 @@ class PosItems extends Component
         }
 
         $item->update([
-            'name'   => trim($this->name),
+            'name' => trim($this->name),
             'barcode' => trim($this->barcode),
-            'type'   => trim($this->type) ?: null,
-            'image'  => $imagePath,
-            'price'  => (int) $this->price,
+            'type' => trim($this->type) ?: null,
+            'image' => $imagePath,
+            'price' => (int) $this->price,
             'status' => $this->status,
         ]);
 
@@ -123,7 +133,7 @@ class PosItems extends Component
 
     public function confirmDelete(int $id): void
     {
-        $this->deletingId        = $id;
+        $this->deletingId = $id;
         $this->confirmingDeletion = true;
     }
 
@@ -140,7 +150,7 @@ class PosItems extends Component
 
         session()->flash('message', "'{$name}' has been removed from the inventory.");
         $this->confirmingDeletion = false;
-        $this->deletingId         = null;
+        $this->deletingId = null;
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

@@ -25,12 +25,12 @@ class HRAccountSeeder extends Seeder
         $user = User::updateOrCreate(
             ['email' => 'glenlozada0@gmail.com'],
             [
-                'employee_number'   => $empNumber,
-                'name'              => 'Glen Lozada',
-                'username'          => 'hradmin',
+                'employee_number' => $empNumber,
+                'name' => 'Glen Lozada',
+                'username' => 'hradmin',
                 'email_verified_at' => now(),
-                'password'          => Hash::make('password123'),
-                'is_active'         => 1,
+                'password' => Hash::make('password123'),
+                'is_active' => 1,
             ]
         );
 
@@ -38,47 +38,47 @@ class HRAccountSeeder extends Seeder
         Employee::updateOrCreate(
             ['employee_number' => $empNumber],
             [
-                'user_id'        => $user->id,
-                'last_name'      => 'Lozada',
-                'first_name'     => 'Glen',
-                'middle_name'    => 'Santos',
-                'birth_date'     => '1990-05-15',
+                'user_id' => $user->id,
+                'last_name' => 'Lozada',
+                'first_name' => 'Glen',
+                'middle_name' => 'Santos',
+                'birth_date' => '1990-05-15',
                 'place_of_birth' => 'Sison, Pangasinan',
-                'gender'         => 'Male',
-                'civil_status'   => 'Single',
-                'citizenship'    => 'Filipino',
-                'religion'       => 'Seventh-day Adventist',
-                'blood_type'     => 'O+',
-                'height'         => '170',
-                'weight'         => '68',
-                'mobile_no'      => '09171234567',
-                'email_add'      => 'glenlozada0@gmail.com',
-                'p_address'      => 'Brgy. Center, Sison, Pangasinan',
-                'c_address'      => 'Brgy. Center, Sison, Pangasinan',
+                'gender' => 'Male',
+                'civil_status' => 'Single',
+                'citizenship' => 'Filipino',
+                'religion' => 'Seventh-day Adventist',
+                'blood_type' => 'O+',
+                'height' => '170',
+                'weight' => '68',
+                'mobile_no' => '09171234567',
+                'email_add' => 'glenlozada0@gmail.com',
+                'p_address' => 'Brgy. Center, Sison, Pangasinan',
+                'c_address' => 'Brgy. Center, Sison, Pangasinan',
                 'contact_person' => 'Maria Lozada',
                 'contact_number' => '09281234567',
             ]
         );
 
         // Employment details — keyed on employee_id (employee table PK)
-        $employeeRecord = \App\Models\Employee::where('employee_number', $empNumber)->first();
+        $employeeRecord = Employee::where('employee_number', $empNumber)->first();
         EmploymentDetail::updateOrCreate(
             ['employee_id' => $employeeRecord->id],
             [
-                'department_id'       => $deptHR->id,
-                'position'            => 'HR Manager',
-                'rank'                => 'SG-18',
-                'employment_status'   => 'Regular',
-                'hiring_date'         => '2020-01-06',
+                'department_id' => $deptHR->id,
+                'position' => 'HR Manager',
+                'rank' => 'SG-18',
+                'employment_status' => 'Regular',
+                'hiring_date' => '2020-01-06',
                 'regularization_date' => '2020-07-06',
-                'license_no'          => null,
-                'license_expiry'      => null,
-                're_membership'       => false,
-                'philhealth_no'       => '12-345678901-2',
-                'pagibig_no'          => '1234-5678-9012',
-                'tin_no'              => '123-456-789-000',
-                'sss_no'              => '12-3456789-0',
-                'gsis_no'             => null,
+                'license_no' => null,
+                'license_expiry' => null,
+                're_membership' => false,
+                'philhealth_no' => '12-345678901-2',
+                'pagibig_no' => '1234-5678-9012',
+                'tin_no' => '123-456-789-000',
+                'sss_no' => '12-3456789-0',
+                'gsis_no' => null,
             ]
         );
 

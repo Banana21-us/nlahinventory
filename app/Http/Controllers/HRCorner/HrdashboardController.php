@@ -3,18 +3,20 @@
 namespace App\Http\Controllers\HRCorner;
 
 use App\Http\Controllers\Controller;
+use App\Models\Leave;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
-use App\Models\Leave;
-use Carbon\Carbon;
+use Illuminate\View\View;
 
 class HrdashboardController extends Controller
 {
     /**
      * Display the HR dashboard.
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function index()
     {
@@ -25,7 +27,7 @@ class HrdashboardController extends Controller
         $upcomingLeaves = $this->getUpcomingLeaves();
         $pendingLeaves = $this->getPendingLeaves();
         $departmentStats = $this->getDepartmentStats();
-        
+
         return view('pages.HR.hrdashboard', compact(
             'stats',
             'roleDistribution',
@@ -46,7 +48,7 @@ class HrdashboardController extends Controller
     {
         try {
             $totalEmployees = User::count();
-            
+
             // Count users by position (role column removed — derived from employment_details.position)
             $positionCounts = DB::table('employment_details')
                 ->select('position', DB::raw('count(*) as total'))
@@ -54,31 +56,31 @@ class HrdashboardController extends Controller
                 ->groupBy('position')
                 ->pluck('total', 'position');
 
-            $staff      = $positionCounts->get('Staff', 0);
-            $hr         = $positionCounts->get('HR Manager', 0);
-            $deptHeads  = $positionCounts->get('Department_Head', 0);
+            $staff = $positionCounts->get('Staff', 0);
+            $hr = $positionCounts->get('HR Manager', 0);
+            $deptHeads = $positionCounts->get('Department_Head', 0);
             $maintenance = $positionCounts->get('Maintenance', 0);
             $inspectors = $positionCounts->get('Inspector', 0);
-            
+
             // Current employees on leave
             $onLeave = Leave::where('status', 'approved')
                 ->whereDate('startdate', '<=', now())
                 ->whereDate('enddate', '>=', now())
                 ->count();
-            
+
             // New hires this month
             $newHires = User::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->count();
-            
+
             // Pending leave requests
             $pendingLeaves = Leave::where('status', 'pending')->count();
-            
+
             // Approved leaves this month
             $approvedLeaves = Leave::where('status', 'approved')
                 ->whereMonth('created_at', now()->month)
                 ->count();
-            
+
             return [
                 'total_employees' => $totalEmployees,
                 'staff' => $staff,
@@ -120,35 +122,35 @@ class HrdashboardController extends Controller
                 ->whereNotNull('position')
                 ->groupBy('position')
                 ->get();
-            
+
             $colors = [
                 'Staff' => '#3b82f6',
                 'HR' => '#10b981',
                 'Department_Head' => '#8b5cf6',
                 'Maintenance' => '#f59e0b',
-                'Inspector' => '#ef4444'
+                'Inspector' => '#ef4444',
             ];
-            
+
             $labels = [];
             $data = [];
             $colorValues = [];
-            
+
             foreach ($roles as $role) {
                 $labels[] = str_replace('_', ' ', $role->role ?? 'Unknown');
                 $data[] = $role->total ?? 0;
                 $colorValues[] = $colors[$role->role] ?? '#6b7280';
             }
-            
+
             return [
                 'labels' => $labels,
                 'data' => $data,
-                'colors' => $colorValues
+                'colors' => $colorValues,
             ];
         } catch (\Exception $e) {
             return [
                 'labels' => [],
                 'data' => [],
-                'colors' => []
+                'colors' => [],
             ];
         }
     }
@@ -166,26 +168,26 @@ class HrdashboardController extends Controller
                 ->whereYear('created_at', now()->year)
                 ->groupBy('leavetype')
                 ->get();
-            
+
             // Leave by status
             $leaveByStatus = Leave::select('status', DB::raw('count(*) as total'))
                 ->whereYear('created_at', now()->year)
                 ->groupBy('status')
                 ->get();
-            
+
             // Monthly leave trends
             $monthlyLeaves = [];
             $months = [];
-            
+
             for ($i = 5; $i >= 0; $i--) {
                 $date = now()->subMonths($i);
                 $months[] = $date->format('M');
-                
+
                 $monthlyLeaves[] = Leave::whereMonth('created_at', $date->month)
                     ->whereYear('created_at', $date->year)
                     ->count();
             }
-            
+
             // Department wise leave distribution
             $deptLeaves = DB::table('leaves')
                 ->join('users', 'leaves.user_id', '=', 'users.id')
@@ -193,39 +195,39 @@ class HrdashboardController extends Controller
                 ->whereYear('leaves.created_at', now()->year)
                 ->groupBy('users.department')
                 ->get();
-            
+
             return [
                 'by_type' => [
                     'labels' => $leaveByType->pluck('leavetype')->toArray(),
                     'data' => $leaveByType->pluck('total')->toArray(),
-                    'colors' => ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6']
+                    'colors' => ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'],
                 ],
                 'by_status' => [
-                    'labels' => $leaveByStatus->pluck('status')->map(function($s) {
+                    'labels' => $leaveByStatus->pluck('status')->map(function ($s) {
                         return $s ? ucfirst($s) : 'Unknown';
                     })->toArray(),
                     'data' => $leaveByStatus->pluck('total')->toArray(),
                     'colors' => [
                         'pending' => '#f59e0b',
                         'approved' => '#10b981',
-                        'rejected' => '#ef4444'
-                    ]
+                        'rejected' => '#ef4444',
+                    ],
                 ],
                 'monthly_trend' => [
                     'labels' => $months,
-                    'data' => $monthlyLeaves
+                    'data' => $monthlyLeaves,
                 ],
                 'by_department' => [
                     'labels' => $deptLeaves->pluck('department')->toArray(),
-                    'data' => $deptLeaves->pluck('total')->toArray()
-                ]
+                    'data' => $deptLeaves->pluck('total')->toArray(),
+                ],
             ];
         } catch (\Exception $e) {
             return [
                 'by_type' => ['labels' => [], 'data' => [], 'colors' => []],
                 'by_status' => ['labels' => [], 'data' => [], 'colors' => []],
                 'monthly_trend' => ['labels' => [], 'data' => []],
-                'by_department' => ['labels' => [], 'data' => []]
+                'by_department' => ['labels' => [], 'data' => []],
             ];
         }
     }
@@ -242,7 +244,7 @@ class HrdashboardController extends Controller
                 ->latest()
                 ->take(5)
                 ->get();
-            
+
             $result = [];
             foreach ($leaves as $leave) {
                 if ($leave->user) {
@@ -262,7 +264,7 @@ class HrdashboardController extends Controller
                     ];
                 }
             }
-            
+
             return $result;
         } catch (\Exception $e) {
             return [];
@@ -284,7 +286,7 @@ class HrdashboardController extends Controller
                 ->orderBy('startdate')
                 ->take(5)
                 ->get();
-            
+
             $result = [];
             foreach ($leaves as $leave) {
                 if ($leave->user) {
@@ -300,7 +302,7 @@ class HrdashboardController extends Controller
                     ];
                 }
             }
-            
+
             return $result;
         } catch (\Exception $e) {
             return [];
@@ -320,7 +322,7 @@ class HrdashboardController extends Controller
                 ->latest()
                 ->take(5)
                 ->get();
-            
+
             $result = [];
             foreach ($leaves as $leave) {
                 if ($leave->user) {
@@ -337,7 +339,7 @@ class HrdashboardController extends Controller
                     ];
                 }
             }
-            
+
             return $result;
         } catch (\Exception $e) {
             return [];
@@ -356,7 +358,7 @@ class HrdashboardController extends Controller
                 ->whereNotNull('department')
                 ->groupBy('department')
                 ->get();
-            
+
             $result = [];
             foreach ($departments as $dept) {
                 $onLeave = Leave::join('users', 'leaves.user_id', '=', 'users.id')
@@ -365,17 +367,17 @@ class HrdashboardController extends Controller
                     ->whereDate('leaves.startdate', '<=', now())
                     ->whereDate('leaves.enddate', '>=', now())
                     ->count();
-                
-                $deptData = new \stdClass();
+
+                $deptData = new \stdClass;
                 $deptData->department = $dept->department;
                 $deptData->total_employees = $dept->total_employees;
                 $deptData->on_leave = $onLeave;
                 $deptData->present = $dept->total_employees - $onLeave;
-                $deptData->color = '#' . substr(md5($dept->department ?? 'default'), 0, 6);
-                
+                $deptData->color = '#'.substr(md5($dept->department ?? 'default'), 0, 6);
+
                 $result[] = $deptData;
             }
-            
+
             return $result;
         } catch (\Exception $e) {
             return [];
@@ -385,8 +387,8 @@ class HrdashboardController extends Controller
     /**
      * Approve a leave request.
      *
-     * @param int $leaveId
-     * @return \Illuminate\Http\RedirectResponse
+     * @param  int  $leaveId
+     * @return RedirectResponse
      */
     public function approveLeave($leaveId)
     {
@@ -396,21 +398,21 @@ class HrdashboardController extends Controller
                 $leave->status = 'approved';
                 $leave->approved_by = auth()->user()->name ?? 'System';
                 $leave->save();
-                
+
                 return redirect()->back()->with('message', 'Leave approved successfully.');
             }
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error approving leave: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error approving leave: '.$e->getMessage());
         }
-        
+
         return redirect()->back();
     }
 
     /**
      * Reject a leave request.
      *
-     * @param int $leaveId
-     * @return \Illuminate\Http\RedirectResponse
+     * @param  int  $leaveId
+     * @return RedirectResponse
      */
     public function rejectLeave($leaveId)
     {
@@ -419,13 +421,13 @@ class HrdashboardController extends Controller
             if ($leave) {
                 $leave->status = 'rejected';
                 $leave->save();
-                
+
                 return redirect()->back()->with('message', 'Leave rejected successfully.');
             }
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error rejecting leave: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error rejecting leave: '.$e->getMessage());
         }
-        
+
         return redirect()->back();
     }
 }

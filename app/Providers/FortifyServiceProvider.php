@@ -5,17 +5,17 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Models\Department;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Laravel\Fortify\Fortify;
-use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
-use Illuminate\Support\Facades\Auth;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
+use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -31,18 +31,19 @@ class FortifyServiceProvider extends ServiceProvider
      * Bootstrap any application services.
      */
     public function boot(): void
-    {   
+    {
         Fortify::createUsersUsing(CreateNewUser::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
         // Block disabled users at login
         Fortify::authenticateUsing(function (Request $request) {
-           $user = User::where('username', $request->username)->first();
+            $user = User::where('username', $request->username)->first();
 
             if ($user && Hash::check($request->password, $user->password)) {
                 if (! $user->is_active) {
                     return null; // Reject login silently, shows auth.failed message
                 }
+
                 return $user;
             }
 
@@ -54,24 +55,26 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
 
         $this->app->singleton(RegisterResponseContract::class, function () {
-        return new class implements RegisterResponseContract {
-            public function toResponse($request)
-            {   
-                $request->user()->sendEmailVerificationNotification();
-                // Force logout any user the Fortify Controller just logged in
-                Auth::guard('web')->logout();
+            return new class implements RegisterResponseContract
+            {
+                public function toResponse($request)
+                {
+                    $request->user()->sendEmailVerificationNotification();
+                    // Force logout any user the Fortify Controller just logged in
+                    Auth::guard('web')->logout();
 
-                // Clear the session to be safe
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
+                    // Clear the session to be safe
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
 
-                   return redirect()->route('login')
-                ->with('status', 'Registration successful! Please check your email to verify your account before logging in.');
-            }
-        };
-    });
-    $this->app->singleton(LoginResponseContract::class, function () {
-            return new class implements LoginResponseContract {
+                    return redirect()->route('login')
+                        ->with('status', 'Registration successful! Please check your email to verify your account before logging in.');
+                }
+            };
+        });
+        $this->app->singleton(LoginResponseContract::class, function () {
+            return new class implements LoginResponseContract
+            {
                 public function toResponse($request)
                 {
                     $user = Auth::user();
@@ -83,12 +86,12 @@ class FortifyServiceProvider extends ServiceProvider
                     // Access the position column via the relationship
                     $position = $user->employmentDetail?->position;
 
-                    return match($position) {
-                        'HR Manager'   => redirect()->route('HR.hrdashboard'),
-                        'Housekeeping'  => redirect()->route('Maintenance.dashboard'),
-                        'Maintenance_Head'    => redirect()->route('Maintenance.checklist.verify'),
-                        'Cashier'      => redirect()->route('pos.dashboard'),
-                        'Staff'        => redirect()->route('users.leaveform'),
+                    return match ($position) {
+                        'HR Manager' => redirect()->route('HR.hrdashboard'),
+                        'Housekeeping' => redirect()->route('Maintenance.dashboard'),
+                        'Maintenance_Head' => redirect()->route('Maintenance.checklist.verify'),
+                        'Cashier' => redirect()->route('pos.dashboard'),
+                        'Staff' => redirect()->route('users.leaveform'),
                         // default        => redirect()->route('users.waiting')
                         //     ->withErrors(['email' => 'Your position is not assigned to a dashboard.']),
                     };

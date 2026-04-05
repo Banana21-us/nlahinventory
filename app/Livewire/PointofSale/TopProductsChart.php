@@ -1,5 +1,7 @@
 <?php
+
 // ── TopProductsChart ──────────────────────────────────────────────────────────
+
 namespace App\Livewire\PointofSale;
 
 use App\Models\SaleItem;
@@ -17,9 +19,9 @@ class TopProductsChart extends Component
             ->orderByDesc('total_revenue')
             ->limit(6)
             ->get()
-            ->map(fn($si) => [
-                'name'    => $si->item?->name ?? 'Unknown',
-                'qty'     => (int) $si->total_qty,
+            ->map(fn ($si) => [
+                'name' => $si->item?->name ?? 'Unknown',
+                'qty' => (int) $si->total_qty,
                 'revenue' => (float) $si->total_revenue,
             ])
             ->toArray();

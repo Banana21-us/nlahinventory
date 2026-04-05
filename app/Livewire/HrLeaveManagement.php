@@ -6,7 +6,6 @@ use App\Mail\LeaveCancellationResultMail;
 use App\Mail\LeaveHRResultMail;
 use App\Mail\LeaveStatusUpdateMail;
 use App\Models\Leave;
-use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -17,11 +16,14 @@ class HrLeaveManagement extends Component
 {
     // Filter & Search States
     public $search = '';
+
     public $statusFilter = 'all';
 
     // Modal & Review States
     public $selectedLeaveId = null;
+
     public $hrRemarks = '';
+
     public $isReviewing = false;
 
     #[Computed]
@@ -30,8 +32,8 @@ class HrLeaveManagement extends Component
         return Leave::with(['user.employmentDetail.department'])
             ->when($this->search, function ($query) {
                 $query->whereHas('user', function ($q) {
-                    $q->where('username', 'like', '%' . $this->search . '%')
-                      ->orWhere('name', 'like', '%' . $this->search . '%');
+                    $q->where('username', 'like', '%'.$this->search.'%')
+                        ->orWhere('name', 'like', '%'.$this->search.'%');
                 });
             })
             ->when($this->statusFilter !== 'all', function ($query) {
@@ -88,10 +90,10 @@ class HrLeaveManagement extends Component
         $leave = Leave::findOrFail($this->selectedLeaveId);
 
         $leave->update([
-            'hr_status'      => 'approved',
-            'remarks'        => $this->hrRemarks,
+            'hr_status' => 'approved',
+            'remarks' => $this->hrRemarks,
             'hr_approved_at' => now(),
-            'approved_by'    => Auth::id(),
+            'approved_by' => Auth::id(),
         ]);
 
         $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
@@ -113,9 +115,9 @@ class HrLeaveManagement extends Component
         $leave = Leave::findOrFail($this->selectedLeaveId);
 
         $leave->update([
-            'hr_status'        => 'rejected',
+            'hr_status' => 'rejected',
             'rejection_reason' => $this->hrRemarks,
-            'remarks'          => $this->hrRemarks,
+            'remarks' => $this->hrRemarks,
         ]);
 
         $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
@@ -131,8 +133,8 @@ class HrLeaveManagement extends Component
         $leave = Leave::findOrFail($this->selectedLeaveId);
 
         $leave->update([
-            'hr_status'   => 'cancelled',
-            'remarks'     => $this->hrRemarks ?: 'Cancellation approved by HR.',
+            'hr_status' => 'cancelled',
+            'remarks' => $this->hrRemarks ?: 'Cancellation approved by HR.',
             'approved_by' => Auth::id(),
         ]);
 
@@ -155,7 +157,7 @@ class HrLeaveManagement extends Component
 
         $leave->update([
             'hr_status' => 'approved',
-            'remarks'   => $this->hrRemarks,
+            'remarks' => $this->hrRemarks,
         ]);
 
         $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
@@ -175,8 +177,8 @@ class HrLeaveManagement extends Component
             } catch (\Exception $e) {
                 Log::error('LeaveCancellationResultMail (staff) failed', [
                     'leave_id' => $leave->id,
-                    'email'    => $staffEmail,
-                    'error'    => $e->getMessage(),
+                    'email' => $staffEmail,
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -189,8 +191,8 @@ class HrLeaveManagement extends Component
             } catch (\Exception $e) {
                 Log::error('LeaveCancellationResultMail (dhead) failed', [
                     'leave_id' => $leave->id,
-                    'email'    => $deptHeadEmail,
-                    'error'    => $e->getMessage(),
+                    'email' => $deptHeadEmail,
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -201,6 +203,7 @@ class HrLeaveManagement extends Component
         $email = $leave->user?->email;
         if (! $email) {
             Log::warning('LeaveStatusUpdateMail: user has no email', ['leave_id' => $leave->id]);
+
             return;
         }
 
@@ -209,8 +212,8 @@ class HrLeaveManagement extends Component
         } catch (\Exception $e) {
             Log::error('LeaveStatusUpdateMail failed', [
                 'leave_id' => $leave->id,
-                'email'    => $email,
-                'error'    => $e->getMessage(),
+                'email' => $email,
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -227,8 +230,8 @@ class HrLeaveManagement extends Component
         } catch (\Exception $e) {
             Log::error('LeaveHRResultMail failed', [
                 'leave_id' => $leave->id,
-                'email'    => $email,
-                'error'    => $e->getMessage(),
+                'email' => $email,
+                'error' => $e->getMessage(),
             ]);
         }
     }

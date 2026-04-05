@@ -12,31 +12,31 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payroll_and_leaves', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('user_id');
+            $table->id();
+            $table->unsignedBigInteger('user_id');
 
-        // Financials
-        $table->decimal('salary_rate', 15, 2)->default(0);
-        $table->decimal('daily_rate', 10, 2)->default(0);
-        $table->decimal('monthly_rate', 15, 2)->default(0);
-        $table->decimal('cola', 10, 2)->default(0);
-        $table->decimal('grocery_allowance', 10, 2)->default(0);
-        
-        // Night Differential Factor
-        $table->decimal('night_diff_factor', 5, 2)->default(1.10); // 10% Premium
+            // Financials
+            $table->decimal('salary_rate', 15, 2)->default(0);
+            $table->decimal('daily_rate', 10, 2)->default(0);
+            $table->decimal('monthly_rate', 15, 2)->default(0);
+            $table->decimal('cola', 10, 2)->default(0);
+            $table->decimal('grocery_allowance', 10, 2)->default(0);
 
-        // Leave Balances (Running Totals)
-        $table->decimal('vl_total', 8, 2)->default(0); // Vacation
-        $table->decimal('vl_consumed', 8, 2)->default(0);
-        
-        $table->decimal('sl_total', 8, 2)->default(0); // Sick
-        $table->decimal('sl_consumed', 8, 2)->default(0);
-        
-        $table->decimal('spl_total', 8, 2)->default(0); // Solo Parent
-        $table->decimal('el_total', 8, 2)->default(0);  // Emergency
+            // Night Differential Factor
+            $table->decimal('night_diff_factor', 5, 2)->default(1.10); // 10% Premium
 
-        $table->timestamps();
-    });
+            // Leave Balances (Running Totals)
+            $table->decimal('vl_total', 8, 2)->default(0); // Vacation
+            $table->decimal('vl_consumed', 8, 2)->default(0);
+
+            $table->decimal('sl_total', 8, 2)->default(0); // Sick
+            $table->decimal('sl_consumed', 8, 2)->default(0);
+
+            $table->decimal('spl_total', 8, 2)->default(0); // Solo Parent
+            $table->decimal('el_total', 8, 2)->default(0);  // Emergency
+
+            $table->timestamps();
+        });
     }
 
     /**

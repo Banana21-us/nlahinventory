@@ -18,7 +18,7 @@ class LeaveHRResultMail extends Mailable
     public function envelope(): Envelope
     {
         $status = ucfirst($this->leave->hr_status);
-        $name   = $this->leave->user?->name ?? 'Staff';
+        $name = $this->leave->user?->name ?? 'Staff';
 
         return new Envelope(
             subject: "[Leave {$status}] HR decision for {$name} · {$this->leave->leave_type}",
@@ -30,7 +30,7 @@ class LeaveHRResultMail extends Mailable
         return new Content(
             view: 'emails.leave-hr-result',
             with: [
-                'leave'     => $this->leave,
+                'leave' => $this->leave,
                 'portalUrl' => route('users.dhead-leave'),
             ],
         );

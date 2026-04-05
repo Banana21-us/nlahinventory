@@ -28,23 +28,23 @@ class SalesTrendChart extends Component
             ->get()
             ->keyBy('date');
 
-        $labels  = [];
+        $labels = [];
         $revenue = [];
         $txCount = [];
 
         for ($i = $days - 1; $i >= 0; $i--) {
-            $date      = now()->subDays($i)->toDateString();
-            $labels[]  = now()->subDays($i)->format($days <= 7 ? 'D' : 'M d');
+            $date = now()->subDays($i)->toDateString();
+            $labels[] = now()->subDays($i)->format($days <= 7 ? 'D' : 'M d');
             $revenue[] = (float) ($sales[$date]->revenue ?? 0);
             $txCount[] = (int) ($sales[$date]->transactions ?? 0);
         }
 
         return [
-            'labels'       => $labels,
-            'revenue'      => $revenue,
+            'labels' => $labels,
+            'revenue' => $revenue,
             'transactions' => $txCount,
-            'total'        => array_sum($revenue),
-            'peak'         => max($revenue ?: [0]),
+            'total' => array_sum($revenue),
+            'peak' => max($revenue ?: [0]),
         ];
     }
 

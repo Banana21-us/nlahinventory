@@ -12,11 +12,11 @@ class Department extends Model
 
     public function deptHead()
     {
-        return $this->belongsTo(\App\Models\User::class, 'dept_head_id');
+        return $this->belongsTo(User::class, 'dept_head_id');
     }
 
     public function users()
     {
-        return $this->hasMany(\App\Models\User::class, 'department_id');
+        return $this->hasMany(User::class, 'department_id');
     }
 }

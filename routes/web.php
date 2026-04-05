@@ -1,50 +1,44 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LeaveResponseController;
-use App\Livewire\About;
+use App\Http\Controllers\NewsEventController;
+use App\Livewire\AttendanceManagement;
+use App\Livewire\Dashboard;
+use App\Livewire\DepartmentManagement;
+use App\Livewire\DHead;
+use App\Livewire\DispenseMedicine;
+use App\Livewire\EmployeeManagement;
+use App\Livewire\Home;
+use App\Livewire\HR;
+use App\Livewire\HRCorner;
+use App\Livewire\HrLeaveManagement;
+use App\Livewire\LeaveForm;
+use App\Livewire\MaintenanceDashboard;
 use App\Livewire\Medicines;
 use App\Livewire\News;
-use App\Livewire\PatientManager;
 use App\Livewire\PatientDetail;
-use App\Livewire\Dashboard;
-use App\Livewire\DispenseMedicine;
-use App\Livewire\Home;
-use App\Livewire\Services;
-use App\Livewire\Landing;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
-use Illuminate\Http\Request;
-use App\Models\User;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Volt\Volt;
-use App\Http\Controllers\NewsEventController;
-use App\Livewire\HR;
-use App\Livewire\LeaveForm;
-use App\Http\Controllers\FeedbackController;
-use App\Livewire\HRCorner;
-use App\Livewire\PointOfSale\Posdashboard;
+use App\Livewire\PatientManager;
+use App\Livewire\PayrollCompliance;
 use App\Livewire\PointOfSale\POS;
+use App\Livewire\PointOfSale\PosCustomer;
+use App\Livewire\PointOfSale\Posdashboard;
 use App\Livewire\PointOfSale\PosInventory;
 use App\Livewire\PointOfSale\PosItems;
 use App\Livewire\PointOfSale\PosSales;
-use App\Livewire\PointOfSale\PosCustomer;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 
-use App\Livewire\LeaveRequest;
-use App\Livewire\HrLeaveManagement;
-use App\Livewire\DHead;
-use App\Livewire\PayrollCompliance;
-use App\Livewire\EmployeeManagement;
-use App\Livewire\AttendanceManagement;
-use App\Livewire\DepartmentManagement;
-use App\Livewire\MaintenanceDashboard;
 // Route::get('/', function () {
 //     return view('welcome');
 // })->name('home');
 
 // Email verification routes
 Route::get('/email/verify', function () {
-     return view('pages::auth.verify-email'); 
+    return view('pages::auth.verify-email');
 })->middleware('auth')->name('verification.notice');
 
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
@@ -66,13 +60,14 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
 Route::post('/email/resend', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
+
     return back()->with('message', 'Verification link sent!');
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 // Staff routes
 // Route::middleware(['auth', 'verified', 'can:access-medical'])
-//     ->prefix('medmission') 
-//     ->name('medmission.')  
+//     ->prefix('medmission')
+//     ->name('medmission.')
 //     ->group(function () {
 //         Route::get('/dashboard', Dashboard::class)->name('dashboard');
 //         Route::get('/dispense', DispenseMedicine::class)->name('dispense');
@@ -80,7 +75,7 @@ Route::post('/email/resend', function (Request $request) {
 //         Route::get('/patients', PatientManager::class)->name('patients');
 //         Route::get('/patients/{id}', PatientDetail::class)->name('patient.details');
 //     });
-    
+
 // HR Routes
 Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/news', News::class)->name('NewsPage.newshr');
@@ -94,19 +89,19 @@ Route::middleware('can:access-hr-only')->group(function () {
 });
 
 // Maintenance routes
-Route::middleware(['auth','can:access-maintenance'])->group(function () {
+Route::middleware(['auth', 'can:access-maintenance'])->group(function () {
     Route::get('/Maintenance/dashboard', MaintenanceDashboard::class)->name('Maintenance.dashboard');
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
 // Verify routes
-Route::middleware(['auth','can:access-verify'])->group(function () {
+Route::middleware(['auth', 'can:access-verify'])->group(function () {
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
-    // Cashier routes
-Route::middleware(['auth','can:access-cashier-only'])->group(function () {
+// Cashier routes
+Route::middleware(['auth', 'can:access-cashier-only'])->group(function () {
     Route::get('/pos/dashboard', Posdashboard::class)->name('pos.dashboard');
     Route::get('/pos', POS::class)->name('pos.main');
     Route::get('/pos/inventory', PosInventory::class)->name('pos.inventory');
@@ -116,8 +111,10 @@ Route::middleware(['auth','can:access-cashier-only'])->group(function () {
 });
 
 // Public NLAH routes
-Route::get('/', function () {return redirect()->route('nlah.home');})->name('home');
-    Route::prefix('nlah')->name('nlah.')->group(function () {
+Route::get('/', function () {
+    return redirect()->route('nlah.home');
+})->name('home');
+Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::view('/home', 'nlah.home')->name('home');
     Route::view('/about', 'nlah.about')->name('about');
     Route::view('/services', 'nlah.services')->name('services');
@@ -139,6 +136,6 @@ Route::get('/leave/{leave}/respond/{action}', [LeaveResponseController::class, '
 // under dev
 Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
 Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
-Route::get('/waiting', fn() => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
+Route::get('/waiting', fn () => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
 
 require __DIR__.'/settings.php';

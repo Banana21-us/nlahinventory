@@ -14,18 +14,18 @@ class EmploymentDetail extends Model
     ];
 
     protected $casts = [
-        'hiring_date'         => 'date',
+        'hiring_date' => 'date',
         'regularization_date' => 'date',
-        'license_expiry'      => 'date',
+        'license_expiry' => 'date',
     ];
 
     public function employee()
     {
-        return $this->belongsTo(\App\Models\Employee::class, 'employee_id');
+        return $this->belongsTo(Employee::class, 'employee_id');
     }
 
     public function department()
     {
-        return $this->belongsTo(\App\Models\Department::class, 'department_id');
+        return $this->belongsTo(Department::class, 'department_id');
     }
 }

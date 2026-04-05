@@ -2,8 +2,8 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\Patient;
+use Livewire\Component;
 
 class PatientDetail extends Component
 {
@@ -18,7 +18,7 @@ class PatientDetail extends Component
     public function render()
     {
         return view('pages.medmission.patient-detail', [
-            'history' => $this->patient->dispensings()->latest()->get()
+            'history' => $this->patient->dispensings()->latest()->get(),
         ])->layout('layouts.app');
     }
 }

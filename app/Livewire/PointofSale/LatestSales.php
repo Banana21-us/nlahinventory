@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Livewire\PointofSale;
 
 use App\Models\Sale;

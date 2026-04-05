@@ -14,10 +14,10 @@ class NewsEventController extends Controller
     {
         // Fetch records from news_events table with pagination (9 per page)
         $newsEvents = DB::table('news_events')
-                        ->orderBy('date', 'desc')
-                        ->paginate(9)
-                        ->withQueryString(); // Maintains query parameters in pagination links
-        
+            ->orderBy('date', 'desc')
+            ->paginate(9)
+            ->withQueryString(); // Maintains query parameters in pagination links
+
         return view('nlah.news', compact('newsEvents'));
     }
 
@@ -28,12 +28,12 @@ class NewsEventController extends Controller
     {
         // Fetch a single record by ID
         $newsItem = DB::table('news_events')->where('id', $id)->first();
-        
+
         // If not found, return 404
-        if (!$newsItem) {
+        if (! $newsItem) {
             abort(404, 'News/Event not found');
         }
-        
+
         return view('nlah.news-detail', compact('newsItem'));
     }
 
@@ -43,11 +43,11 @@ class NewsEventController extends Controller
     public function byCategory(Request $request, $category)
     {
         $newsEvents = DB::table('news_events')
-                        ->where('category', $category)
-                        ->orderBy('date', 'desc')
-                        ->paginate(9)
-                        ->withQueryString();
-        
+            ->where('category', $category)
+            ->orderBy('date', 'desc')
+            ->paginate(9)
+            ->withQueryString();
+
         return view('nlah.news', compact('newsEvents', 'category'));
     }
 
@@ -58,13 +58,13 @@ class NewsEventController extends Controller
     {
         // Capitalize first letter to match database (News/Event)
         $type = ucfirst(strtolower($type));
-        
+
         $newsEvents = DB::table('news_events')
-                        ->where('type', $type)
-                        ->orderBy('date', 'desc')
-                        ->paginate(9)
-                        ->withQueryString();
-        
+            ->where('type', $type)
+            ->orderBy('date', 'desc')
+            ->paginate(9)
+            ->withQueryString();
+
         return view('nlah.news', compact('newsEvents', 'type'));
     }
 
@@ -74,8 +74,8 @@ class NewsEventController extends Controller
     public function latest($limit = 3)
     {
         return DB::table('news_events')
-                 ->orderBy('date', 'desc')
-                 ->limit($limit)
-                 ->get();
+            ->orderBy('date', 'desc')
+            ->limit($limit)
+            ->get();
     }
 }

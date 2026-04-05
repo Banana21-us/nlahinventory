@@ -9,7 +9,9 @@ use Livewire\Component;
 class MaintenanceDashboard extends Component
 {
     public bool $showModal = false;
+
     public string $modalPeriod = '';
+
     public $modalRows = null;
 
     public function openModal(string $period): void
@@ -18,30 +20,30 @@ class MaintenanceDashboard extends Component
             return;
         }
 
-        $now        = Carbon::now('Asia/Manila');
-        $today      = $now->toDateString();
-        $weekStart  = $now->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
-        $weekEnd    = $now->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
+        $now = Carbon::now('Asia/Manila');
+        $today = $now->toDateString();
+        $weekStart = $now->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+        $weekEnd = $now->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
         $monthStart = $now->copy()->startOfMonth()->toDateString();
-        $monthEnd   = $now->copy()->endOfMonth()->toDateString();
+        $monthEnd = $now->copy()->endOfMonth()->toDateString();
 
         $this->modalPeriod = $period;
-        $this->showModal   = true;
+        $this->showModal = true;
 
         $this->modalRows = DB::table('location_area_parts as lap')
             ->join('area_parts as ap', 'ap.id', '=', 'lap.area_part_id')
             ->join('locations as l', 'l.id', '=', 'lap.location_id')
             ->leftJoin('records as r', function ($join) use ($period, $today, $weekStart, $weekEnd, $monthStart, $monthEnd) {
                 $join->on('r.location_area_part_id', '=', 'lap.id')
-                     ->where('r.period_type', '=', $period);
+                    ->where('r.period_type', '=', $period);
                 if (in_array($period, ['daily', 'nightly'])) {
                     $join->where('r.cleaning_date', '=', $today);
                 } elseif ($period === 'weekly') {
                     $join->where('r.cleaning_date', '>=', $weekStart)
-                         ->where('r.cleaning_date', '<=', $weekEnd);
+                        ->where('r.cleaning_date', '<=', $weekEnd);
                 } elseif ($period === 'monthly') {
                     $join->where('r.cleaning_date', '>=', $monthStart)
-                         ->where('r.cleaning_date', '<=', $monthEnd);
+                        ->where('r.cleaning_date', '<=', $monthEnd);
                 }
             })
             ->where('lap.frequency', '=', $period)
@@ -63,24 +65,24 @@ class MaintenanceDashboard extends Component
 
     public function closeModal(): void
     {
-        $this->showModal   = false;
-        $this->modalRows   = null;
+        $this->showModal = false;
+        $this->modalRows = null;
         $this->modalPeriod = '';
     }
 
     public function render()
     {
-        $now        = Carbon::now('Asia/Manila');
-        $today      = $now->toDateString();
-        $weekStart  = $now->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
-        $weekEnd    = $now->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
+        $now = Carbon::now('Asia/Manila');
+        $today = $now->toDateString();
+        $weekStart = $now->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+        $weekEnd = $now->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
         $monthStart = $now->copy()->startOfMonth()->toDateString();
-        $monthEnd   = $now->copy()->endOfMonth()->toDateString();
+        $monthEnd = $now->copy()->endOfMonth()->toDateString();
 
         // Totals from master list (how many parts exist per period)
-        $dailyTotal   = DB::table('location_area_parts')->where('frequency', 'daily')->count();
+        $dailyTotal = DB::table('location_area_parts')->where('frequency', 'daily')->count();
         $nightlyTotal = DB::table('location_area_parts')->where('frequency', 'nightly')->count();
-        $weeklyTotal  = DB::table('location_area_parts')->where('frequency', 'weekly')->count();
+        $weeklyTotal = DB::table('location_area_parts')->where('frequency', 'weekly')->count();
         $monthlyTotal = DB::table('location_area_parts')->where('frequency', 'monthly')->count();
 
         // Done = distinct parts with at least one YES record for the period (team-wide)

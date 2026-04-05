@@ -18,6 +18,7 @@ class LeaveStatusUpdateMail extends Mailable
     public function envelope(): Envelope
     {
         $status = ucfirst($this->leave->hr_status);
+
         return new Envelope(
             subject: "[Leave {$status}] Your {$this->leave->leave_type} request has been {$this->leave->hr_status}",
         );

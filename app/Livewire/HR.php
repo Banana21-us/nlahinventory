@@ -2,31 +2,46 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Livewire\Component;
 
 class HR extends Component
 {
     public string $search = '';
+
     public bool $showForm = false;
+
     public bool $isEditing = false;
+
     public bool $confirmingDeletion = false;
+
     public ?int $selectedId = null;
 
     // Form fields
-    public $employee_number, $name, $username, $email, $password, $password_confirmation;
+    public $employee_number;
+
+    public $name;
+
+    public $username;
+
+    public $email;
+
+    public $password;
+
+    public $password_confirmation;
 
     protected function rules(): array
     {
         $id = $this->selectedId;
+
         return [
             'employee_number' => ['required', 'string', $this->isEditing ? "unique:users,employee_number,{$id}" : 'unique:users,employee_number'],
-            'username'        => ['required', 'string', $this->isEditing ? "unique:users,username,{$id}" : 'unique:users,username'],
-            'name'            => ['required', 'string', 'max:255'],
-            'email'           => ['required', 'email', $this->isEditing ? "unique:users,email,{$id}" : 'unique:users,email'],
-            'password'        => $this->isEditing ? ['nullable', 'confirmed', 'min:8'] : ['required', 'confirmed', 'min:8'],
+            'username' => ['required', 'string', $this->isEditing ? "unique:users,username,{$id}" : 'unique:users,username'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', $this->isEditing ? "unique:users,email,{$id}" : 'unique:users,email'],
+            'password' => $this->isEditing ? ['nullable', 'confirmed', 'min:8'] : ['required', 'confirmed', 'min:8'],
         ];
     }
 
@@ -35,12 +50,12 @@ class HR extends Component
         $this->validate();
 
         User::create([
-            'employee_number'   => $this->employee_number,
-            'name'              => $this->name,
-            'username'          => $this->username,
-            'email'             => $this->email,
-            'password'          => Hash::make($this->password),
-            'is_active'         => true,
+            'employee_number' => $this->employee_number,
+            'name' => $this->name,
+            'username' => $this->username,
+            'email' => $this->email,
+            'password' => Hash::make($this->password),
+            'is_active' => true,
             'email_verified_at' => now(),
         ]);
 
@@ -52,14 +67,14 @@ class HR extends Component
     {
         $user = User::findOrFail($id);
 
-        $this->selectedId            = $user->id;
-        $this->employee_number       = $user->employee_number;
-        $this->name                  = $user->name;
-        $this->username              = $user->username;
-        $this->email                 = $user->email;
-        $this->password              = null;
+        $this->selectedId = $user->id;
+        $this->employee_number = $user->employee_number;
+        $this->name = $user->name;
+        $this->username = $user->username;
+        $this->email = $user->email;
+        $this->password = null;
         $this->password_confirmation = null;
-        $this->isEditing             = true;
+        $this->isEditing = true;
     }
 
     public function update(): void
@@ -70,9 +85,9 @@ class HR extends Component
 
         $data = [
             'employee_number' => $this->employee_number,
-            'name'            => $this->name,
-            'username'        => $this->username,
-            'email'           => $this->email,
+            'name' => $this->name,
+            'username' => $this->username,
+            'email' => $this->email,
         ];
 
         if ($this->password) {
@@ -125,13 +140,11 @@ class HR extends Component
     {
         $users = User::query()
             ->with(['employmentDetail'])
-            ->when($this->search, fn ($q) =>
-                $q->where(fn ($q) =>
-                    $q->where('name', 'like', "%{$this->search}%")
-                      ->orWhere('email', 'like', "%{$this->search}%")
-                      ->orWhere('employee_number', 'like', "%{$this->search}%")
-                      ->orWhere('username', 'like', "%{$this->search}%")
-                )
+            ->when($this->search, fn ($q) => $q->where(fn ($q) => $q->where('name', 'like', "%{$this->search}%")
+                ->orWhere('email', 'like', "%{$this->search}%")
+                ->orWhere('employee_number', 'like', "%{$this->search}%")
+                ->orWhere('username', 'like', "%{$this->search}%")
+            )
             )
             ->latest()
             ->get();

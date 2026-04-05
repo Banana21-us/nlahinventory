@@ -1,5 +1,7 @@
 <?php
+
 // ── PaymentMethodChart ────────────────────────────────────────────────────────
+
 namespace App\Livewire\PointofSale;
 
 use App\Models\Sale;
@@ -15,9 +17,9 @@ class PaymentMethodChart extends Component
             ->groupBy('payment_method')
             ->orderByDesc('count')
             ->get()
-            ->map(fn($s) => [
-                'method'  => $s->payment_method ?? 'Unknown',
-                'count'   => (int) $s->count,
+            ->map(fn ($s) => [
+                'method' => $s->payment_method ?? 'Unknown',
+                'count' => (int) $s->count,
                 'revenue' => (float) $s->revenue,
             ])
             ->toArray();

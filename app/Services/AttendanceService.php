@@ -7,8 +7,8 @@ use App\Models\AttendanceSummary;
 use App\Models\BiometricLog;
 use App\Models\Employee;
 use App\Models\EmploymentDetail;
-use App\Models\MdbUploadLog;
 use Carbon\Carbon;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
@@ -28,9 +28,11 @@ class AttendanceService
     ];
 
     // Grace periods (HH:MM)
-    const AM_CUTOFF  = '08:15'; // on-time if ≤ this
-    const PM_CUTOFF  = '13:15';
-    const SHIFT_END  = '17:00'; // office end-of-day for OT calculation
+    const AM_CUTOFF = '08:15'; // on-time if ≤ this
+
+    const PM_CUTOFF = '13:15';
+
+    const SHIFT_END = '17:00'; // office end-of-day for OT calculation
 
     // Morning window: 05:00–12:29 | Afternoon: 12:30–23:59
     const MORNING_BOUNDARY = '12:30';
@@ -56,18 +58,18 @@ class AttendanceService
 
         // Try PDO ODBC first (ext-pdo_odbc), then fall back to odbc_connect (ext-odbc)
         if (extension_loaded('pdo_odbc')) {
-            $dsn = 'odbc:Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=' . $winPath . ';Uid=;Pwd=;';
+            $dsn = 'odbc:Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq='.$winPath.';Uid=;Pwd=;';
             try {
                 $pdo = new \PDO($dsn, '', '', [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
             } catch (\PDOException $e) {
-                throw new \RuntimeException('Could not open MDB via PDO ODBC: ' . $e->getMessage());
+                throw new \RuntimeException('Could not open MDB via PDO ODBC: '.$e->getMessage());
             }
 
             return $this->readMdbViaPdo($pdo, $originalName, $uploadedBy);
         }
 
         if (function_exists('odbc_connect')) {
-            $dsn = 'Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=' . $winPath . ';Uid=;Pwd=;';
+            $dsn = 'Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq='.$winPath.';Uid=;Pwd=;';
             $conn = @odbc_connect($dsn, '', '');
             if (! $conn) {
                 throw new \RuntimeException('Could not open MDB via ODBC. Check that ext-pdo_odbc or ext-odbc is enabled in php.ini.');
@@ -97,10 +99,10 @@ class AttendanceService
         $userMap = $this->buildUserMap($badgeMap);
 
         // ── Step 2: Read CHECKINOUT ──
-        $imported  = 0;
-        $skipped   = 0;
+        $imported = 0;
+        $skipped = 0;
         $unmatched = 0;
-        $dates     = [];
+        $dates = [];
 
         $stmt = $pdo->query('SELECT USERID, CHECKTIME, CHECKTYPE FROM CHECKINOUT ORDER BY CHECKTIME');
         foreach ($stmt as $row) {
@@ -108,6 +110,7 @@ class AttendanceService
 
             if (! isset($userMap[$zkId])) {
                 $unmatched++;
+
                 continue;
             }
 
@@ -133,15 +136,16 @@ class AttendanceService
                 $badgeMap[(int) $row['USERID']] = (string) $row['BADGENUMBER'];
             }
             odbc_free_result($rs);
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         $userMap = $this->buildUserMap($badgeMap);
 
         // ── Step 2: Read CHECKINOUT ──
-        $imported  = 0;
-        $skipped   = 0;
+        $imported = 0;
+        $skipped = 0;
         $unmatched = 0;
-        $dates     = [];
+        $dates = [];
 
         $rs = odbc_exec($conn, 'SELECT USERID, CHECKTIME, CHECKTYPE FROM CHECKINOUT ORDER BY CHECKTIME');
         while ($row = odbc_fetch_array($rs)) {
@@ -149,6 +153,7 @@ class AttendanceService
 
             if (! isset($userMap[$zkId])) {
                 $unmatched++;
+
                 continue;
             }
 
@@ -185,20 +190,20 @@ class AttendanceService
     ): array {
         $punchTime = Carbon::parse($checktime);
         $punchType = $this->normalizePunchType($checktype);
-        $dateKey   = $punchTime->toDateString();
+        $dateKey = $punchTime->toDateString();
 
         try {
             BiometricLog::create([
                 'biometric_id' => $mapped['biometric_id'],
-                'user_id'      => $mapped['user_id'],
-                'punch_time'   => $punchTime,
-                'punch_type'   => $punchType,
+                'user_id' => $mapped['user_id'],
+                'punch_time' => $punchTime,
+                'punch_type' => $punchType,
                 'is_processed' => false,
-                'source_file'  => $originalName,
+                'source_file' => $originalName,
             ]);
             $imported++;
             $dates[$dateKey] = true;
-        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException) {
             $skipped++;
         } catch (\Throwable) {
             $skipped++;
@@ -230,8 +235,8 @@ class AttendanceService
     public function processDate(Carbon $date): int
     {
         $employees = Employee::whereNotNull('biometric_id')
-                             ->whereNotNull('user_id')
-                             ->get();
+            ->whereNotNull('user_id')
+            ->get();
 
         $processed = 0;
         foreach ($employees as $employee) {
@@ -245,12 +250,12 @@ class AttendanceService
     private function processEmployeeDay(Employee $employee, Carbon $date): void
     {
         $logs = BiometricLog::where('user_id', $employee->user_id)
-                            ->whereDate('punch_time', $date)
-                            ->orderBy('punch_time')
-                            ->get();
+            ->whereDate('punch_time', $date)
+            ->orderBy('punch_time')
+            ->get();
 
-        $detail    = EmploymentDetail::where('user_id', $employee->user_id)->first();
-        $dept      = strtoupper(trim($detail?->department ?? ''));
+        $detail = EmploymentDetail::where('user_id', $employee->user_id)->first();
+        $dept = strtoupper(trim($detail?->department ?? ''));
         $shiftType = $this->getShiftType($dept);
 
         $data = $shiftType === 'office'
@@ -258,14 +263,14 @@ class AttendanceService
             : $this->calculateNurse($logs, $date);
 
         $existing = AttendanceSummary::where('user_id', $employee->user_id)
-                                     ->where('attendance_date', $date->toDateString())
-                                     ->first();
+            ->where('attendance_date', $date->toDateString())
+            ->first();
 
         $shouldSendEmail = false;
 
         if ($existing) {
             // Only re-send email if status changed to a late variant
-            $wasLate   = $this->isLateStatus($existing->status);
+            $wasLate = $this->isLateStatus($existing->status);
             $isNowLate = $this->isLateStatus($data['status']);
             if ($isNowLate && (! $wasLate || ! $existing->email_sent)) {
                 $shouldSendEmail = true;
@@ -283,8 +288,8 @@ class AttendanceService
 
         // Mark biometric logs as processed
         BiometricLog::where('user_id', $employee->user_id)
-                    ->whereDate('punch_time', $date)
-                    ->update(['is_processed' => true]);
+            ->whereDate('punch_time', $date)
+            ->update(['is_processed' => true]);
 
         // Send late alert email
         if ($shouldSendEmail) {
@@ -302,12 +307,12 @@ class AttendanceService
             return $this->absentRecord();
         }
 
-        $morning   = $logs->filter(fn ($l) => $l->punch_time->format('H:i') < self::MORNING_BOUNDARY);
+        $morning = $logs->filter(fn ($l) => $l->punch_time->format('H:i') < self::MORNING_BOUNDARY);
         $afternoon = $logs->filter(fn ($l) => $l->punch_time->format('H:i') >= self::MORNING_BOUNDARY);
 
-        $amInLog  = $morning->first();
+        $amInLog = $morning->first();
         $amOutLog = $morning->count() > 1 ? $morning->last() : null;
-        $pmInLog  = $afternoon->first();
+        $pmInLog = $afternoon->first();
         $pmOutLog = $afternoon->count() > 1 ? $afternoon->last() : null;
 
         $hasAm = $amInLog !== null;
@@ -326,28 +331,28 @@ class AttendanceService
 
             $status = match (true) {
                 ! $amLate && ! $pmLate => 'on_time',
-                $amLate  && ! $pmLate => 'late_am',
-                ! $amLate && $pmLate  => 'late_pm',
-                default               => 'late_both',
+                $amLate && ! $pmLate => 'late_am',
+                ! $amLate && $pmLate => 'late_pm',
+                default => 'late_both',
             };
         }
 
         // ── Late minutes ──
         $lateMinutes = 0;
         if ($amInLog && $amInLog->punch_time->format('H:i') > self::AM_CUTOFF) {
-            $cutoff      = Carbon::parse($date->format('Y-m-d') . ' ' . self::AM_CUTOFF . ':00');
+            $cutoff = Carbon::parse($date->format('Y-m-d').' '.self::AM_CUTOFF.':00');
             $lateMinutes += $amInLog->punch_time->diffInMinutes($cutoff);
         }
         if ($pmInLog && $pmInLog->punch_time->format('H:i') > self::PM_CUTOFF) {
-            $cutoff       = Carbon::parse($date->format('Y-m-d') . ' ' . self::PM_CUTOFF . ':00');
+            $cutoff = Carbon::parse($date->format('Y-m-d').' '.self::PM_CUTOFF.':00');
             $lateMinutes += $pmInLog->punch_time->diffInMinutes($cutoff);
         }
 
         // ── Overtime (after 17:00) ──
         $overtimeHours = 0.0;
-        $lastOut       = $pmOutLog ?? $amOutLog;
+        $lastOut = $pmOutLog ?? $amOutLog;
         if ($lastOut && $lastOut->punch_time->format('H:i') > self::SHIFT_END) {
-            $endOfDay      = Carbon::parse($date->format('Y-m-d') . ' ' . self::SHIFT_END . ':00');
+            $endOfDay = Carbon::parse($date->format('Y-m-d').' '.self::SHIFT_END.':00');
             $overtimeHours = round($lastOut->punch_time->diffInMinutes($endOfDay) / 60, 2);
         }
 
@@ -362,20 +367,20 @@ class AttendanceService
         $totalHours = round($totalHours, 2);
 
         return [
-            'clock_in'         => $amInLog?->punch_time,
-            'clock_out'        => ($pmOutLog ?? $amOutLog)?->punch_time,
-            'am_in'            => $amInLog?->punch_time->format('H:i:s'),
-            'am_out'           => $amOutLog?->punch_time->format('H:i:s'),
-            'pm_in'            => $pmInLog?->punch_time->format('H:i:s'),
-            'pm_out'           => $pmOutLog?->punch_time->format('H:i:s'),
-            'status'           => $status,
-            'late_minutes'     => $lateMinutes,
-            'total_hours'      => $totalHours,
-            'regular_hours'    => min($totalHours, 8),
-            'overtime_hours'   => $overtimeHours,
+            'clock_in' => $amInLog?->punch_time,
+            'clock_out' => ($pmOutLog ?? $amOutLog)?->punch_time,
+            'am_in' => $amInLog?->punch_time->format('H:i:s'),
+            'am_out' => $amOutLog?->punch_time->format('H:i:s'),
+            'pm_in' => $pmInLog?->punch_time->format('H:i:s'),
+            'pm_out' => $pmOutLog?->punch_time->format('H:i:s'),
+            'status' => $status,
+            'late_minutes' => $lateMinutes,
+            'total_hours' => $totalHours,
+            'regular_hours' => min($totalHours, 8),
+            'overtime_hours' => $overtimeHours,
             'night_diff_hours' => 0,
-            'is_holiday'       => false,
-            'email_sent'       => false,
+            'is_holiday' => false,
+            'email_sent' => false,
         ];
     }
 
@@ -389,17 +394,17 @@ class AttendanceService
             return $this->absentRecord();
         }
 
-        $first   = $logs->first();
-        $last    = $logs->last();
+        $first = $logs->first();
+        $last = $logs->last();
         $clockIn = $first->punch_time;
 
         // Infer shift start from clock-in time
-        $hour       = (int) $clockIn->format('H');
+        $hour = (int) $clockIn->format('H');
         $shiftStart = match (true) {
-            $hour >= 5  && $hour < 10  => Carbon::parse($date->format('Y-m-d') . ' 07:00:00'),
-            $hour >= 12 && $hour < 16  => Carbon::parse($date->format('Y-m-d') . ' 15:00:00'),
-            $hour >= 21 || $hour < 2   => Carbon::parse($date->format('Y-m-d') . ' 23:00:00'),
-            default                     => $clockIn->copy(), // unknown shift, not late
+            $hour >= 5 && $hour < 10 => Carbon::parse($date->format('Y-m-d').' 07:00:00'),
+            $hour >= 12 && $hour < 16 => Carbon::parse($date->format('Y-m-d').' 15:00:00'),
+            $hour >= 21 || $hour < 2 => Carbon::parse($date->format('Y-m-d').' 23:00:00'),
+            default => $clockIn->copy(), // unknown shift, not late
         };
 
         $lateMinutes = 0;
@@ -407,33 +412,33 @@ class AttendanceService
             $lateMinutes = (int) $clockIn->diffInMinutes($shiftStart);
         }
 
-        $totalHours    = round($clockIn->diffInMinutes($last->punch_time) / 60, 2);
+        $totalHours = round($clockIn->diffInMinutes($last->punch_time) / 60, 2);
         $overtimeHours = round(max(0, $totalHours - 8), 2);
 
         $status = match (true) {
-            $lateMinutes > 10    => 'late',
-            $overtimeHours > 0  => 'overtime',
-            default              => 'on_time',
+            $lateMinutes > 10 => 'late',
+            $overtimeHours > 0 => 'overtime',
+            default => 'on_time',
         };
 
         // Night differential hours (22:00–06:00)
         $nightDiff = $this->calcNightDiff($clockIn, $last->punch_time);
 
         return [
-            'clock_in'         => $clockIn,
-            'clock_out'        => $last->punch_time,
-            'am_in'            => null,
-            'am_out'           => null,
-            'pm_in'            => null,
-            'pm_out'           => null,
-            'status'           => $status,
-            'late_minutes'     => $lateMinutes,
-            'total_hours'      => $totalHours,
-            'regular_hours'    => min($totalHours, 8),
-            'overtime_hours'   => $overtimeHours,
+            'clock_in' => $clockIn,
+            'clock_out' => $last->punch_time,
+            'am_in' => null,
+            'am_out' => null,
+            'pm_in' => null,
+            'pm_out' => null,
+            'status' => $status,
+            'late_minutes' => $lateMinutes,
+            'total_hours' => $totalHours,
+            'regular_hours' => min($totalHours, 8),
+            'overtime_hours' => $overtimeHours,
             'night_diff_hours' => $nightDiff,
-            'is_holiday'       => false,
-            'email_sent'       => false,
+            'is_holiday' => false,
+            'email_sent' => false,
         ];
     }
 
@@ -476,7 +481,7 @@ class AttendanceService
     private function calcNightDiff(Carbon $start, Carbon $end): float
     {
         $nightMinutes = 0;
-        $current      = $start->copy();
+        $current = $start->copy();
 
         while ($current < $end) {
             $h = (int) $current->format('H');

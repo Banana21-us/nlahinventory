@@ -10,15 +10,19 @@ use Livewire\Component;
 class PosInventory extends Component
 {
     // Modal / form state
-    public bool $showForm           = false;
-    public bool $isEditing          = false;
+    public bool $showForm = false;
+
+    public bool $isEditing = false;
+
     public bool $confirmingDeletion = false;
 
-    public ?int $editingId  = null;
+    public ?int $editingId = null;
+
     public ?int $deletingId = null;
 
     // Form fields
-    public string $item_id  = '';
+    public string $item_id = '';
+
     public string $quantity = '';
 
     // Search / filter
@@ -27,17 +31,17 @@ class PosInventory extends Component
     protected function rules(): array
     {
         return [
-            'item_id'  => 'required|exists:items,id',
+            'item_id' => 'required|exists:items,id',
             'quantity' => 'required|integer|min:0',
         ];
     }
 
     protected $messages = [
-        'item_id.required'  => 'Please select an item.',
-        'item_id.exists'    => 'Selected item does not exist.',
+        'item_id.required' => 'Please select an item.',
+        'item_id.exists' => 'Selected item does not exist.',
         'quantity.required' => 'Quantity is required.',
-        'quantity.integer'  => 'Quantity must be a whole number.',
-        'quantity.min'      => 'Quantity cannot be negative.',
+        'quantity.integer' => 'Quantity must be a whole number.',
+        'quantity.min' => 'Quantity cannot be negative.',
     ];
 
     // ─── Computed Properties (always available in the view) ──────────────────
@@ -53,7 +57,7 @@ class PosInventory extends Component
     {
         return Inventory::with('item')
             ->when($this->search, function ($query) {
-                $query->whereHas('item', fn($q) => $q->where('name', 'like', '%' . $this->search . '%'));
+                $query->whereHas('item', fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'));
             })
             ->latest()
             ->get();
@@ -71,7 +75,7 @@ class PosInventory extends Component
             $inventory->increment('quantity', (int) $this->quantity);
         } else {
             Inventory::create([
-                'item_id'  => (int) $this->item_id,
+                'item_id' => (int) $this->item_id,
                 'quantity' => (int) $this->quantity,
             ]);
         }
@@ -89,8 +93,8 @@ class PosInventory extends Component
         $inventory = Inventory::findOrFail($id);
 
         $this->editingId = $inventory->id;
-        $this->item_id   = (string) $inventory->item_id;
-        $this->quantity  = (string) $inventory->quantity;
+        $this->item_id = (string) $inventory->item_id;
+        $this->quantity = (string) $inventory->quantity;
         $this->isEditing = true;
     }
 
@@ -100,7 +104,7 @@ class PosInventory extends Component
 
         $inventory = Inventory::findOrFail($this->editingId);
         $inventory->update([
-            'item_id'  => (int) $this->item_id,
+            'item_id' => (int) $this->item_id,
             'quantity' => (int) $this->quantity,
         ]);
 
@@ -114,20 +118,20 @@ class PosInventory extends Component
 
     public function confirmDelete(int $id): void
     {
-        $this->deletingId        = $id;
+        $this->deletingId = $id;
         $this->confirmingDeletion = true;
     }
 
     public function delete(): void
     {
         $inventory = Inventory::with('item')->findOrFail($this->deletingId);
-        $name      = $inventory->item->name ?? 'Item';
+        $name = $inventory->item->name ?? 'Item';
 
         $inventory->delete();
 
         session()->flash('message', "Inventory record for '{$name}' has been removed.");
         $this->confirmingDeletion = false;
-        $this->deletingId         = null;
+        $this->deletingId = null;
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

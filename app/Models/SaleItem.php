@@ -18,7 +18,7 @@ class SaleItem extends Model
 
     protected $casts = [
         'quantity' => 'integer',
-        'price'    => 'integer',
+        'price' => 'integer',
     ];
 
     public function sale(): BelongsTo
