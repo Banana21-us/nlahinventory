@@ -24,7 +24,7 @@
         <link rel="stylesheet" href="http://192.168.3.7:8888/build/assets/app-3eqGLbXf.css">
 
         <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.15.8/dist/cdn.min.js"></script>
-        <!-- Styles -->
+        <!-- Styless -->
         <script src="https://cdn.tailwindcss.com"></script>
         <script>
             if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
