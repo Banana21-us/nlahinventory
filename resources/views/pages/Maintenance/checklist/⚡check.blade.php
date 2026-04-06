@@ -963,8 +963,8 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     'date' => $periodType === 'daily' ? $selectedDate : null,
                 ], fn ($value) => $value !== null && $value !== ''));
             @endphp
-            <div class="flex items-start justify-between gap-4 max-md:flex-col">
-                <div class="min-w-0 flex-1 mt-1">
+            <div class="flex flex-col gap-3">
+                <div class="min-w-0">
                     <flux:breadcrumbs>
                         @if ($periodType === 'daily' && $showDailyChecklist)
                             <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $sectionLabel }}</flux:breadcrumbs.item>
@@ -984,7 +984,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     </flux:breadcrumbs>
                 </div>
 
-                <div class="w-full min-w-0">
+                <div class="w-full overflow-hidden">
                     @php $locationChunks = array_chunk($locations, 9); @endphp
                     <div
                         x-data="{
@@ -1000,7 +1000,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                 else if (dx > 40) this.prev();
                             },
                         }"
-                        class="w-full min-w-0"
+                        class="w-full"
                     >
                         {{-- Selected badge --}}
                         @if ($selectedLocation !== '')

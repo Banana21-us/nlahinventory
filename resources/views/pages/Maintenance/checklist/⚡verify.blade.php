@@ -1201,8 +1201,8 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                     ], fn ($value) => $value !== null && $value !== ''));
                 @endphp
 
-                <div class="flex items-start justify-between gap-4 max-md:flex-col">
-                    <div class="min-w-0 flex-1 mt-1">
+                <div class="flex flex-col gap-3">
+                    <div class="min-w-0">
                         <flux:breadcrumbs>
                             @if ($periodType === 'daily' && $showDailyChecklist)
                                 <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $sectionLabel }}</flux:breadcrumbs.item>
@@ -1222,7 +1222,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                         </flux:breadcrumbs>
                     </div>
 
-                    <div class="w-full min-w-0">
+                    <div class="w-full overflow-hidden">
                         @php $locationChunks = array_chunk($locations, 9); @endphp
                         <div
                             x-data="{
@@ -1238,7 +1238,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                                     else if (dx > 40) this.prev();
                                 },
                             }"
-                            class="w-full min-w-0"
+                            class="w-full"
                         >
                             {{-- Selected badge --}}
                             @if ($selectedLocation !== '')
@@ -1276,10 +1276,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                                                             ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-900/30 dark:text-sky-300'
                                                             : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800' }}"
                                                 >
-                                                    <svg class="h-4 w-4 shrink-0 opacity-60" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                    </svg>
+                                                    
                                                     <span class="line-clamp-2 leading-tight">{{ $location['display_name'] }}</span>
                                                 </button>
                                             @endforeach
