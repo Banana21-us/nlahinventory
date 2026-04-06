@@ -141,6 +141,12 @@ new class extends Component {
         $this->showDailyChecklist = true;
     }
 
+    public function selectLocationByName(string $name): void
+    {
+        $this->selectedLocation = $name;
+        $this->updatedSelectedLocation($name);
+    }
+
     public function updatedSelectedLocation(string $value): void
     {
         $needle = trim($value);
@@ -978,32 +984,102 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     </flux:breadcrumbs>
                 </div>
 
-                <div class="space-y-2 md:ms-auto md:w-[420px] md:shrink-0">
-                    <div class="flex items-center gap-2">
-                        <input
-                            id="selectedLocation"
-                            type="text"
-                            list="location-options"
-                            wire:model.live="selectedLocation"
-                            placeholder="{{ __('Search location...') }}"
-                            class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                        />
+                <div class="w-full min-w-0">
+                    @php $locationChunks = array_chunk($locations, 9); @endphp
+                    <div
+                        x-data="{
+                            page: 0,
+                            total: {{ count($locationChunks) }},
+                            touchStartX: 0,
+                            prev() { if (this.page > 0) this.page--; },
+                            next() { if (this.page < this.total - 1) this.page++; },
+                            onTouchStart(e) { this.touchStartX = e.changedTouches[0].screenX; },
+                            onTouchEnd(e) {
+                                const dx = e.changedTouches[0].screenX - this.touchStartX;
+                                if (dx < -40) this.next();
+                                else if (dx > 40) this.prev();
+                            },
+                        }"
+                        class="w-full min-w-0"
+                    >
+                        {{-- Selected badge --}}
                         @if ($selectedLocation !== '')
-                            <button
-                                type="button"
-                                wire:click="clearSelectedLocation"
-                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                                aria-label="{{ __('Clear location') }}"
+                            <div class="mb-2 flex items-center gap-2">
+                                <span class="flex-1 truncate rounded-lg bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                                    {{ $selectedLocation }}
+                                </span>
+                                <button
+                                    type="button"
+                                    wire:click="clearSelectedLocation"
+                                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                    aria-label="{{ __('Clear location') }}"
+                                >&times;</button>
+                            </div>
+                        @endif
+
+                        {{-- Grid pages --}}
+                        <div
+                            class="w-full overflow-hidden"
+                            @touchstart.passive="onTouchStart($event)"
+                            @touchend.passive="onTouchEnd($event)"
+                        >
+                            <div
+                                class="flex transition-transform duration-300 ease-in-out"
+                                :style="`transform: translateX(-${page * 100}%)`"
                             >
-                                &times;
-                            </button>
+                                @foreach ($locationChunks as $chunk)
+                                    <div class="grid w-full shrink-0 grid-cols-3 gap-2" style="min-width:100%">
+                                        @foreach ($chunk as $location)
+                                            <button
+                                                type="button"
+                                                wire:click="selectLocationByName('{{ addslashes($location['display_name']) }}')"
+                                                class="flex flex-col items-center gap-1 rounded-xl border px-1 py-3 text-center text-xs font-medium transition
+                                                    {{ $selectedLocationId === ($location['id'] ?? null)
+                                                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-900/30 dark:text-sky-300'
+                                                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800' }}"
+                                            >
+                                                
+                                                <span class="line-clamp-2 leading-tight">{{ $location['display_name'] }}</span>
+                                            </button>
+                                        @endforeach
+                                        {{-- Fill empty cells to maintain 3-col grid --}}
+                                        @for ($i = count($chunk); $i < 9; $i++)
+                                            @if ($i % 3 === 0 && $i !== 0) {{-- only pad last row --}} @endif
+                                            <div></div>
+                                        @endfor
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Pagination dots + arrows --}}
+                        @if (count($locationChunks) > 1)
+                            <div class="mt-2 flex items-center justify-between">
+                                <button type="button" @click="prev" :disabled="page === 0"
+                                    :class="page === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'"
+                                    class="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white transition dark:border-zinc-700 dark:bg-zinc-800">
+                                    <svg class="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                                    </svg>
+                                </button>
+                                <div class="flex gap-1.5">
+                                    @foreach ($locationChunks as $i => $_)
+                                        <span
+                                            :class="{{ $i }} === page ? 'bg-sky-500 w-4' : 'bg-zinc-300 dark:bg-zinc-600 w-1.5'"
+                                            class="h-1.5 rounded-full transition-all duration-300"
+                                        ></span>
+                                    @endforeach
+                                </div>
+                                <button type="button" @click="next" :disabled="page >= total - 1"
+                                    :class="page >= total - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'"
+                                    class="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white transition dark:border-zinc-700 dark:bg-zinc-800">
+                                    <svg class="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </button>
+                            </div>
                         @endif
                     </div>
-                    <datalist id="location-options">
-                        @foreach ($locations as $location)
-                            <option value="{{ $location['display_name'] }}"></option>
-                        @endforeach
-                    </datalist>
                 </div>
             </div>
 
