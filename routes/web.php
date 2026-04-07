@@ -36,6 +36,26 @@ use Illuminate\Support\Facades\URL;
 //     return view('welcome');
 // })->name('home');
 
+Route::get('/employee-lookup', function (Request $request) {
+    $employee = \Illuminate\Support\Facades\DB::table('employee')
+        ->where('employee_number', $request->query('employee_number'))
+        ->select('last_name', 'first_name', 'middle_name', 'extension')
+        ->first();
+
+    if (! $employee) {
+        return response()->json(['found' => false]);
+    }
+
+    $name = trim(implode(' ', array_filter([
+        $employee->last_name . ',',
+        $employee->first_name,
+        $employee->middle_name,
+        $employee->extension,
+    ])));
+
+    return response()->json(['found' => true, 'name' => $name]);
+})->name('employee.lookup');
+
 // Email verification routes
 Route::get('/email/verify', function () {
     return view('pages::auth.verify-email');

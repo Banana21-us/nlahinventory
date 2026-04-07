@@ -9,27 +9,60 @@
         <form method="POST" action="{{ route('register') }}" class="flex flex-col gap-6">
             @csrf
 
-            <!-- Employee Number -->
-            <flux:input
-                name="employee_number"
-                :label="__('Employee Number')"
-                :value="old('employee_number')"
-                type="text"
-                required
-                placeholder="EMP-0001"
-            />
-            
-            <!-- Name -->
-            <flux:input
-                name="name"
-                :label="__('Full Name')"
-                :value="old('name')"
-                type="text"
-                required
-                autofocus
-                autocomplete="name"
-                :placeholder="__('Juan dela Cruz')"
-            />
+            <!-- Employee Number + Auto Name -->
+            <div x-data="{
+                empNumber: '{{ old('employee_number') }}',
+                name: '{{ old('name') }}',
+                loading: false,
+                error: '',
+                lookup() {
+                    if (!this.empNumber) return;
+                    this.loading = true;
+                    this.error = '';
+                    fetch('{{ route('employee.lookup') }}?employee_number=' + encodeURIComponent(this.empNumber))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.found) {
+                                this.name = data.name;
+                            } else {
+                                this.name = '';
+                                this.error = 'Employee number not found.';
+                            }
+                        })
+                        .catch(() => { this.error = 'Lookup failed. Try again.'; })
+                        .finally(() => { this.loading = false; });
+                    }
+                }" class="flex flex-col gap-4">
+
+                <flux:input
+                    name="employee_number"
+                    :label="__('Employee Number')"
+                    type="text"
+                    required
+                    placeholder="EMP-0001"
+                    x-model="empNumber"
+                    @blur="lookup"
+                    autofocus
+                />
+                <p x-show="error" x-text="error" class="text-sm text-red-500 -mt-2"></p>
+
+                <!-- Auto-populated name (read-only) -->
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Full Name') }}</label>
+                    <div class="relative">
+                        <input
+                            type="text"
+                            name="name"
+                            x-model="name"
+                            readonly
+                            placeholder="Auto-filled from employee record"
+                            class="w-full px-3 py-2 rounded-lg border border-zinc-300 bg-zinc-50 text-zinc-700 text-sm cursor-not-allowed dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-300"
+                        />
+                        <span x-show="loading" class="absolute right-3 top-2.5 text-xs text-zinc-400">Looking up...</span>
+                    </div>
+                    @error('name') <p class="text-sm text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
 
             <!-- Username -->
             <flux:input

@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
@@ -29,8 +30,20 @@ class CreateNewUser implements CreatesNewUsers
             'employee_number.unique' => 'This employee number is already registered.',
         ])->validate();
 
+        $employee = DB::table('employee')
+            ->where('employee_number', $input['employee_number'])
+            ->select('last_name', 'first_name', 'middle_name', 'extension')
+            ->first();
+
+        $name = trim(implode(' ', array_filter([
+            $employee->last_name . ',',
+            $employee->first_name,
+            $employee->middle_name,
+            $employee->extension,
+        ])));
+
         return User::create([
-            'name' => $input['name'],
+            'name' => $name,
             'username' => $input['username'],
             'email' => $input['email'],
             'password' => $input['password'],
