@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
-use App\Models\Department;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -92,8 +91,8 @@ class FortifyServiceProvider extends ServiceProvider
                         'Maintenance_Head' => redirect()->route('Maintenance.checklist.verify'),
                         'Cashier' => redirect()->route('pos.dashboard'),
                         'Staff' => redirect()->route('users.leaveform'),
-                        // default        => redirect()->route('users.waiting')
-                        //     ->withErrors(['email' => 'Your position is not assigned to a dashboard.']),
+                        default        => redirect()->route('users.waiting')
+                            ->withErrors(['email' => 'Your position is not assigned to a dashboard.']),
                     };
                 }
             };
@@ -118,9 +117,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::verifyEmailView(fn () => view('pages::auth.verify-email'));
         Fortify::twoFactorChallengeView(fn () => view('pages::auth.two-factor-challenge'));
         Fortify::confirmPasswordView(fn () => view('pages::auth.confirm-password'));
-        Fortify::registerView(fn () => view('pages::auth.register', [
-            'departments' => Department::orderBy('name')->get(),
-        ]));
+        Fortify::registerView(fn () => view('pages::auth.register'));
         Fortify::resetPasswordView(fn () => view('pages::auth.reset-password'));
         Fortify::requestPasswordResetLinkView(fn () => view('pages::auth.forgot-password'));
     }
