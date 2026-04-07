@@ -39,7 +39,6 @@
                     :label="__('Employee Number')"
                     type="text"
                     required
-                    placeholder="EMP-0001"
                     x-model="empNumber"
                     @blur="lookup"
                     autofocus
