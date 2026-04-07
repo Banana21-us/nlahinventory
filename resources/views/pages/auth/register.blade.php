@@ -9,6 +9,16 @@
         <form method="POST" action="{{ route('register') }}" class="flex flex-col gap-6">
             @csrf
 
+            <!-- Employee Number -->
+            <flux:input
+                name="employee_number"
+                :label="__('Employee Number')"
+                :value="old('employee_number')"
+                type="text"
+                required
+                placeholder="EMP-0001"
+            />
+            
             <!-- Name -->
             <flux:input
                 name="name"
@@ -31,15 +41,7 @@
                 placeholder="juan.delacruz"
             />
 
-            <!-- Employee Number -->
-            <flux:input
-                name="employee_number"
-                :label="__('Employee Number')"
-                :value="old('employee_number')"
-                type="text"
-                required
-                placeholder="EMP-0001"
-            />
+            
 
             <!-- Email Address -->
             <flux:input
