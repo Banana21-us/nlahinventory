@@ -120,6 +120,7 @@ Route::middleware(['auth', 'can:access-verify'])->group(function () {
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
+
 // Cashier routes
 Route::middleware(['auth', 'can:access-cashier-only'])->group(function () {
     Route::get('/pos/dashboard', Posdashboard::class)->name('pos.dashboard');

@@ -3,8 +3,10 @@
 namespace App\Livewire;
 
 use App\Models\Department;
+use App\Models\Dependency;
 use App\Models\Employee;
 use App\Models\EmploymentDetail;
+use App\Models\PayrollAndLeave;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -70,6 +72,8 @@ class EmployeeManagement extends Component
 
     public $contact_number;
 
+    public $contact_relationship;
+
     // Employment Detail (employment_details table)
     public $department_id;
 
@@ -87,7 +91,7 @@ class EmployeeManagement extends Component
 
     public $license_expiry;
 
-    public $re_membership = false;
+    public $re_membership = '';
 
     public $philhealth_no;
 
@@ -98,6 +102,52 @@ class EmployeeManagement extends Component
     public $sss_no;
 
     public $gsis_no;
+
+    // Finance (payroll_and_leaves table)
+    public $salary_rate;
+
+    public $daily_rate;
+
+    public $monthly_rate;
+
+    public $cola;
+
+    public $grocery_allowance;
+
+    public $night_diff_factor;
+
+    public $vl_total;
+
+    public $vl_consumed;
+
+    public $sl_total;
+
+    public $sl_consumed;
+
+    public $spl_total;
+
+    public $el_total;
+
+    public $min_scale;
+
+    public $max_scale;
+
+    public $wage_factor;
+
+    public $po_consumed;
+
+    public $po_total;
+
+    public $probi_rate;
+
+    public $picture;
+
+    public $signature;
+
+    // Dependents
+    public $dependents = [];
+
+    public $new_dependent = [];
 
     protected function rules(): array
     {
@@ -144,12 +194,18 @@ class EmployeeManagement extends Component
                 'c_address' => $this->c_address,
                 'contact_person' => $this->contact_person,
                 'contact_number' => $this->contact_number,
+                'contact_relationship' => $this->contact_relationship ?? null,
             ]);
 
             EmploymentDetail::updateOrCreate(
                 ['employee_id' => $emp->id],
                 $this->employmentDetailData()
             );
+
+            if ($this->user_id) {
+                $this->saveFinance($this->user_id);
+            }
+            $this->saveDependents($emp->id);
         });
 
         $this->resetForm();
@@ -201,7 +257,7 @@ class EmployeeManagement extends Component
             $this->regularization_date = $detail->regularization_date?->format('Y-m-d');
             $this->license_no = $detail->license_no;
             $this->license_expiry = $detail->license_expiry?->format('Y-m-d');
-            $this->re_membership = (bool) $detail->re_membership;
+            $this->re_membership = $detail->re_membership;
             $this->philhealth_no = $detail->philhealth_no;
             $this->pagibig_no = $detail->pagibig_no;
             $this->tin_no = $detail->tin_no;
@@ -209,7 +265,114 @@ class EmployeeManagement extends Component
             $this->gsis_no = $detail->gsis_no;
         }
 
+        $payroll = PayrollAndLeave::where('user_id', $employee->user_id)->first();
+        if ($payroll) {
+            $this->salary_rate = $payroll->salary_rate;
+            $this->daily_rate = $payroll->daily_rate;
+            $this->monthly_rate = $payroll->monthly_rate;
+            $this->cola = $payroll->cola;
+            $this->grocery_allowance = $payroll->grocery_allowance;
+            $this->night_diff_factor = $payroll->night_diff_factor;
+            $this->vl_total = $payroll->vl_total;
+            $this->vl_consumed = $payroll->vl_consumed;
+            $this->sl_total = $payroll->sl_total;
+            $this->sl_consumed = $payroll->sl_consumed;
+            $this->spl_total = $payroll->spl_total;
+            $this->el_total = $payroll->el_total;
+            $this->min_scale = $payroll->min_scale;
+            $this->max_scale = $payroll->max_scale;
+            $this->wage_factor = $payroll->wage_factor;
+            $this->po_consumed = $payroll->po_consumed;
+            $this->po_total = $payroll->po_total;
+            $this->probi_rate = $payroll->probi_rate;
+        }
+
+        $this->dependents = Dependency::where('employee_id', $employee->id)
+            ->get()
+            ->map(fn ($d) => [
+                'id' => $d->id,
+                'lastname' => $d->lastname,
+                'firstname' => $d->firstname,
+                'middlename' => $d->middlename,
+                'extension' => $d->extension,
+                'relationship' => $d->relationship,
+                'gender' => $d->gender,
+                'birthday' => $d->birthday?->format('Y-m-d'),
+                'age' => $d->age,
+            ])->toArray();
+
         $this->isEditing = true;
+    }
+
+    public function addDependent(): void
+    {
+        if (! empty($this->new_dependent['lastname']) && ! empty($this->new_dependent['firstname'])) {
+            $this->dependents[] = [
+                'id' => null,
+                'lastname' => $this->new_dependent['lastname'],
+                'firstname' => $this->new_dependent['firstname'],
+                'middlename' => $this->new_dependent['middlename'] ?? '',
+                'extension' => $this->new_dependent['extension'] ?? '',
+                'relationship' => $this->new_dependent['relationship'] ?? '',
+                'gender' => $this->new_dependent['gender'] ?? 'Male',
+                'birthday' => $this->new_dependent['birthday'] ?? '',
+                'age' => $this->new_dependent['age'] ?? 0,
+            ];
+            $this->new_dependent = [];
+        }
+    }
+
+    public function removeDependent(int $index): void
+    {
+        unset($this->dependents[$index]);
+        $this->dependents = array_values($this->dependents);
+    }
+
+    protected function saveFinance(int $userId): void
+    {
+        PayrollAndLeave::updateOrCreate(
+            ['user_id' => $userId],
+            [
+                'salary_rate' => $this->salary_rate ?: 0,
+                'daily_rate' => $this->daily_rate ?: 0,
+                'monthly_rate' => $this->monthly_rate ?: 0,
+                'cola' => $this->cola ?: 0,
+                'grocery_allowance' => $this->grocery_allowance ?: 0,
+                'night_diff_factor' => $this->night_diff_factor ?: 1.10,
+                'vl_total' => $this->vl_total ?: 0,
+                'vl_consumed' => $this->vl_consumed ?: 0,
+                'sl_total' => $this->sl_total ?: 0,
+                'sl_consumed' => $this->sl_consumed ?: 0,
+                'spl_total' => $this->spl_total ?: 0,
+                'el_total' => $this->el_total ?: 0,
+                'min_scale' => $this->min_scale ?: 0,
+                'max_scale' => $this->max_scale ?: 0,
+                'wage_factor' => $this->wage_factor ?: 1.00,
+                'po_consumed' => $this->po_consumed ?: 0,
+                'po_total' => $this->po_total ?: 0,
+                'probi_rate' => $this->probi_rate ?: 1.00,
+            ]
+        );
+    }
+
+    protected function saveDependents(int $employeeId): void
+    {
+        foreach ($this->dependents as $dep) {
+            Dependency::updateOrCreate(
+                ['id' => $dep['id']],
+                [
+                    'employee_id' => $employeeId,
+                    'lastname' => $dep['lastname'],
+                    'firstname' => $dep['firstname'],
+                    'middlename' => $dep['middlename'] ?: null,
+                    'extension' => $dep['extension'] ?: null,
+                    'relationship' => $dep['relationship'],
+                    'gender' => $dep['gender'],
+                    'birthday' => $dep['birthday'],
+                    'age' => $dep['age'] ?: 0,
+                ]
+            );
+        }
     }
 
     public function update(): void
@@ -243,12 +406,18 @@ class EmployeeManagement extends Component
                 'c_address' => $this->c_address,
                 'contact_person' => $this->contact_person,
                 'contact_number' => $this->contact_number,
+                'contact_relationship' => $this->contact_relationship ?? null,
             ]);
 
             EmploymentDetail::updateOrCreate(
                 ['employee_id' => $employee->id],
                 $this->employmentDetailData()
             );
+
+            if ($this->user_id) {
+                $this->saveFinance($this->user_id);
+            }
+            $this->saveDependents($employee->id);
         });
 
         $this->resetForm();
@@ -265,6 +434,10 @@ class EmployeeManagement extends Component
     {
         $employee = Employee::findOrFail($this->selectedId);
         EmploymentDetail::where('employee_id', $employee->id)->delete();
+        Dependency::where('employee_id', $employee->id)->delete();
+        if ($employee->user_id) {
+            PayrollAndLeave::where('user_id', $employee->user_id)->delete();
+        }
         $employee->delete();
         $this->resetForm();
         session()->flash('message', 'Employee deleted successfully.');
@@ -298,17 +471,22 @@ class EmployeeManagement extends Component
             'birth_date', 'place_of_birth', 'civil_status',
             'religion', 'blood_type', 'height', 'weight',
             'mobile_no', 'telephone', 'email_add', 'p_address', 'c_address',
-            'contact_person', 'contact_number',
+            'contact_person', 'contact_number', 'contact_relationship',
             'department_id', 'position', 'rank',
             'hiring_date', 'regularization_date',
             'license_no', 'license_expiry',
             'philhealth_no', 'pagibig_no', 'tin_no', 'sss_no', 'gsis_no',
+            'salary_rate', 'daily_rate', 'monthly_rate', 'cola', 'grocery_allowance',
+            'night_diff_factor', 'vl_total', 'vl_consumed', 'sl_total', 'sl_consumed',
+            'spl_total', 'el_total', 'min_scale', 'max_scale', 'wage_factor',
+            'po_consumed', 'po_total', 'probi_rate',
+            'dependents', 'new_dependent',
             'selectedId', 'isEditing', 'showForm', 'confirmingDeletion', 'isViewing',
         ]);
         $this->gender = 'Male';
         $this->citizenship = 'Filipino';
         $this->employment_status = 'Probationary';
-        $this->re_membership = false;
+        $this->re_membership = '';
     }
 
     public function render()

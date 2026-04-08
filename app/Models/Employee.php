@@ -14,12 +14,18 @@ class Employee extends Model
         'birth_date', 'place_of_birth', 'gender', 'civil_status',
         'citizenship', 'religion', 'blood_type', 'height', 'weight',
         'mobile_no', 'telephone', 'email_add', 'p_address', 'c_address',
-        'contact_person', 'contact_number',
+        'contact_person', 'contact_number', 'contact_relationship',
+        'signature', 'picture', 'id_no',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
     ];
+
+    public function dependencies()
+    {
+        return $this->hasMany(Dependency::class, 'employee_id', 'id');
+    }
 
     public function user()
     {

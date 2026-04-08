@@ -102,6 +102,16 @@
                     class="px-6 py-3 text-sm transition-colors">
                     Employment Details
                 </button>
+                <button type="button" @click="tab = 'finance'"
+                    :class="tab === 'finance' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
+                    class="px-6 py-3 text-sm transition-colors">
+                    Finance Details
+                </button>
+                <button type="button" @click="tab = 'dependents'"
+                    :class="tab === 'dependents' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
+                    class="px-6 py-3 text-sm transition-colors">
+                    Dependents Details
+                </button>
             </div>
 
             <form wire:submit.prevent="save" class="p-6 bg-gray-50/30">
@@ -208,6 +218,12 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Religion Membership</label>
+                        <input type="text" wire:model="re_membership" placeholder="Local church or Denomination"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Blood Type</label>
                         <select wire:model="blood_type"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
@@ -271,7 +287,11 @@
                         <input type="text" wire:model="contact_number"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
-
+                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Emergency Contact Relationship</label>
+                                    <input type="text" wire:model="contact_relationship"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
                     <div class="md:col-span-3 flex justify-end pt-4 border-t border-gray-100 mt-2">
                         <button type="button" @click="tab = 'employment'"
                             class="brand-btn-teal text-sm font-bold py-2 px-8 rounded shadow-md active:scale-95">
@@ -345,11 +365,7 @@
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
 
-                    <div class="flex items-center gap-3 pt-5">
-                        <input type="checkbox" wire:model="re_membership" id="re_membership_add"
-                            class="w-4 h-4 rounded border-gray-300 brand-text-primary">
-                        <label for="re_membership_add" class="text-sm font-medium text-gray-700">RE Membership</label>
-                    </div>
+                    
 
                     <div class="md:col-span-3 mt-2 pt-4 border-t border-gray-100">
                         <p class="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Government IDs</p>
@@ -384,6 +400,187 @@
 
                     <div class="md:col-span-3 flex justify-between items-center pt-4 border-t border-gray-100 mt-2">
                         <button type="button" @click="tab = 'personal'"
+                            class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
+                            ← Back
+                        </button>
+                        <div class="flex gap-3">
+                            <button type="button" @click="open = false"
+                                class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                class="brand-btn-primary text-sm font-bold py-2 px-10 rounded shadow-md active:scale-95 flex items-center gap-2">
+                                <span wire:loading.remove wire:target="save">Save Employee</span>
+                                <span wire:loading wire:target="save" class="flex items-center gap-2">
+                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                    </svg>
+                                    Saving…
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- TAB: Finance Details --}}
+                <div x-show="tab === 'finance'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-3 mb-2">
+                        <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Compensation</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Salary Rate</label>
+                        <input type="number" step="0.01" wire:model="salary_rate"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Daily Rate</label>
+                        <input type="number" step="0.01" wire:model="daily_rate"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Monthly Rate</label>
+                        <input type="number" step="0.01" wire:model="monthly_rate"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    
+                    <div>
+                                <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Probi Rate</label>
+                                <input type="number" step="0.01" wire:model="probi_rate"
+                                    class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Grocery Allowance</label>
+                        <input type="number" step="0.01" wire:model="grocery_allowance"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Night Diff Factor</label>
+                        <input type="number" step="0.01" wire:model="night_diff_factor"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">COLA</label>
+                        <input type="number" step="0.01" wire:model="cola"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    <div class="md:col-span-3 mt-4 mb-2">
+                        <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Salary Scale</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Min Scale</label>
+                        <input type="number" step="0.01" wire:model="min_scale"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Max Scale</label>
+                        <input type="number" step="0.01" wire:model="max_scale"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Wage Factor</label>
+                        <input type="number" step="0.01" wire:model="wage_factor"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+
+
+                    <div class="md:col-span-3 flex justify-between items-center pt-4 border-t border-gray-100 mt-2">
+                        <button type="button" @click="tab = 'employment'"
+                            class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
+                            ← Back
+                        </button>
+                        <button type="button" @click="tab = 'dependents'"
+                            class="brand-btn-teal text-sm font-bold py-2 px-8 rounded shadow-md active:scale-95">
+                            Next: Dependents →
+                        </button>
+                    </div>
+                </div>
+
+                {{-- TAB: Dependents --}}
+                <div x-show="tab === 'dependents'">
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <p class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Add New Dependent</p>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <input type="text" wire:model="new_dependent.lastname" placeholder="Last Name"
+                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                            <input type="text" wire:model="new_dependent.firstname" placeholder="First Name"
+                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                            <input type="text" wire:model="new_dependent.middlename" placeholder="Middle Name"
+                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                            <input type="text" wire:model="new_dependent.extension" placeholder="Extension (Jr.)"
+                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                            <input type="text" wire:model="new_dependent.relationship" placeholder="Relationship"
+                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                            <select wire:model="new_dependent.gender"
+                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                            <input type="date" wire:model="new_dependent.birthday"
+                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                            <input type="number" wire:model="new_dependent.age" placeholder="Age"
+                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        </div>
+                        <button type="button" wire:click="addDependent"
+                            class="mt-3 brand-btn-primary text-sm font-bold py-1.5 px-4 rounded shadow-sm active:scale-95">
+                            Add Dependent
+                        </button>
+                    </div>
+
+                    @if(count($dependents) > 0)
+                        <div class="overflow-x-auto">
+                            <table class="w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Name</th>
+                                        <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Relationship</th>
+                                        <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Gender</th>
+                                        <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Birthday</th>
+                                        <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Age</th>
+                                        <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-100">
+                                    @foreach($dependents as $index => $dep)
+                                        <tr>
+                                            <td class="px-4 py-2 text-sm">
+                                                {{ $dep['lastname'] }}, {{ $dep['firstname'] }} {{ $dep['middlename'] }} {{ $dep['extension'] }}
+                                            </td>
+                                            <td class="px-4 py-2 text-sm">{{ $dep['relationship'] }}</td>
+                                            <td class="px-4 py-2 text-sm">{{ $dep['gender'] }}</td>
+                                            <td class="px-4 py-2 text-sm">{{ $dep['birthday'] }}</td>
+                                            <td class="px-4 py-2 text-sm">{{ $dep['age'] }}</td>
+                                            <td class="px-4 py-2 text-right">
+                                                <button wire:click="removeDependent({{ $index }})"
+                                                    class="text-red-500 hover:text-red-700 text-sm font-semibold">
+                                                    Remove
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-400 text-center py-4">No dependents added yet.</p>
+                    @endif
+
+                    <div class="md:col-span-3 flex justify-between items-center pt-4 border-t border-gray-100 mt-4">
+                        <button type="button" @click="tab = 'finance'"
                             class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
                             ← Back
                         </button>
@@ -625,7 +822,7 @@
                                 <div><span class="block text-xs text-gray-400 font-semibold">Regularization Date</span>{{ $detail->regularization_date?->format('M d, Y') ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">PRC License No.</span>{{ $detail->license_no ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">License Expiry</span>{{ $detail->license_expiry?->format('M d, Y') ?? '—' }}</div>
-                                <div><span class="block text-xs text-gray-400 font-semibold">RE Membership</span>{{ $detail->re_membership ? 'Yes' : 'No' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">RE Membership</span>{{ $detail->re_membership ?: '—' }}</div>
                             </div>
 
                             {{-- Government IDs --}}
@@ -694,6 +891,16 @@
                                 :class="tab === 'employment' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
                                 class="px-6 py-3 text-sm transition-colors -mb-px">
                                 Employment Details
+                            </button>
+                            <button type="button" @click="tab = 'finance'"
+                                :class="tab === 'finance' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
+                                class="px-6 py-3 text-sm transition-colors -mb-px">
+                                Finance Details
+                            </button>
+                            <button type="button" @click="tab = 'dependents'"
+                                :class="tab === 'dependents' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
+                                class="px-6 py-3 text-sm transition-colors -mb-px">
+                                Dependents
                             </button>
                         </div>
 
@@ -799,6 +1006,12 @@
                                 </div>
 
                                 <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Religion Membership</label>
+                                    <input type="text" wire:model="re_membership" placeholder="e.g. PRC Number"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+
+                                <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Blood Type</label>
                                     <select wire:model="blood_type"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
@@ -838,6 +1051,50 @@
                                     <input type="email" wire:model="email_add"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Picture</label>
+                                    <input type="file" wire:model="picture" accept="image/*"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    @if($picture)
+                                        <div class="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                                            <img src="{{ $picture->temporaryUrl() }}" alt="Picture preview" class="w-full h-full object-cover"/>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Signature</label>
+                                    <input type="file" wire:model="signature" accept="image/*"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    @if($signature)
+                                        <div class="mt-2 relative w-20 h-12 rounded-lg overflow-hidden border border-gray-200">
+                                            <img src="{{ $signature->temporaryUrl() }}" alt="Signature preview" class="w-full h-full object-cover"/>
+                                        </div>
+                                    @endif
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Picture</label>
+                                    <input type="file" wire:model="picture" accept="image/*"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    @if($picture)
+                                        <div class="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                                            <img src="{{ $picture->temporaryUrl() }}" alt="Picture preview" class="w-full h-full object-cover"/>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Signature</label>
+                                    <input type="file" wire:model="signature" accept="image/*"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    @if($signature)
+                                        <div class="mt-2 relative w-20 h-12 rounded-lg overflow-hidden border border-gray-200">
+                                            <img src="{{ $signature->temporaryUrl() }}" alt="Signature preview" class="w-full h-full object-cover"/>
+                                        </div>
+                                    @endif
+                                </div>
 
                                 <div class="md:col-span-2">
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Permanent Address</label>
@@ -860,6 +1117,12 @@
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Emergency Contact Number</label>
                                     <input type="text" wire:model="contact_number"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Emergency Contact Relationship</label>
+                                    <input type="text" wire:model="contact_relationship"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                             </div>
@@ -896,10 +1159,12 @@
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Employment Status *</label>
                                     <select wire:model="employment_status"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
-                                        <option>Probationary</option>
                                         <option>Regular</option>
+                                        <option>Probationary</option>
                                         <option>Contractual</option>
-                                        <option>Casual</option>
+                                        <option>Reliever</option>
+                                        <option>Part Time</option>
+                                        <option>Outsourced</option>
                                     </select>
                                 </div>
 
@@ -928,11 +1193,7 @@
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
 
-                                <div class="flex items-center gap-3 pt-5">
-                                    <input type="checkbox" wire:model="re_membership" id="re_membership_edit"
-                                        class="w-4 h-4 rounded border-gray-300">
-                                    <label for="re_membership_edit" class="text-sm font-medium text-gray-700">RE Membership</label>
-                                </div>
+                                
 
                                 <div class="md:col-span-2 mt-2 pt-4 border-t border-gray-100">
                                     <p class="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Government IDs</p>
@@ -965,30 +1226,178 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {{-- Edit: Finance --}}
+                            <div x-show="tab === 'finance'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="md:col-span-3 mb-2">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Compensation</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Salary Rate</label>
+                                    <input type="number" step="0.01" wire:model="salary_rate"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Daily Rate</label>
+                                    <input type="number" step="0.01" wire:model="daily_rate"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Monthly Rate</label>
+                                    <input type="number" step="0.01" wire:model="monthly_rate"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Probi Rate</label>
+                                    <input type="number" step="0.01" wire:model="probi_rate"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+
+                                
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Grocery Allowance</label>
+                                    <input type="number" step="0.01" wire:model="grocery_allowance"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+
+                                
+                    
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Night Diff Factor</label>
+                                    <input type="number" step="0.01" wire:model="night_diff_factor"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+<div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">COLA</label>
+                                    <input type="number" step="0.01" wire:model="cola"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                
+                                
+                                <div class="md:col-span-3 mt-4 mb-2">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Salary Scale</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Min Scale</label>
+                                    <input type="number" step="0.01" wire:model="min_scale"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Max Scale</label>
+                                    <input type="number" step="0.01" wire:model="max_scale"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Wage Factor</label>
+                                    <input type="number" step="0.01" wire:model="wage_factor"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                </div>
+
+                                
+                            </div>
+
+                            {{-- Edit: Dependents --}}
+                            <div x-show="tab === 'dependents'">
+                                <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Add New Dependent</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                        <input type="text" wire:model="new_dependent.lastname" placeholder="Last Name"
+                                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                        <input type="text" wire:model="new_dependent.firstname" placeholder="First Name"
+                                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                        <input type="text" wire:model="new_dependent.middlename" placeholder="Middle Name"
+                                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                        <input type="text" wire:model="new_dependent.extension" placeholder="Extension (Jr.)"
+                                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                        <input type="text" wire:model="new_dependent.relationship" placeholder="Relationship"
+                                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                        <select wire:model="new_dependent.gender"
+                                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                        <input type="date" wire:model="new_dependent.birthday"
+                                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                        <input type="number" wire:model="new_dependent.age" placeholder="Age"
+                                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    </div>
+                                    <button type="button" wire:click="addDependent"
+                                        class="mt-3 brand-btn-primary text-sm font-bold py-1.5 px-4 rounded shadow-sm active:scale-95">
+                                        Add Dependent
+                                    </button>
+                                </div>
+
+                                @if(count($dependents) > 0)
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full divide-y divide-gray-200">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Name</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Relationship</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Gender</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Birthday</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Age</th>
+                                                    <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white divide-y divide-gray-100">
+                                                @foreach($dependents as $index => $dep)
+                                                    <tr>
+                                                        <td class="px-4 py-2 text-sm">
+                                                            {{ $dep['lastname'] }}, {{ $dep['firstname'] }} {{ $dep['middlename'] }} {{ $dep['extension'] }}
+                                                        </td>
+                                                        <td class="px-4 py-2 text-sm">{{ $dep['relationship'] }}</td>
+                                                        <td class="px-4 py-2 text-sm">{{ $dep['gender'] }}</td>
+                                                        <td class="px-4 py-2 text-sm">{{ $dep['birthday'] }}</td>
+                                                        <td class="px-4 py-2 text-sm">{{ $dep['age'] }}</td>
+                                                        <td class="px-4 py-2 text-right">
+                                                            <button wire:click="removeDependent({{ $index }})"
+                                                                class="text-red-500 hover:text-red-700 text-sm font-semibold">
+                                                                Remove
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <p class="text-sm text-gray-400 text-center py-4">No dependents added yet.</p>
+                                @endif
+                            </div>
                         </div>
 
-                        <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 rounded-b-xl">
-                            <button type="submit"
-                                class="brand-btn-teal inline-flex justify-center rounded-lg px-5 py-2 text-sm font-bold shadow-sm active:scale-95 items-center gap-2">
-                                <span wire:loading.remove wire:target="update">Save Changes</span>
-                                <span wire:loading wire:target="update" class="flex items-center gap-2">
-                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                                    </svg>
-                                    Saving…
-                                </span>
-                            </button>
-                            <button type="button" wire:click="$set('isEditing', false)"
-                                class="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+                    <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 rounded-b-xl">
+                        <button type="submit"
+                            class="brand-btn-teal inline-flex justify-center rounded-lg px-5 py-2 text-sm font-bold shadow-sm active:scale-95 items-center gap-2">
+                            <span wire:loading.remove wire:target="update">Save Changes</span>
+                            <span wire:loading wire:target="update" class="flex items-center gap-2">
+                                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                </svg>
+                                Saving…
+                            </span>
+                        </button>
+                        <button type="button" wire:click="$set('isEditing', false)"
+                            class="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
         </div>
-    @endif
+    </div>
+</div>
+@endif
 
     {{-- DELETE CONFIRMATION MODAL --}}
     @if($confirmingDeletion)

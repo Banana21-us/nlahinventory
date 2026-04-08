@@ -21,6 +21,7 @@
                 wire:navigate="wire:navigate">
                 {{ __('Dashboard') }}
             </flux:sidebar.item>
+            
             <flux:sidebar.item
                 icon="clipboard-document-check"
                 :href="route('Maintenance.checklist.check')"
