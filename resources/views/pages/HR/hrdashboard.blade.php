@@ -27,11 +27,11 @@
             <h1 class="text-3xl font-black text-gray-900 tracking-tight leading-none">HR Dashboard</h1>
             <p class="text-sm text-gray-400 font-medium mt-1" id="hr-date"></p>
         </div>
-        <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-gray-200">
+        <!-- <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-gray-200">
             <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
             <span class="text-xs font-bold text-gray-500">Live</span>
             <span class="text-xs font-mono font-bold text-gray-700" id="hr-clock">--:--</span>
-        </div>
+        </div> -->
     </div>
 
     {{-- ── BRAND RULE ─────────────────────────────────────────────────────── --}}
@@ -42,80 +42,80 @@
         {{-- ══════════════════════════════════════════════════════════════════
              ROW 1 — KPI CARDS
         ══════════════════════════════════════════════════════════════════ --}}
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
 
             {{-- Total Employees --}}
             <div class="kpi-card">
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Total Employees</p>
-                    <p class="text-3xl font-black text-gray-900">{{ $totalEmployees }}</p>
-                    <p class="text-[11px] text-green-600 font-semibold mt-1">+{{ $newHiresThisMonth }} this month</p>
-                </div>
-                <div class="kpi-icon brand-bg-p-lt">
-                    <svg class="w-5 h-5 brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Total Employees</p>
+                <p class="text-3xl font-black text-gray-900">{{ $totalEmployees }}</p>
+                <p class="text-[11px] text-green-600 font-semibold mt-1">+{{ $newHiresThisMonth }} this month</p>
+            </div>
+            <div class="kpi-icon brand-bg-p-lt">
+                <svg class="w-5 h-5 brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            </div>
             </div>
 
             {{-- On Leave Today --}}
             <div class="kpi-card">
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">On Leave Today</p>
-                    <p class="text-3xl font-black text-gray-900">{{ $onLeaveToday }}</p>
-                    <p class="text-[11px] text-gray-400 font-semibold mt-1">
-                        {{ $totalEmployees > 0 ? round(($onLeaveToday / $totalEmployees) * 100, 1) : 0 }}% of workforce
-                    </p>
-                </div>
-                <div class="kpi-icon brand-bg-a-lt">
-                    <svg class="w-5 h-5 brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">On Leave Today</p>
+                <p class="text-3xl font-black text-gray-900">{{ $onLeaveToday }}</p>
+                <p class="text-[11px] text-gray-400 font-semibold mt-1">
+                {{ $totalEmployees > 0 ? round(($onLeaveToday / $totalEmployees) * 100, 1) : 0 }}% of workforce
+                </p>
+            </div>
+            <div class="kpi-icon brand-bg-a-lt">
+                <svg class="w-5 h-5 brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+            </div>
             </div>
 
             {{-- Pending HR Review --}}
             <div class="kpi-card" style="border-color:#fde047;">
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-yellow-600 mb-1">Pending HR Review</p>
-                    <p class="text-3xl font-black text-gray-900">{{ $pendingHR }}</p>
-                    <p class="text-[11px] text-yellow-600 font-semibold mt-1">Awaiting action</p>
-                </div>
-                <div class="kpi-icon brand-bg-a-lt">
-                    <svg class="w-5 h-5 brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-yellow-600 mb-1">Pending HR Review</p>
+                <p class="text-3xl font-black text-gray-900">{{ $pendingHR }}</p>
+                <p class="text-[11px] text-yellow-600 font-semibold mt-1">Awaiting action</p>
+            </div>
+            <div class="kpi-icon brand-bg-a-lt">
+                <svg class="w-5 h-5 brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
             </div>
 
             {{-- Approved This Month --}}
             <div class="kpi-card">
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Approved This Month</p>
-                    <p class="text-3xl font-black text-gray-900">{{ $approvedThisMonth }}</p>
-                    <p class="text-[11px] text-green-600 font-semibold mt-1">Leave requests</p>
-                </div>
-                <div class="kpi-icon" style="background:#dcfce7;">
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Approved This Month</p>
+                <p class="text-3xl font-black text-gray-900">{{ $approvedThisMonth }}</p>
+                <p class="text-[11px] text-green-600 font-semibold mt-1">Leave requests</p>
+            </div>
+            <div class="kpi-icon" style="background:#dcfce7;">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
             </div>
 
             {{-- Workforce In --}}
             <div class="kpi-card">
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Present Today</p>
-                    <p class="text-3xl font-black text-gray-900">{{ $totalEmployees - $onLeaveToday }}</p>
-                    <p class="text-[11px] brand-teal font-semibold mt-1">
-                        {{ $totalEmployees > 0 ? round((($totalEmployees - $onLeaveToday) / $totalEmployees) * 100, 1) : 100 }}% attendance
-                    </p>
-                </div>
-                <div class="kpi-icon brand-bg-t-lt">
-                    <svg class="w-5 h-5 brand-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                    </svg>
-                </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Present Today</p>
+                <p class="text-3xl font-black text-gray-900">{{ $totalEmployees - $onLeaveToday }}</p>
+                <p class="text-[11px] brand-teal font-semibold mt-1">
+                {{ $totalEmployees > 0 ? round((($totalEmployees - $onLeaveToday) / $totalEmployees) * 100, 1) : 100 }}% attendance
+                </p>
+            </div>
+            <div class="kpi-icon brand-bg-t-lt">
+                <svg class="w-5 h-5 brand-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
+            </div>
             </div>
 
         </div>
@@ -392,7 +392,7 @@
                             @endphp
                             <tr class="row-hover border-b border-gray-50 last:border-0">
                                 <td class="px-5 py-3">
-                                    <p class="font-semibold text-gray-800 truncate max-w-[110px]">{{ $leave->user->name }}</p>
+                                    <p class="font-semibold text-gray-800 truncate max-w-[110px]">{{ $leave->user?->name ?? '(no user)' }}</p>
                                     <p class="text-[10px] text-gray-400">{{ $leave->start_date->format('M d, Y') }}</p>
                                 </td>
                                 <td class="px-5 py-3 text-xs text-gray-600">{{ Str::limit($leave->leave_type, 14) }}</td>

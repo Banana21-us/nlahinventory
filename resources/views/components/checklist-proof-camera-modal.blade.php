@@ -26,7 +26,13 @@
         <div class="w-full max-w-sm bg-white shadow-2xl dark:bg-zinc-900 rounded-xl">
             <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
                 <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Capture Proof Photo') }}</h3>
-                <span id="proofAreaCounter" class="text-xs text-zinc-500 dark:text-zinc-400"></span>
+                <div class="flex items-center gap-2">
+                    <span id="proofSavingBadge" class="hidden items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                        <span class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500"></span>
+                        <span id="proofSavingBadgeText">Saving…</span>
+                    </span>
+                    <span id="proofAreaCounter" class="text-xs text-zinc-500 dark:text-zinc-400"></span>
+                </div>
             </div>
             <div class="p-4">
                 <div class="flex flex-col gap-3">
@@ -93,7 +99,19 @@
                             <img id="proofPreview" class="hidden h-full w-full rounded-lg bg-black object-cover" alt="{{ __('Proof preview') }}">
                         </div>
 
-                        <div class="flex justify-center">
+                        <div class="flex items-center justify-center gap-4">
+                            {{-- Skip: Patient Present --}}
+                            <button type="button" id="proofSkipPatientBtn"
+                                class="flex flex-col items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-2 py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                style="min-width:58px;"
+                                aria-label="{{ __('Skip — patient present') }}">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Patient
+                            </button>
+
+                            {{-- Shutter --}}
                             <button type="button" id="proofCaptureOverlayBtn"
                                 class="inline-flex aspect-square items-center justify-center rounded-full border-2 border-zinc-300 bg-zinc-500 p-0 leading-none text-white shadow-[0_6px_14px_rgba(0,0,0,0.35)] transition hover:scale-105 hover:bg-zinc-400"
                                 style="width:56px;height:56px;min-width:56px;min-height:56px;max-width:56px;max-height:56px;border-radius:9999px;"
@@ -101,6 +119,17 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
                                 </svg>
+                            </button>
+
+                            {{-- Skip: Gloves On --}}
+                            <button type="button" id="proofSkipGlovesBtn"
+                                class="flex flex-col items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-2 py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                style="min-width:58px;"
+                                aria-label="{{ __('Skip — gloves on') }}">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/>
+                                </svg>
+                                Gloves
                             </button>
                         </div>
 
@@ -138,6 +167,55 @@
     let modal, video, preview, canvas, errorBox, commentInput,
         captureOverlayBtn, discardBtn, confirmBtn, cancelBtn,
         areaNameDisplay, areaCounter;
+
+    // ─── Background save queue ────────────────────────────────────────────────
+    let uploadQueue     = [];
+    let isSavingQueue   = false;
+    let pendingSaveCount = 0;
+
+    const updatePendingIndicator = () => {
+        const badge     = document.getElementById('proofSavingBadge');
+        const badgeText = document.getElementById('proofSavingBadgeText');
+        if (!badge) return;
+        if (pendingSaveCount > 0) {
+            if (badgeText) badgeText.textContent = pendingSaveCount > 1 ? `Saving ${pendingSaveCount}…` : 'Saving…';
+            badge.classList.remove('hidden');
+            badge.classList.add('inline-flex');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('inline-flex');
+        }
+    };
+
+    const processSaveQueue = async () => {
+        if (isSavingQueue) return;
+        isSavingQueue = true;
+        while (uploadQueue.length > 0) {
+            const task = uploadQueue.shift();
+            try {
+                const component = getChecklistComponent();
+                if (component) {
+                    if (task.skipReason) {
+                        await component.call('confirmToggleWithSkip', task.partId, task.dayKey, task.shift, task.skipReason);
+                    } else {
+                        await component.call('confirmToggleWithProof', task.partId, task.dayKey, task.shift, task.imageData, task.comment);
+                    }
+                }
+            } catch (e) {
+                console.error('Background proof save failed:', e);
+            }
+            pendingSaveCount = Math.max(0, pendingSaveCount - 1);
+            updatePendingIndicator();
+        }
+        isSavingQueue = false;
+    };
+
+    const enqueueSave = (task) => {
+        pendingSaveCount++;
+        uploadQueue.push(task);
+        updatePendingIndicator();
+        processSaveQueue(); // fire-and-forget
+    };
 
     const bindElements = () => {
         modal             = document.getElementById('proofCaptureModal');
@@ -445,7 +523,7 @@
         handleCaptureFromCanvas(ctx);
     };
 
-    // ─── Shared: overlay + Livewire save ─────────────────────────────────────
+    // ─── Shared: overlay + optimistic UI + background save ───────────────────
     const handleCaptureFromCanvas = async (ctx) => {
         areaQueue = buildQueue();
         if (currentIndex >= areaQueue.length) return;
@@ -468,78 +546,61 @@
             location:    item.dataset.location,
         };
 
-        // ctx may be null if coming from FileReader — re-get it
         if (!ctx) ctx = canvas.getContext('2d');
         const comment = commentInput?.value?.trim() ?? '';
         drawMetadataOverlay(ctx, 720, 720, overlayPayload, comment);
-
         const imageData = canvas.toDataURL('image/jpeg', 0.9);
 
-        // Show preview before saving
+        // ── 1. Optimistic UI — update immediately, no server round-trip ───────
+        capturedMap[item.dataset.partId] = true;
+        if (freq === 'daily') {
+            if (activeShift === 'PM') item.dataset.hasPm = '1';
+            else item.dataset.hasAm = '1';
+        } else {
+            item.dataset.hasAm = '1';
+        }
+        if (commentInput) commentInput.value = '';
+
+        // ── 2. Queue the actual save — runs silently in background ────────────
+        enqueueSave({
+            partId:    Number(item.dataset.partId),
+            dayKey:    String(item.dataset.dayKey),
+            shift,
+            imageData,
+            comment,
+        });
+
+        // ── 3. Flash preview briefly then advance to next area immediately ────
         preview.src = imageData;
         preview.classList.remove('hidden');
-        if (!usingFallback) {
-            video.classList.add('hidden');
-            stopCamera(); // ← ADD THIS LINE
-        }
+        if (!usingFallback) video.classList.add('hidden');
         const ph = document.getElementById('proofFallbackPlaceholder');
         if (ph) ph.classList.add('hidden');
 
-        const component = getChecklistComponent();
-        if (!component) { setError('Component not found.'); return; }
-
-        try {
-            await component.call('setPendingProof',
-                Number(item.dataset.partId),
-                String(item.dataset.dayKey),
-                shift
-            );
-            await component.call(
-                'confirmToggleWithProof',
-                Number(item.dataset.partId),
-                String(item.dataset.dayKey),
-                shift,
-                imageData,
-                comment
-            );
-
-            capturedMap[item.dataset.partId] = true;
-
-            if (freq === 'daily') {
-                if (activeShift === 'PM') item.dataset.hasPm = '1';
-                else item.dataset.hasAm = '1';
-            } else {
-                item.dataset.hasAm = '1';
+        requestAnimationFrame(() => {
+            document.querySelectorAll('.js-shift-toggle').forEach((btn) => {
+                const isActive = btn.getAttribute('data-shift') === activeShift;
+                btn.classList.remove(...SHIFT_ACTIVE_CLASSES, ...SHIFT_INACTIVE_CLASSES);
+                btn.classList.add(...(isActive ? SHIFT_ACTIVE_CLASSES : SHIFT_INACTIVE_CLASSES));
+                btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+            const currentShiftGroup = modal?.querySelector('[data-shift-group]');
+            if (currentShiftGroup) {
+                currentShiftGroup.classList.toggle('hidden', (item.dataset.frequency || '').toLowerCase() !== 'daily');
             }
 
-            if (commentInput) commentInput.value = '';
-
-            requestAnimationFrame(() => {
-                document.querySelectorAll('.js-shift-toggle').forEach((btn) => {
-                    const isActive = btn.getAttribute('data-shift') === activeShift;
-                    btn.classList.remove(...SHIFT_ACTIVE_CLASSES, ...SHIFT_INACTIVE_CLASSES);
-                    btn.classList.add(...(isActive ? SHIFT_ACTIVE_CLASSES : SHIFT_INACTIVE_CLASSES));
-                    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-                });
-                const currentShiftGroup = modal?.querySelector('[data-shift-group]');
-                if (currentShiftGroup) currentShiftGroup.classList.toggle('hidden', (item.dataset.frequency || '').toLowerCase() !== 'daily');
-
-                // Brief preview then advance
-                setTimeout(async () => {
+            setTimeout(async () => {
                 preview.classList.add('hidden');
                 if (usingFallback) {
                     const ph2 = document.getElementById('proofFallbackPlaceholder');
                     if (ph2) ph2.classList.remove('hidden');
                 } else {
-                    await startCamera(); // restarts fresh for next area
+                    await startCamera();
                 }
                 goToIndex(currentIndex + 1);
                 refreshAreaListUI();
-            }, 800); // show preview for 800ms then move on
-           });
-        } catch (e) {
-            setError('Failed to save. Try again.');
-        }
+            }, 250); // quick flash — user moves on immediately
+        });
     };
 
     const drawMetadataOverlay = (ctx, width, height, payload, comment = '') => {
@@ -628,9 +689,31 @@
         }
     };
 
+    // ─── Skip handler (patient present / gloves) ──────────────────────────────
+    const handleSkip = (skipReason) => {
+        areaQueue = buildQueue();
+        if (currentIndex >= areaQueue.length) return;
+        const item = areaQueue[currentIndex];
+        const freq  = item.dataset.frequency;
+        const shift = freq === 'daily' ? activeShift : (freq === 'nightly' ? 'PM' : 'AM');
+        capturedMap[item.dataset.partId] = true;
+        if (freq === 'daily') {
+            if (activeShift === 'PM') item.dataset.hasPm = '1';
+            else item.dataset.hasAm = '1';
+        } else {
+            item.dataset.hasAm = '1';
+        }
+        if (commentInput) commentInput.value = '';
+        enqueueSave({ partId: Number(item.dataset.partId), dayKey: String(item.dataset.dayKey), shift, imageData: null, comment: null, skipReason });
+        goToIndex(currentIndex + 1);
+        refreshAreaListUI();
+    };
+
     // ─── Event bindings ───────────────────────────────────────────────────────
     document.getElementById('proofCaptureOverlayBtn').addEventListener('click', handleCapture);
     document.getElementById('proofCancelBtn').addEventListener('click', closeModal);
+    document.getElementById('proofSkipPatientBtn').addEventListener('click', () => handleSkip('patient_present'));
+    document.getElementById('proofSkipGlovesBtn').addEventListener('click', () => handleSkip('gloves'));
 
     document.addEventListener('click', (e) => {
         const shiftBtn     = e.target.closest('.js-shift-toggle');

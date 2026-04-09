@@ -91,27 +91,29 @@
              class="border-t border-gray-100">
 
             {{-- Tabs --}}
-            <div class="flex border-b border-gray-200 bg-gray-50/50">
-                <button type="button" @click="tab = 'personal'"
-                    :class="tab === 'personal' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
-                    class="px-6 py-3 text-sm transition-colors">
-                    Personal Info
-                </button>
-                <button type="button" @click="tab = 'employment'"
-                    :class="tab === 'employment' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
-                    class="px-6 py-3 text-sm transition-colors">
-                    Employment Details
-                </button>
-                <button type="button" @click="tab = 'finance'"
-                    :class="tab === 'finance' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
-                    class="px-6 py-3 text-sm transition-colors">
-                    Finance Details
-                </button>
-                <button type="button" @click="tab = 'dependents'"
-                    :class="tab === 'dependents' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
-                    class="px-6 py-3 text-sm transition-colors">
-                    Dependents Details
-                </button>
+            <div class="border-b border-gray-200 bg-gray-50/50">
+                <div class="grid grid-cols-2 gap-1 p-1 sm:flex sm:items-center sm:gap-0">
+                    <button type="button" @click="tab = 'personal'"
+                        :class="tab === 'personal' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
+                        class="w-full px-4 py-3 text-xs sm:text-sm transition-colors rounded-sm sm:rounded-none">
+                        Personal Info
+                    </button>
+                    <button type="button" @click="tab = 'employment'"
+                        :class="tab === 'employment' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
+                        class="w-full px-4 py-3 text-xs sm:text-sm transition-colors rounded-sm sm:rounded-none">
+                        Employment Details
+                    </button>
+                    <button type="button" @click="tab = 'finance'"
+                        :class="tab === 'finance' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
+                        class="w-full px-4 py-3 text-xs sm:text-sm transition-colors rounded-sm sm:rounded-none">
+                        Finance Details
+                    </button>
+                    <button type="button" @click="tab = 'dependents'"
+                        :class="tab === 'dependents' ? 'brand-text-primary border-b-2 border-[#015581] bg-white font-bold' : 'text-gray-500 hover:text-gray-700'"
+                        class="w-full px-4 py-3 text-xs sm:text-sm transition-colors rounded-sm sm:rounded-none">
+                        Dependents Details
+                    </button>
+                </div>
             </div>
 
             <form wire:submit.prevent="save" class="p-6 bg-gray-50/30">
@@ -218,12 +220,6 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Religion Membership</label>
-                        <input type="text" wire:model="re_membership" placeholder="Local church or Denomination"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div>
-
-                    <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Blood Type</label>
                         <select wire:model="blood_type"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
@@ -315,10 +311,17 @@
                         @error('department_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Position *</label>
-                        <input type="text" wire:model="position"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Position(s) * <span class="text-gray-400 font-normal normal-case">(check all that apply)</span></label>
+                        <div class="flex flex-wrap gap-x-6 gap-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            @foreach($positions as $pos)
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" wire:model="selectedPositions" value="{{ $pos->name }}"
+                                        class="rounded border-gray-300 text-[#015581] focus:ring-[#015581]"/>
+                                    <span class="text-sm text-gray-700">{{ $pos->name }}</span>
+                                </label>
+                            @endforeach
+                        </div>
                         @error('position') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
@@ -365,7 +368,11 @@
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
 
-                    
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Religion Membership</label>
+                        <input type="text" wire:model="re_membership" placeholder="Local church or Denomination"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
 
                     <div class="md:col-span-3 mt-2 pt-4 border-t border-gray-100">
                         <p class="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Government IDs</p>
@@ -398,28 +405,30 @@
                         </div>
                     </div>
 
+                    <div class="md:col-span-3 mt-4 mb-1">
+                        <p class="text-xs font-bold uppercase tracking-wide text-gray-400">System Access</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Access Key</label>
+                        <select wire:model="access_key_id"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
+                            <option value="">— None (waiting area) —</option>
+                            @foreach($accessKeys as $key)
+                                <option value="{{ $key->id }}">{{ $key->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Determines what the user can open after login.</p>
+                    </div>
+
                     <div class="md:col-span-3 flex justify-between items-center pt-4 border-t border-gray-100 mt-2">
                         <button type="button" @click="tab = 'personal'"
                             class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
                             ← Back
                         </button>
-                        <div class="flex gap-3">
-                            <button type="button" @click="open = false"
-                                class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
-                                Cancel
-                            </button>
-                            <button type="submit"
-                                class="brand-btn-primary text-sm font-bold py-2 px-10 rounded shadow-md active:scale-95 flex items-center gap-2">
-                                <span wire:loading.remove wire:target="save">Save Employee</span>
-                                <span wire:loading wire:target="save" class="flex items-center gap-2">
-                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                                    </svg>
-                                    Saving…
-                                </span>
-                            </button>
-                        </div>
+                        <button type="button" @click="tab = 'finance'"
+                            class="brand-btn-teal text-sm font-bold py-2 px-8 rounded shadow-md active:scale-95">
+                            Next: Finance Details →
+                        </button>
                     </div>
                 </div>
 
@@ -497,6 +506,77 @@
                     </div>
 
 
+
+                    {{-- Leave Balances --}}
+                    <div class="md:col-span-3 mt-4 mb-2">
+                        <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Leave Balances</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">VL Total</label>
+                        <input type="number" step="0.01" wire:model="vl_total"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">VL Consumed</label>
+                        <input type="number" step="0.01" wire:model="vl_consumed"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SL Total</label>
+                        <input type="number" step="0.01" wire:model="sl_total"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SL Consumed</label>
+                        <input type="number" step="0.01" wire:model="sl_consumed"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SPL Total</label>
+                        <input type="number" step="0.01" wire:model="spl_total"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">EL Total</label>
+                        <input type="number" step="0.01" wire:model="el_total"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Total</label>
+                        <input type="number" step="0.01" wire:model="po_total"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Consumed</label>
+                        <input type="number" step="0.01" wire:model="po_consumed"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    {{-- Picture & Signature --}}
+                    <div class="md:col-span-3 mt-4 mb-2">
+                        <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Photo & Signature</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Picture</label>
+                        <input type="file" wire:model="picture" accept="image/*"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        @if($picture)
+                            <div class="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                                <img src="{{ $picture->temporaryUrl() }}" alt="Picture preview" class="w-full h-full object-cover"/>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Signature</label>
+                        <input type="file" wire:model="signature" accept="image/*"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        @if($signature)
+                            <div class="mt-2 relative w-20 h-12 rounded-lg overflow-hidden border border-gray-200">
+                                <img src="{{ $signature->temporaryUrl() }}" alt="Signature preview" class="w-full h-full object-cover"/>
+                            </div>
+                        @endif
+                    </div>
 
                     <div class="md:col-span-3 flex justify-between items-center pt-4 border-t border-gray-100 mt-2">
                         <button type="button" @click="tab = 'employment'"
@@ -683,10 +763,6 @@
                                         <p class="text-sm font-bold text-gray-900">
                                             {{ $emp->last_name }}, {{ $emp->first_name }} {{ $emp->middle_name ? substr($emp->middle_name,0,1).'.' : '' }}
                                             
-                                            @if(is_null($emp->user_id))
-                                            <span class="absolute -top-2 -right-2 text-red-500 text-[500px] font-black text-sm leading-none select-none"
-                                                style="animation: beat 1s ease-in-out infinite;"> &ensp; !</span>
-                                            @endif
                                         </p>
                                         <p class="text-xs text-gray-400">{{ $emp->gender }}</p>
                                     </div>
@@ -1053,50 +1129,6 @@
                                 </div>
                                 
                                 <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Picture</label>
-                                    <input type="file" wire:model="picture" accept="image/*"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                    @if($picture)
-                                        <div class="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
-                                            <img src="{{ $picture->temporaryUrl() }}" alt="Picture preview" class="w-full h-full object-cover"/>
-                                        </div>
-                                    @endif
-                                </div>
-
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Signature</label>
-                                    <input type="file" wire:model="signature" accept="image/*"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                    @if($signature)
-                                        <div class="mt-2 relative w-20 h-12 rounded-lg overflow-hidden border border-gray-200">
-                                            <img src="{{ $signature->temporaryUrl() }}" alt="Signature preview" class="w-full h-full object-cover"/>
-                                        </div>
-                                    @endif
-                                </div>
-                                
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Picture</label>
-                                    <input type="file" wire:model="picture" accept="image/*"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                    @if($picture)
-                                        <div class="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
-                                            <img src="{{ $picture->temporaryUrl() }}" alt="Picture preview" class="w-full h-full object-cover"/>
-                                        </div>
-                                    @endif
-                                </div>
-
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Signature</label>
-                                    <input type="file" wire:model="signature" accept="image/*"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                    @if($signature)
-                                        <div class="mt-2 relative w-20 h-12 rounded-lg overflow-hidden border border-gray-200">
-                                            <img src="{{ $signature->temporaryUrl() }}" alt="Signature preview" class="w-full h-full object-cover"/>
-                                        </div>
-                                    @endif
-                                </div>
-
-                                <div class="md:col-span-2">
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Permanent Address</label>
                                     <textarea wire:model="p_address" rows="2"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"></textarea>
@@ -1142,11 +1174,18 @@
                                     @error('department_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Position *</label>
-                                    <input type="text" wire:model="position"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                    @error('position') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                <div class="md:col-span-3">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Position(s) * <span class="text-gray-400 font-normal normal-case">(check all that apply)</span></label>
+                                    <div class="flex flex-wrap gap-x-6 gap-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                        @foreach($positions as $pos)
+                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" wire:model="selectedPositions" value="{{ $pos->name }}"
+                                                    class="rounded border-gray-300 text-[#015581] focus:ring-[#015581]"/>
+                                                <span class="text-sm text-gray-700">{{ $pos->name }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                        @error('selectedPositions') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
                                 <div>
@@ -1227,6 +1266,34 @@
                                 </div>
                             </div>
 
+                            {{-- Edit: Employment Details nav + access key --}}
+                            <div x-show="tab === 'employment'" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-0 pt-0 -mt-4">
+                                <div class="md:col-span-3 mt-4 mb-1">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-gray-400">System Access</p>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Access Key</label>
+                                    <select wire:model="access_key_id"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
+                                        <option value="">— None (waiting area) —</option>
+                                        @foreach($accessKeys as $key)
+                                            <option value="{{ $key->id }}">{{ $key->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <p class="text-xs text-gray-400 mt-1">Determines what the user can open after login.</p>
+                                </div>
+                                <div class="md:col-span-3 flex justify-between items-center pt-4 border-t border-gray-100 mt-2">
+                                    <button type="button" @click="tab = 'personal'"
+                                        class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
+                                        ← Back
+                                    </button>
+                                    <button type="button" @click="tab = 'finance'"
+                                        class="brand-btn-teal text-sm font-bold py-2 px-8 rounded shadow-md active:scale-95">
+                                        Next: Finance Details →
+                                    </button>
+                                </div>
+                            </div>
+
                             {{-- Edit: Finance --}}
                             <div x-show="tab === 'finance'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="md:col-span-3 mb-2">
@@ -1300,9 +1367,87 @@
                                     <input type="number" step="0.01" wire:model="wage_factor"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
+
+                                {{-- Leave Balances --}}
+                                <div class="md:col-span-3 mt-4 mb-2">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Leave Balances</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">VL Total</label>
+                                    <input type="number" step="0.01" wire:model="vl_total"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">VL Consumed</label>
+                                    <input type="number" step="0.01" wire:model="vl_consumed"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SL Total</label>
+                                    <input type="number" step="0.01" wire:model="sl_total"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SL Consumed</label>
+                                    <input type="number" step="0.01" wire:model="sl_consumed"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SPL Total</label>
+                                    <input type="number" step="0.01" wire:model="spl_total"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">EL Total</label>
+                                    <input type="number" step="0.01" wire:model="el_total"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Total</label>
+                                    <input type="number" step="0.01" wire:model="po_total"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Consumed</label>
+                                    <input type="number" step="0.01" wire:model="po_consumed"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
 
-                                
+                                {{-- Picture & Signature --}}
+                                <div class="md:col-span-3 mt-4 mb-2">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Photo & Signature</p>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Picture</label>
+                                    <input type="file" wire:model="picture" accept="image/*"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    @if($picture)
+                                        <div class="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                                            <img src="{{ $picture->temporaryUrl() }}" alt="Picture preview" class="w-full h-full object-cover"/>
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="md:col-span-1">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Signature</label>
+                                    <input type="file" wire:model="signature" accept="image/*"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    @if($signature)
+                                        <div class="mt-2 relative w-20 h-12 rounded-lg overflow-hidden border border-gray-200">
+                                            <img src="{{ $signature->temporaryUrl() }}" alt="Signature preview" class="w-full h-full object-cover"/>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="md:col-span-3 flex justify-between items-center pt-4 border-t border-gray-100 mt-2">
+                                    <button type="button" @click="tab = 'employment'"
+                                        class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
+                                        ← Back
+                                    </button>
+                                    <button type="button" @click="tab = 'dependents'"
+                                        class="brand-btn-teal text-sm font-bold py-2 px-8 rounded shadow-md active:scale-95">
+                                        Next: Dependents →
+                                    </button>
+                                </div>
                             </div>
 
                             {{-- Edit: Dependents --}}

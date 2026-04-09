@@ -143,12 +143,12 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">
-                                        {{ strtoupper(substr($leave->user->username, 0, 2)) }}
+                                        {{ strtoupper(substr($leave->user?->username ?? '?', 0, 2)) }}
                                     </div>
                                     <div>
-                                        <div class="text-sm font-bold text-gray-900">{{ $leave->user->username }}</div>
+                                        <div class="text-sm font-bold text-gray-900">{{ $leave->user?->username ?? '(no user)' }}</div>
                                         <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
-                                            {{ $leave->user->employmentDetail?->department?->name ?? 'General' }}
+                                            {{ $leave->user?->employmentDetail?->department?->name ?? 'General' }}
                                         </div>
                                     </div>
                                 </div>

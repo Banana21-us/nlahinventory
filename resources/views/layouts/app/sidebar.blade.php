@@ -27,7 +27,7 @@
                 :href="route('Maintenance.checklist.check')"
                 :current="request()->routeIs('Maintenance.checklist.check')"
                 wire:navigate="wire:navigate">
-                {{ __('Checklist') }}
+                {{ __('Maintenance Checklist') }}
             </flux:sidebar.item>
             <flux:sidebar.item
                 icon="calendar-days"
@@ -45,7 +45,7 @@
                 :href="route('Maintenance.checklist.verify')"
                 :current="request()->routeIs('Maintenance.checklist.verify')"
                 wire:navigate="wire:navigate">
-                {{ __('Verify') }}
+                {{ __('Maintenance Verify') }}
             </flux:sidebar.item>
             <flux:sidebar.item
                     icon="calendar"
@@ -110,7 +110,23 @@
                     :current="request()->routeIs('HR.departments')"
                     wire:navigate="wire:navigate">
                     {{ __('Departments') }}
-                </flux:sidebar.item>    
+                </flux:sidebar.item>
+
+                <!-- Position Management -->
+                <flux:sidebar.item
+                    :href="route('HR.positions')"
+                    :current="request()->routeIs('HR.positions')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Positions') }}
+                </flux:sidebar.item>
+
+                <!-- Access Key Management -->
+                <flux:sidebar.item
+                    :href="route('HR.access-keys')"
+                    :current="request()->routeIs('HR.access-keys')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Access Keys') }}
+                </flux:sidebar.item>
 
                 {{-- Attendance --}}
                 <flux:sidebar.item

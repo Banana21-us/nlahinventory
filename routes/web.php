@@ -3,6 +3,7 @@
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LeaveResponseController;
 use App\Http\Controllers\NewsEventController;
+use App\Livewire\AccessKeyManagement;
 use App\Livewire\AttendanceManagement;
 use App\Livewire\Dashboard;
 use App\Livewire\DepartmentManagement;
@@ -20,6 +21,7 @@ use App\Livewire\News;
 use App\Livewire\PatientDetail;
 use App\Livewire\PatientManager;
 use App\Livewire\PayrollCompliance;
+use App\Livewire\PositionManagement;
 use App\Livewire\PointOfSale\POS;
 use App\Livewire\PointOfSale\PosCustomer;
 use App\Livewire\PointOfSale\Posdashboard;
@@ -106,6 +108,8 @@ Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/employees', EmployeeManagement::class)->name('HR.employees');
     Route::get('/HR/attendance', AttendanceManagement::class)->name('HR.attendance');
     Route::get('/HR/departments', DepartmentManagement::class)->name('HR.departments');
+    Route::get('/HR/positions', PositionManagement::class)->name('HR.positions');
+    Route::get('/HR/access-keys', AccessKeyManagement::class)->name('HR.access-keys');
 });
 
 // Maintenance routes
@@ -131,8 +135,21 @@ Route::middleware(['auth', 'can:access-cashier-only'])->group(function () {
     Route::get('/pos/customers', PosCustomer::class)->name('pos.customers');
 });
 
-// Public NLAH routes
+// Public NLAH routes — redirect authenticated users to their dashboard
 Route::get('/', function () {
+    if (auth()->check()) {
+        $position = auth()->user()->employmentDetail?->position;
+
+        return match ($position) {
+            'HR Manager'       => redirect()->route('HR.hrdashboard'),
+            'Housekeeping'     => redirect()->route('Maintenance.dashboard'),
+            'Maintenance_Head' => redirect()->route('Maintenance.checklist.verify'),
+            'Cashier'          => redirect()->route('pos.dashboard'),
+            'Staff'            => redirect()->route('users.leaveform'),
+            default            => redirect()->route('users.waiting'),
+        };
+    }
+
     return redirect()->route('nlah.home');
 })->name('home');
 Route::prefix('nlah')->name('nlah.')->group(function () {

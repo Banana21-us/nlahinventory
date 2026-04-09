@@ -10,6 +10,7 @@ class PayrollAndLeave extends Model
     protected $table = 'payroll_and_leaves';
 
     protected $fillable = [
+        'employee_id',
         'user_id',
         'salary_rate',
         'daily_rate',
@@ -55,5 +56,10 @@ class PayrollAndLeave extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Employee::class);
     }
 }

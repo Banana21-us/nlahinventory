@@ -18,6 +18,9 @@ new class extends Component {
     public ?string $pendingProofShift = null;
     public array $areaParts = [];
     public array $locations = [];
+    public array $availableFloors = [];
+    public array $locationProgress = [];
+    public string $floorFilter = '';
     public string $selectedLocation = '';
     public ?int $selectedLocationId = null;
     public string $periodType = 'daily';
@@ -32,6 +35,7 @@ new class extends Component {
     public bool $showProofPreviewModal = false;
     public ?string $proofPreviewUrl = null;
     public ?string $proofPreviewTitle = null;
+    public ?string $proofPreviewSkipReason = null;
     public array $days = [
         'mon' => 'Monday',
         'tue' => 'Tuesday',
@@ -217,6 +221,8 @@ new class extends Component {
             ->delete();
     } catch (\Throwable) {}
 
+    $this->loadLocationProgress();
+
     return;
 }
 
@@ -337,6 +343,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
     $this->slotProofs[$key]    = $proofPath;
     $this->slotComments[$key]  = $commentValue ?? '';
 
+    $this->loadLocationProgress();
     $this->clearPendingProof();
 }
 
@@ -425,6 +432,21 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
             return;
         }
 
+        // Handle skip proofs — no image, just a reason label
+        if (str_starts_with($path, 'skip:')) {
+            $reason = substr($path, 5);
+            $this->proofPreviewSkipReason = match ($reason) {
+                'patient_present' => 'Patient Present',
+                'gloves'          => 'Gloves On / Sanitary Concern',
+                default           => ucwords(str_replace('_', ' ', $reason)),
+            };
+            $this->proofPreviewUrl   = null;
+            $this->proofPreviewTitle = __('Proof Skipped');
+            $this->showProofPreviewModal = true;
+            return;
+        }
+
+        $this->proofPreviewSkipReason = null;
         $normalizedPath = ltrim(trim($path), '/');
         if (str_starts_with($normalizedPath, 'storage/')) {
             $normalizedPath = substr($normalizedPath, 8);
@@ -485,6 +507,61 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
         $this->showProofPreviewModal = false;
         $this->proofPreviewUrl = null;
         $this->proofPreviewTitle = null;
+        $this->proofPreviewSkipReason = null;
+    }
+
+    public function confirmToggleWithSkip(int $partId, string $dayKey, string $shift, string $skipReason): void
+    {
+        if ($this->isSlotLockedForFuture($dayKey)) {
+            return;
+        }
+
+        $cleaningDate    = $this->resolveCleaningDate($dayKey);
+        if ($cleaningDate === null) {
+            return;
+        }
+
+        $normalizedShift = in_array(strtoupper($shift), ['AM', 'PM'], true) ? strtoupper($shift) : null;
+        $proofValue      = 'skip:' . $skipReason;
+        $commentValue    = match ($skipReason) {
+            'patient_present' => 'Skipped — patient present in room',
+            'gloves'          => 'Skipped — gloves on / sanitary concern',
+            default           => 'Skipped — ' . str_replace('_', ' ', $skipReason),
+        };
+
+        try {
+            DB::table('records')
+                ->where('location_area_part_id', $partId)
+                ->where('period_type', $this->periodType)
+                ->where('shift', $normalizedShift)
+                ->where('status', 'YES')
+                ->whereDate('cleaning_date', $cleaningDate)
+                ->delete();
+
+            DB::table('records')->insert([
+                'location_area_part_id' => $partId,
+                'cleaning_date'         => $cleaningDate,
+                'period_type'           => $this->periodType,
+                'shift'                 => $normalizedShift,
+                'status'                => 'YES',
+                'remarks'               => 'Checked',
+                'proof'                 => $proofValue,
+                'maintenance_name'      => Auth::user()?->name,
+                'verifier_name'         => null,
+                'verifier_status'       => 'NO',
+                'verifier_comments'     => null,
+                'maintenance_comments'  => $commentValue,
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('confirmToggleWithSkip DB error: ' . $e->getMessage());
+            return;
+        }
+
+        $key = $this->slotKey($partId, $dayKey, $shift);
+        $this->selectedSlots[$key] = true;
+        $this->slotProofs[$key]    = $proofValue;
+        $this->slotComments[$key]  = $commentValue;
+        $this->loadLocationProgress();
     }
 
     private function loadAreaParts(): void
@@ -548,6 +625,19 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     'display_name' => $location->name.' ('.$location->floor.')',
                 ])
                 ->all();
+
+            $this->availableFloors = collect($this->locations)
+                ->pluck('floor')
+                ->filter(fn ($f) => is_string($f) && trim($f) !== '')
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+
+            // Reset floor filter if it no longer exists in new floors
+            if ($this->floorFilter !== '' && ! in_array($this->floorFilter, $this->availableFloors, true)) {
+                $this->floorFilter = '';
+            }
 
             $matchedById = $this->selectedLocationId !== null
                 ? collect($this->locations)->first(fn (array $location) => $location['id'] === $this->selectedLocationId)
@@ -647,7 +737,74 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
     } catch (\Throwable) {
         // Keep UI usable.
     }
+
+    $this->loadLocationProgress();
 }
+
+    private function loadLocationProgress(): void
+    {
+        $this->locationProgress = [];
+
+        if (empty($this->locations)) {
+            return;
+        }
+
+        $locationIds  = array_column($this->locations, 'id');
+        $shiftsCount  = in_array($this->periodType, ['daily', 'nightly'], true) ? 2 : 1;
+
+        try {
+            // Total area parts per location for this frequency
+            $totals = DB::table('location_area_parts')
+                ->whereIn('location_id', $locationIds)
+                ->where('frequency', $this->periodType)
+                ->selectRaw('location_id, COUNT(*) as cnt')
+                ->groupBy('location_id')
+                ->pluck('cnt', 'location_id');
+
+            // Completed (has proof) per location for current period/date
+            $doneQuery = DB::table('records as r')
+                ->join('location_area_parts as lap', 'lap.id', '=', 'r.location_area_part_id')
+                ->whereIn('lap.location_id', $locationIds)
+                ->where('r.period_type', $this->periodType)
+                ->where('r.status', 'YES')
+                ->whereNotNull('r.proof')
+                ->where('r.proof', '!=', '');
+
+            if (in_array($this->periodType, ['daily', 'nightly'], true)) {
+                $doneQuery->whereDate('r.cleaning_date', $this->selectedDate);
+            } elseif ($this->periodType === 'weekly') {
+                $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
+                $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+                if ($weekStart && $weekEnd) {
+                    $doneQuery->whereBetween('r.cleaning_date', [$weekStart, $weekEnd]);
+                }
+            } elseif ($this->periodType === 'monthly') {
+                $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
+                $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+                if ($monthStart && $monthEnd) {
+                    $doneQuery->whereBetween('r.cleaning_date', [$monthStart, $monthEnd]);
+                }
+            }
+
+            $done = $doneQuery
+                ->selectRaw('lap.location_id, COUNT(*) as cnt')
+                ->groupBy('lap.location_id')
+                ->pluck('cnt', 'location_id');
+
+            foreach ($locationIds as $locId) {
+                $total    = (int) ($totals[$locId] ?? 0) * $shiftsCount;
+                $doneCount = (int) ($done[$locId] ?? 0);
+                $pct      = $total > 0 ? min(100, (int) round(($doneCount / $total) * 100)) : 0;
+                $this->locationProgress[$locId] = [
+                    'total' => $total,
+                    'done'  => min($doneCount, $total),
+                    'pct'   => $pct,
+                ];
+            }
+        } catch (\Throwable) {
+            // Leave progress empty; UI still works.
+        }
+    }
 
     private function saveChecklist(): void
 {
@@ -985,7 +1142,37 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                 </div>
 
                 <div class="w-full overflow-hidden">
-                    @php $locationChunks = array_chunk($locations, 9); @endphp
+                    @php
+                        $filteredLocations = $floorFilter !== ''
+                            ? array_values(array_filter($locations, fn ($l) => $l['floor'] === $floorFilter))
+                            : $locations;
+                        $locationChunks = array_chunk($filteredLocations, 9);
+                    @endphp
+
+                    {{-- Floor filter tabs --}}
+                    @if (count($availableFloors) > 1)
+                        <div class="mb-2 flex gap-1.5">
+                            <button
+                                type="button"
+                                wire:click="$set('floorFilter', '')"
+                                class="rounded-lg border px-3 py-1 text-xs font-semibold transition"
+                                style="{{ $floorFilter === ''
+                                    ? 'border-color:#097b86;background-color:#097b86;color:white;'
+                                    : 'border-color:#e5e7eb;background-color:white;color:#4b5563;' }}"
+                            >All</button>
+                            @foreach ($availableFloors as $floor)
+                                <button
+                                    type="button"
+                                    wire:click="$set('floorFilter', '{{ addslashes($floor) }}')"
+                                    class="rounded-lg border px-3 py-1 text-xs font-semibold transition hover:border-[#097b86] hover:bg-teal-50 dark:hover:border-[#097b86] dark:hover:bg-teal-900/20"
+                                    style="{{ $floorFilter === $floor
+                                        ? 'border-color:#097b86;background-color:#097b86;color:white;'
+                                        : 'border-color:#e5e7eb;background-color:white;color:#4b5563;' }}"
+                                >{{ $floor }}</button>
+                            @endforeach
+                        </div>
+                    @endif
+
                     <div
                         x-data="{
                             page: 0,
@@ -1030,16 +1217,48 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                 @foreach ($locationChunks as $chunk)
                                     <div class="grid w-full shrink-0 grid-cols-3 gap-2" style="min-width:100%">
                                         @foreach ($chunk as $location)
+                                            @php
+                                                $locProg  = $locationProgress[$location['id']] ?? ['pct' => 0, 'done' => 0, 'total' => 0];
+                                                $locPct   = $locProg['pct'];
+                                                $locDone  = $locProg['done'];
+                                                $locTotal = $locProg['total'];
+                                                $isDone   = $locTotal > 0 && $locDone >= $locTotal;
+                                                $isActive = $selectedLocationId === ($location['id'] ?? null);
+                                                $fillColor = $isDone ? 'rgba(9,123,134,0.18)' : 'rgba(9,123,134,0.13)';
+                                            @endphp
                                             <button
                                                 type="button"
                                                 wire:click="selectLocationByName('{{ addslashes($location['display_name']) }}')"
-                                                class="flex flex-col items-center gap-1 rounded-xl border px-1 py-3 text-center text-xs font-medium transition
-                                                    {{ $selectedLocationId === ($location['id'] ?? null)
+                                                class="relative flex flex-col items-center gap-1 overflow-hidden rounded-xl border px-1 py-3 text-center text-xs font-medium transition
+                                                    {{ $isActive
                                                         ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-900/30 dark:text-sky-300'
                                                         : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800' }}"
                                             >
-                                                
-                                                <span class="line-clamp-2 leading-tight">{{ $location['display_name'] }}</span>
+                                                {{-- Progress fill (bottom-to-top) --}}
+                                                @if ($locPct > 0)
+                                                    <span
+                                                        class="pointer-events-none absolute bottom-0 left-0 right-0 transition-all duration-500"
+                                                        style="height: {{ $locPct }}%; background: {{ $fillColor }};"
+                                                        aria-hidden="true"
+                                                    ></span>
+                                                @endif
+
+                                                {{-- Done checkmark badge --}}
+                                                @if ($isDone)
+                                                    <!-- <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center
+                                                     rounded-full border-2 border-white bg-[#097b86] text-white dark:border-zinc-900" aria-hidden="true">
+                                                        <svg class="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2 6l3 3 5-5"/>
+                                                        </svg>
+                                                    </span> -->
+                                                @elseif ($locPct > 0)
+                                                    {{-- Partial: small fraction label --}}
+                                                    <span class="absolute right-1 top-1 rounded-full bg-teal-600 px-1 py-px text-[8px] font-bold leading-none text-white" aria-hidden="true">
+                                                        {{ $locDone }}/{{ $locTotal }}
+                                                    </span>
+                                                @endif
+
+                                                <span class="relative z-10 line-clamp-2 leading-tight">{{ $location['display_name'] }}</span>
                                             </button>
                                         @endforeach
                                         {{-- Fill empty cells to maintain 3-col grid --}}
@@ -1583,7 +1802,19 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                             </button>
                         </div>
                         <div class="p-4">
-                            @if ($proofPreviewUrl)
+                            @if ($proofPreviewSkipReason)
+                                <div class="flex flex-col items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-8 text-center dark:border-amber-700/40 dark:bg-amber-900/20">
+                                    <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-800/40">
+                                        <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                        </svg>
+                                    </span>
+                                    <div>
+                                        <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">Photo Skipped</p>
+                                        <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">{{ $proofPreviewSkipReason }}</p>
+                                    </div>
+                                </div>
+                            @elseif ($proofPreviewUrl)
                                 <div class="mx-auto w-full max-w-sm">
                                     <div class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
                                         <img src="{{ $proofPreviewUrl }}" alt="{{ __('Proof image') }}" class="h-full w-full object-contain">

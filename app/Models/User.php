@@ -28,6 +28,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'employee_number',
         'email_verified_at',
         'is_active',
+        'access_key_id',
     ];
 
     /**
@@ -107,6 +108,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isDisabled(): bool
     {
         return $this->role === 'Disable';
+    }
+
+    public function accessKey()
+    {
+        return $this->belongsTo(AccessKey::class);
     }
 
     public function employee()

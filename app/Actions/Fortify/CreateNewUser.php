@@ -4,6 +4,8 @@ namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Models\Employee;
+use App\Models\PayrollAndLeave;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -42,12 +44,33 @@ class CreateNewUser implements CreatesNewUsers
             $employee->extension,
         ])));
 
-        return User::create([
-            'name' => $name,
-            'username' => $input['username'],
-            'email' => $input['email'],
-            'password' => $input['password'],
-            'employee_number' => $input['employee_number'],
-        ]);
+        return DB::transaction(function () use ($input, $name) {
+            $user = User::create([
+                'name' => $name,
+                'username' => $input['username'],
+                'email' => $input['email'],
+                'password' => $input['password'],
+                'employee_number' => $input['employee_number'],
+            ]);
+
+            // Auto-link the employee record to this new user account
+            $emp = Employee::where('employee_number', $input['employee_number'])->first();
+            if ($emp) {
+                $emp->update(['user_id' => $user->id]);
+
+                // Copy the intended access key from employment_details to the user
+                $detail = \App\Models\EmploymentDetail::where('employee_id', $emp->id)->first();
+                if ($detail?->access_key_id) {
+                    $user->update(['access_key_id' => $detail->access_key_id]);
+                }
+
+                // Also backfill user_id on any existing payroll record for this employee
+                PayrollAndLeave::where('employee_id', $emp->id)
+                    ->whereNull('user_id')
+                    ->update(['user_id' => $user->id]);
+            }
+
+            return $user;
+        });
     }
 }

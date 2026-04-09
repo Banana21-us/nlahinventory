@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\AccessKey;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -17,7 +18,13 @@ class HR extends Component
 
     public bool $confirmingDeletion = false;
 
+    public bool $confirmingAccessKey = false;
+
     public ?int $selectedId = null;
+
+    public ?int $pendingUserId = null;
+
+    public ?int $pendingAccessKeyId = null;
 
     // Form fields
     public $employee_number;
@@ -114,6 +121,22 @@ class HR extends Component
         session()->flash('message', $user->is_active ? 'Account activated.' : 'Account deactivated.');
     }
 
+    public function confirmAccessKeyChange(int $userId, ?int $accessKeyId): void
+    {
+        $this->pendingUserId = $userId;
+        $this->pendingAccessKeyId = $accessKeyId ?: null;
+        $this->confirmingAccessKey = true;
+    }
+
+    public function applyAccessKeyChange(): void
+    {
+        if ($this->pendingUserId) {
+            User::findOrFail($this->pendingUserId)->update(['access_key_id' => $this->pendingAccessKeyId]);
+            session()->flash('message', 'Access key updated.');
+        }
+        $this->reset(['confirmingAccessKey', 'pendingUserId', 'pendingAccessKeyId']);
+    }
+
     public function confirmDelete(int $id): void
     {
         $this->selectedId = $id;
@@ -133,6 +156,7 @@ class HR extends Component
             'employee_number', 'name', 'username',
             'email', 'password', 'password_confirmation',
             'selectedId', 'isEditing', 'showForm', 'confirmingDeletion',
+            'confirmingAccessKey', 'pendingUserId', 'pendingAccessKeyId',
         ]);
     }
 
@@ -149,6 +173,8 @@ class HR extends Component
             ->latest()
             ->get();
 
-        return view('pages.HR.userlist', compact('users'))->layout('layouts.app');
+        $accessKeys = AccessKey::orderBy('name')->get(['id', 'name']);
+
+        return view('pages.HR.userlist', compact('users', 'accessKeys'))->layout('layouts.app');
     }
 }

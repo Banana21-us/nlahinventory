@@ -2,11 +2,13 @@
 
 namespace App\Livewire;
 
+use App\Models\AccessKey;
 use App\Models\Department;
 use App\Models\Dependency;
 use App\Models\Employee;
 use App\Models\EmploymentDetail;
 use App\Models\PayrollAndLeave;
+use App\Models\Position;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -77,7 +79,11 @@ class EmployeeManagement extends Component
     // Employment Detail (employment_details table)
     public $department_id;
 
-    public $position;
+    public $position; // slash-joined string stored in DB, e.g. "HR Manager/Staff"
+
+    public array $selectedPositions = []; // checkbox state — source of truth in the form
+
+    public ?int $access_key_id = null; // assigned access key (saved to employment_details + linked user)
 
     public $rank;
 
@@ -159,7 +165,8 @@ class EmployeeManagement extends Component
             'birth_date' => ['required', 'date'],
             'gender' => ['required', 'in:Male,Female'],
             'department_id' => ['required', 'integer', 'exists:departments,id'],
-            'position' => ['required', 'string', 'max:255'],
+            'selectedPositions' => ['required', 'array', 'min:1'],
+            'selectedPositions.*' => ['string', 'max:255'],
             'employment_status' => ['required', 'in:Probationary,Regular,Contractual,Casual'],
             'hiring_date' => ['required', 'date'],
         ];
@@ -202,10 +209,12 @@ class EmployeeManagement extends Component
                 $this->employmentDetailData()
             );
 
-            if ($this->user_id) {
-                $this->saveFinance($this->user_id);
-            }
+            $this->saveFinance($emp->id, $this->user_id ?: null);
             $this->saveDependents($emp->id);
+            // Propagate access key to the linked user account
+            if ($this->user_id && $this->access_key_id) {
+                User::where('id', $this->user_id)->update(['access_key_id' => $this->access_key_id]);
+            }
         });
 
         $this->resetForm();
@@ -246,11 +255,14 @@ class EmployeeManagement extends Component
         $this->c_address = $employee->c_address;
         $this->contact_person = $employee->contact_person;
         $this->contact_number = $employee->contact_number;
+        $this->contact_relationship = $employee->contact_relationship;
 
         $detail = EmploymentDetail::where('employee_id', $employee->id)->first();
         if ($detail) {
             $this->department_id = $detail->department_id;
             $this->position = $detail->position;
+            $this->selectedPositions = array_filter(explode('/', $detail->position ?? ''));
+            $this->access_key_id = $detail->access_key_id ?? $employee->user?->access_key_id;
             $this->rank = $detail->rank;
             $this->employment_status = $detail->employment_status;
             $this->hiring_date = $detail->hiring_date?->format('Y-m-d');
@@ -265,7 +277,8 @@ class EmployeeManagement extends Component
             $this->gsis_no = $detail->gsis_no;
         }
 
-        $payroll = PayrollAndLeave::where('user_id', $employee->user_id)->first();
+        $payroll = PayrollAndLeave::where('employee_id', $employee->id)->first()
+            ?? ($employee->user_id ? PayrollAndLeave::where('user_id', $employee->user_id)->first() : null);
         if ($payroll) {
             $this->salary_rate = $payroll->salary_rate;
             $this->daily_rate = $payroll->daily_rate;
@@ -328,11 +341,13 @@ class EmployeeManagement extends Component
         $this->dependents = array_values($this->dependents);
     }
 
-    protected function saveFinance(int $userId): void
+    protected function saveFinance(int $employeeId, ?int $userId): void
     {
         PayrollAndLeave::updateOrCreate(
-            ['user_id' => $userId],
-            [
+            ['employee_id' => $employeeId],
+            array_filter([
+                'user_id' => $userId,
+            ], fn ($v) => $v !== null) + [
                 'salary_rate' => $this->salary_rate ?: 0,
                 'daily_rate' => $this->daily_rate ?: 0,
                 'monthly_rate' => $this->monthly_rate ?: 0,
@@ -414,10 +429,12 @@ class EmployeeManagement extends Component
                 $this->employmentDetailData()
             );
 
-            if ($this->user_id) {
-                $this->saveFinance($this->user_id);
-            }
+            $this->saveFinance($employee->id, $this->user_id ?: null);
             $this->saveDependents($employee->id);
+            // Propagate access key to the linked user account
+            if ($this->user_id && $this->access_key_id) {
+                User::where('id', $this->user_id)->update(['access_key_id' => $this->access_key_id]);
+            }
         });
 
         $this->resetForm();
@@ -445,9 +462,13 @@ class EmployeeManagement extends Component
 
     private function employmentDetailData(): array
     {
+        // Join multi-select positions into slash-separated string for storage
+        $positionStr = implode('/', array_filter($this->selectedPositions));
+
         return [
             'department_id' => $this->department_id,
-            'position' => $this->position,
+            'position' => $positionStr ?: ($this->position ?: ''),
+            'access_key_id' => $this->access_key_id ?: null,
             'rank' => $this->rank,
             'employment_status' => $this->employment_status,
             'hiring_date' => $this->hiring_date,
@@ -472,7 +493,7 @@ class EmployeeManagement extends Component
             'religion', 'blood_type', 'height', 'weight',
             'mobile_no', 'telephone', 'email_add', 'p_address', 'c_address',
             'contact_person', 'contact_number', 'contact_relationship',
-            'department_id', 'position', 'rank',
+            'department_id', 'position', 'selectedPositions', 'access_key_id', 'rank',
             'hiring_date', 'regularization_date',
             'license_no', 'license_expiry',
             'philhealth_no', 'pagibig_no', 'tin_no', 'sss_no', 'gsis_no',
@@ -503,12 +524,14 @@ class EmployeeManagement extends Component
 
         $users = User::orderBy('name')->get(['id', 'name', 'employee_number']);
         $departments = Department::orderBy('name')->get(['id', 'name', 'code']);
+        $positions = Position::orderBy('name')->get(['id', 'name', 'code']);
+        $accessKeys = AccessKey::orderBy('name')->get(['id', 'name', 'description']);
 
         $viewEmployee = $this->isViewing && $this->selectedId
             ? Employee::with(['employmentDetail.department'])->find($this->selectedId)
             : null;
 
-        return view('pages.HR.employee-management', compact('employees', 'users', 'departments', 'viewEmployee'))
+        return view('pages.HR.employee-management', compact('employees', 'users', 'departments', 'positions', 'accessKeys', 'viewEmployee'))
             ->layout('layouts.app');
     }
 }

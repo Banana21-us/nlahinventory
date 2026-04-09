@@ -51,23 +51,22 @@
             <div class="p-2 rounded-lg brand-bg-primary-light">
                 <svg class="w-6 h-6 brand-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                 </svg>
             </div>
             <div>
-                <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400">System</p>
-                <h1 class="text-xl font-bold text-gray-800 leading-tight">User List</h1>
+                <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400">HR</p>
+                <h1 class="text-xl font-bold text-gray-800 leading-tight">Positions</h1>
             </div>
         </div>
     </div>
 
     {{-- ═══════════════════════════════════════════
-         ADD USER COLLAPSIBLE FORM
+         ADD POSITION COLLAPSIBLE FORM
     ═══════════════════════════════════════════ --}}
     <div class="bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden"
          x-data="{ open: @entangle('showForm') }">
 
-        {{-- Toggle Button --}}
         <button
             @click="open = !open"
             class="w-full flex items-center justify-between p-5 bg-white hover:bg-gray-50 transition-colors focus:outline-none"
@@ -79,12 +78,11 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" x-show="open" style="display:none"/>
                     </svg>
                 </div>
-                <h2 class="text-lg font-bold text-gray-800">User Entry</h2>
+                <h2 class="text-lg font-bold text-gray-800">Position Entry</h2>
             </div>
-            <span class="text-sm font-medium brand-text-primary" x-text="open ? 'Minimize' : 'Add New User'"></span>
+            <span class="text-sm font-medium brand-text-primary" x-text="open ? 'Minimize' : 'Add New Position'"></span>
         </button>
 
-        {{-- Collapsible Body --}}
         <div
             x-show="open"
             x-collapse
@@ -96,43 +94,22 @@
             <form wire:submit.prevent="save" class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Employee Number *</label>
-                    <input type="text" wire:model="employee_number" placeholder="e.g. EMP-0001"
-                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    @error('employee_number') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Full Name *</label>
-                    <input type="text" wire:model="name" placeholder="Juan dela Cruz"
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Position Name *</label>
+                    <input type="text" wire:model="name" placeholder="e.g. HR Manager"
                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Username *</label>
-                    <input type="text" wire:model="username" placeholder="juan.delacruz"
-                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    @error('username') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Code</label>
+                    <input type="text" wire:model="code" placeholder="e.g. HR-MGR"
+                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 uppercase"/>
+                    @error('code') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Email *</label>
-                    <input type="email" wire:model="email" placeholder="juan@example.com"
-                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    @error('email') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Password *</label>
-                    <input type="password" wire:model="password"
-                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    @error('password') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Confirm Password *</label>
-                    <input type="password" wire:model="password_confirmation"
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Description</label>
+                    <input type="text" wire:model="description" placeholder="Optional short description"
                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                 </div>
 
@@ -143,7 +120,7 @@
                     </button>
                     <button type="submit"
                         class="brand-btn-primary text-sm font-bold py-2 px-10 rounded shadow-md active:scale-95 flex items-center gap-2">
-                        <span wire:loading.remove wire:target="save">Save User</span>
+                        <span wire:loading.remove wire:target="save">Save Position</span>
                         <span wire:loading wire:target="save" class="flex items-center gap-2">
                             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -158,11 +135,10 @@
     </div>
 
     {{-- ═══════════════════════════════════════════
-         USER TABLE
+         POSITION TABLE
     ═══════════════════════════════════════════ --}}
     <div class="mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
 
-        {{-- Table Header --}}
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="p-2 rounded-lg brand-bg-teal-light">
@@ -170,13 +146,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
                 </div>
-                <h3 class="text-lg font-bold text-gray-800">User List</h3>
+                <h3 class="text-lg font-bold text-gray-800">Position List</h3>
                 <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                    {{ $users->count() }} {{ Str::plural('user', $users->count()) }}
+                    {{ $positions->count() }} {{ Str::plural('position', $positions->count()) }}
                 </span>
             </div>
 
-            {{-- Search --}}
             <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,106 +161,51 @@
                 <input
                     wire:model.live.debounce.300ms="search"
                     type="text"
-                    placeholder="Search users…"
+                    placeholder="Search positions…"
                     class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg transition-all w-56"
                 />
             </div>
         </div>
 
-        {{-- Table --}}
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Employee #</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Access Key</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Code</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
                         <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
-                    @forelse($users as $user)
-                        @php
-                            $position = $user->employmentDetail?->position;
-                        @endphp
-                        <tr class="brand-row-hover transition-colors {{ $user->is_active ? '' : 'opacity-60' }}">
-
-                            <td class="px-6 py-4 text-sm font-mono font-semibold text-gray-600">
-                                {{ $user->employee_number }}
-                            </td>
+                    @forelse($positions as $pos)
+                        <tr class="brand-row-hover transition-colors">
 
                             <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">
-                                        {{ strtoupper(substr($user->name, 0, 1)) }}
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-bold text-gray-900">{{ $user->name }}</p>
-                                        <p class="text-xs text-gray-400">{{ $user->username }}</p>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <td class="px-6 py-4 text-sm text-gray-500">{{ $user->email }}</td>
-
-                            <td class="px-6 py-4">
-                                @if($position)
-                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                          style="background-color:#e6f0f7;color:#015581;border:1px solid #bfdbee;">
-                                        {{ $position }}
+                                @if($pos->code)
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full"
+                                          style="background-color:#fef8e7;color:#b45309;border:1px solid #fde68a;">
+                                        {{ $pos->code }}
                                     </span>
                                 @else
-                                    <span class="text-xs text-gray-400 italic">Not assigned</span>
+                                    <span class="text-xs text-gray-300">—</span>
                                 @endif
                             </td>
 
                             <td class="px-6 py-4">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    {{-- Status Toggle --}}
-                                    <div wire:ignore>
-                                        <button
-                                            x-data="{ on: {{ $user->is_active ? 'true' : 'false' }} }"
-                                            x-on:click="on = !on; $wire.toggleActive({{ $user->id }})"
-                                            :title="on ? 'Click to deactivate' : 'Click to activate'"
-                                            :class="on ? 'bg-green-600' : 'bg-red-600'"
-                                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ease-in-out border-2 border-black focus:outline-none focus:ring-4 focus:ring-yellow-400">
-                                            <span
-                                                :style="on ? 'transform: translateX(1.5rem)' : 'transform: translateX(0.25rem)'"
-                                                style="transition: transform 300ms ease-in-out;"
-                                                class="inline-block h-4 w-4 rounded-full bg-white shadow"></span>
-                                        </button>
-                                    </div>
-
-                                    
-                                </div>
+                                <p class="text-sm font-bold text-gray-900">{{ $pos->name }}</p>
                             </td>
 
-                          <td class="px-6 py-4 text-sm text-gray-400">
-                                {{-- Access Key Selector --}}
-                                    <div>
-                                        <select
-                                            @change="$wire.confirmAccessKeyChange({{ $user->id }}, parseInt($event.target.value) || null)"
-                                            title="Change access key"
-                                            class="brand-focus text-xs border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-700 cursor-pointer max-w-[130px]">
-                                            <option value="">— No Key —</option>
-                                            @foreach($accessKeys as $key)
-                                                <option value="{{ $key->id }}" {{ $user->access_key_id == $key->id ? 'selected' : '' }}>
-                                                    {{ $key->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                            </td> 
+                            <td class="px-6 py-4">
+                                <p class="text-sm text-gray-500">{{ $pos->description ?? '—' }}</p>
+                            </td>
 
                             <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
-                                <button wire:click="edit({{ $user->id }})"
+                                <button wire:click="edit({{ $pos->id }})"
                                     class="brand-edit-btn rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors">
                                     Edit
                                 </button>
-                                <button wire:click="confirmDelete({{ $user->id }})"
+                                <button wire:click="confirmDelete({{ $pos->id }})"
                                     class="text-red-500 hover:text-red-700 font-semibold transition-colors">
                                     Delete
                                 </button>
@@ -293,16 +213,16 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-14 text-center">
+                            <td colspan="4" class="px-6 py-14 text-center">
                                 <div class="flex flex-col items-center text-gray-400">
                                     <svg class="w-10 h-10 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                     </svg>
                                     <p class="text-sm font-medium">
-                                        {{ $search ? 'No users match your search.' : 'No users found in the system.' }}
+                                        {{ $search ? 'No positions match your search.' : 'No positions found.' }}
                                     </p>
                                     <p class="text-xs mt-1">
-                                        {{ $search ? 'Try a different keyword.' : 'Click "Add New User" above to get started.' }}
+                                        {{ $search ? 'Try a different keyword.' : 'Click "Add New Position" above to get started.' }}
                                     </p>
                                 </div>
                             </td>
@@ -329,9 +249,9 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-base font-bold text-gray-900">Delete User</h3>
+                                <h3 class="text-base font-bold text-gray-900">Delete Position</h3>
                                 <p class="mt-1.5 text-sm text-gray-500">
-                                    Are you sure you want to remove this user? This record will be permanently deleted. This action cannot be undone.
+                                    Are you sure you want to delete this position? Employees using it will retain the stored value.
                                 </p>
                             </div>
                         </div>
@@ -342,44 +262,6 @@
                             Delete Permanently
                         </button>
                         <button type="button" wire:click="$set('confirmingDeletion', false)"
-                            class="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- ═══════════════════════════════════════════
-         ACCESS KEY CONFIRMATION MODAL
-    ═══════════════════════════════════════════ --}}
-    @if($confirmingAccessKey)
-        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
-            <div class="fixed inset-0 bg-gray-500/75 transition-opacity" wire:click="$set('confirmingAccessKey', false)"></div>
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl sm:w-full sm:max-w-lg">
-                    <div class="bg-white px-6 pt-6 pb-4">
-                        <div class="flex items-start gap-4">
-                            <div class="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-full brand-bg-primary-light">
-                                <svg class="w-6 h-6 brand-text-primary" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 0 1 21.75 8.25Z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-base font-bold text-gray-900">Update Access Key</h3>
-                                <p class="mt-1.5 text-sm text-gray-500">
-                                    Are you sure you want to change this user's access key? This will affect which modules the user can access.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 rounded-b-xl">
-                        <button type="button" wire:click="applyAccessKeyChange"
-                            class="inline-flex justify-center rounded-lg px-4 py-2 text-sm font-bold text-white shadow-sm brand-btn-primary transition-colors active:scale-95">
-                            Confirm Change
-                        </button>
-                        <button type="button" wire:click="$set('confirmingAccessKey', false)"
                             class="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
                             Cancel
                         </button>
@@ -406,45 +288,28 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                 </div>
-                                <h3 class="text-xl font-bold text-gray-900">Update User Information</h3>
+                                <h3 class="text-xl font-bold text-gray-900">Update Position</h3>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Employee Number *</label>
-                                    <input type="text" wire:model="employee_number"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                    @error('employee_number') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Full Name *</label>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Position Name *</label>
                                     <input type="text" wire:model="name"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                     @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Code</label>
+                                    <input type="text" wire:model="code"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 uppercase"/>
+                                    @error('code') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+
                                 <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Email *</label>
-                                    <input type="email" wire:model="email"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                    @error('email') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
-                                        New Password
-                                        <span class="text-gray-400 normal-case font-normal">(leave blank to keep current)</span>
-                                    </label>
-                                    <input type="password" wire:model="password"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                    @error('password') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Confirm New Password</label>
-                                    <input type="password" wire:model="password_confirmation"
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Description</label>
+                                    <input type="text" wire:model="description"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
 
@@ -506,7 +371,6 @@
                     </svg>
                 </button>
             </div>
-            {{-- Gold accent progress bar --}}
             <div class="h-1" style="background-color:#f0b626; animation: shrink 4s linear forwards;"></div>
         </div>
     @endif

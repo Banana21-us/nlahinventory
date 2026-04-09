@@ -37,6 +37,7 @@ new class extends Component {
     public ?string $proofPreviewUrl = null;
     public ?string $proofPreviewTitle = null;
     public ?string $proofPreviewComment = null;
+    public ?string $proofPreviewSkipReason = null;
     public bool $showVerifyModal = false;
     public ?int $verifyRecordId = null;
     public ?string $verifyPreviewUrl = null;
@@ -532,7 +533,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         }
 
         $this->verifyRecordId = (int) $this->slotRecordIds[$key];
-        $this->verifyPreviewUrl = $this->buildProofPreviewUrl($proofPath);
+        $this->verifyPreviewUrl = str_starts_with($proofPath, 'skip:') ? null : $this->buildProofPreviewUrl($proofPath);
         $this->verifyComment = '';
         $this->showVerifyModal = true;
     }
@@ -662,6 +663,21 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             return;
         }
 
+        if (str_starts_with($path, 'skip:')) {
+            $reason = substr($path, 5);
+            $this->proofPreviewSkipReason = match ($reason) {
+                'patient_present' => 'Patient Present',
+                'gloves'          => 'Gloves On / Sanitary Concern',
+                default           => ucwords(str_replace('_', ' ', $reason)),
+            };
+            $this->proofPreviewUrl     = null;
+            $this->proofPreviewTitle   = __('Proof Skipped');
+            $this->proofPreviewComment = null;
+            $this->showProofPreviewModal = true;
+            return;
+        }
+
+        $this->proofPreviewSkipReason = null;
         $this->proofPreviewUrl = $this->buildProofPreviewUrl($path);
 
         $this->proofPreviewTitle = __('Proof Preview');
@@ -709,6 +725,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         $this->proofPreviewUrl = null;
         $this->proofPreviewTitle = null;
         $this->proofPreviewComment = null;
+        $this->proofPreviewSkipReason = null;
     }
 
     public function closeVerifyModal(): void
@@ -1760,7 +1777,19 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                                 </button>
                             </div>
                             <div class="p-4">
-                                @if ($proofPreviewUrl)
+                                @if ($proofPreviewSkipReason)
+                                    <div class="flex flex-col items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-8 text-center dark:border-amber-700/40 dark:bg-amber-900/20">
+                                        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-800/40">
+                                            <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                            </svg>
+                                        </span>
+                                        <div>
+                                            <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">Photo Skipped</p>
+                                            <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">{{ $proofPreviewSkipReason }}</p>
+                                        </div>
+                                    </div>
+                                @elseif ($proofPreviewUrl)
                                     <div class="mx-auto w-full max-w-sm">
                                         <div class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
                                             <img src="{{ $proofPreviewUrl }}" alt="{{ __('Proof image') }}" class="h-full w-full object-contain">
@@ -1796,7 +1825,36 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                                 </button>
                             </div>
                             <div class="space-y-4 p-4">
-                                @if ($verifyPreviewUrl)
+                                @php
+                                    $verifySlotKey = null;
+                                    $verifySkipReason = null;
+                                    if ($verifyRecordId) {
+                                        foreach ($slotProofs as $sk => $sp) {
+                                            if (str_starts_with($sp, 'skip:') && isset($slotRecordIds[$sk]) && $slotRecordIds[$sk] == $verifyRecordId) {
+                                                $r = substr($sp, 5);
+                                                $verifySkipReason = match ($r) {
+                                                    'patient_present' => 'Patient Present',
+                                                    'gloves'          => 'Gloves On / Sanitary Concern',
+                                                    default           => ucwords(str_replace('_', ' ', $r)),
+                                                };
+                                                break;
+                                            }
+                                        }
+                                    }
+                                @endphp
+                                @if ($verifySkipReason)
+                                    <div class="flex flex-col items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-8 text-center dark:border-amber-700/40 dark:bg-amber-900/20">
+                                        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-800/40">
+                                            <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                            </svg>
+                                        </span>
+                                        <div>
+                                            <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">Photo Skipped</p>
+                                            <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">{{ $verifySkipReason }}</p>
+                                        </div>
+                                    </div>
+                                @elseif ($verifyPreviewUrl)
                                     <div class="mx-auto w-full max-w-sm">
                                         <div class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
                                             <img src="{{ $verifyPreviewUrl }}" alt="{{ __('Proof image') }}" class="h-full w-full object-contain">

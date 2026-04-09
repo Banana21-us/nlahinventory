@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\AccessKey;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -29,23 +30,23 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') !== 'local') {
             URL::forceScheme('https');
         }
+        // Super-access: access keys marked is_super bypass all gate checks
         Gate::before(function (User $user, string $ability) {
-            if ($user->employmentDetail?->position === 'HR Manager') {
-                return true;
-            }
+            return $user->accessKey?->is_super ? true : null;
         });
 
-        // Gate::define('access-medical', function (User $user) {
-        //     return $user->employmentDetail?->position === 'Staff'
-        //         && $user->is_active === true; // double-check active here too
-        // });
-        // Define the specific gates for other roles
-        Gate::define('access-medical', fn (User $user) => $user->employmentDetail?->position === 'Staff');
-        Gate::define('access-maintenance', fn (User $user) => $user->employmentDetail?->position === 'Housekeeping');
-        Gate::define('access-verify', fn (User $user) => $user->employmentDetail?->position === 'Maintenance_Head');
-        Gate::define('access-hr-only', fn (User $user) => $user->employmentDetail?->position === 'HR Manager');
-        Gate::define('access-payroll', fn (User $user) => $user->employmentDetail?->position === 'HR Manager');
-        Gate::define('access-cashier-only', fn (User $user) => $user->employmentDetail?->position === 'Cashier');
+        // Each gate checks if the user's access key grants the matching permission slug.
+        // Falls back to false (users.waiting) if no access key is assigned.
+        $permissionGate = function (string $slug) {
+            return fn (User $user) => $user->accessKey?->hasPermission($slug) ?? false;
+        };
+
+        Gate::define('access-medical',       $permissionGate('access-medical'));
+        Gate::define('access-maintenance',   $permissionGate('access-maintenance'));
+        Gate::define('access-verify',        $permissionGate('access-verify'));
+        Gate::define('access-hr-only',       $permissionGate('access-hr-only'));
+        Gate::define('access-payroll',       $permissionGate('access-payroll'));
+        Gate::define('access-cashier-only',  $permissionGate('access-cashier-only'));
 
     }
 

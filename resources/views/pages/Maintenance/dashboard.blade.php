@@ -87,29 +87,29 @@
     </div>
 
     {{-- ═══════ QUICK ACTIONS ═══════ --}}
-    <div class="grid grid-cols-2 gap-4 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <a href="{{ route('Maintenance.checklist.check') }}" wire:navigate
-           class="m-card p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors group">
-            <div class="p-3 rounded-xl m-bg-primary shrink-0 group-hover:opacity-90 transition">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           class="m-card p-4 sm:p-5 flex items-center gap-3 sm:gap-4 hover:bg-gray-50 transition-colors group">
+            <div class="p-2.5 sm:p-3 rounded-xl m-bg-primary shrink-0 group-hover:opacity-90 transition">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
             </div>
             <div>
-                <p class="font-bold text-gray-900">Open Checklist</p>
+                <p class="font-bold text-gray-900 text-sm sm:text-base">Open Checklist</p>
                 <p class="text-xs text-gray-500">Log today's cleaning tasks</p>
             </div>
         </a>
 
         <a href="{{ route('users.leaveform') }}" wire:navigate
-           class="m-card p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors group">
-            <div class="p-3 rounded-xl m-bg-green shrink-0 group-hover:opacity-90 transition">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           class="m-card p-4 sm:p-5 flex items-center gap-3 sm:gap-4 hover:bg-gray-50 transition-colors group">
+            <div class="p-2.5 sm:p-3 rounded-xl m-bg-green shrink-0 group-hover:opacity-90 transition">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
             </div>
             <div>
-                <p class="font-bold text-gray-900">File a Leave</p>
+                <p class="font-bold text-gray-900 text-sm sm:text-base">File a Leave</p>
                 <p class="text-xs text-gray-500">Submit leave application</p>
             </div>
         </a>

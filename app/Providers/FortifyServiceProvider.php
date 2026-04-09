@@ -82,18 +82,15 @@ class FortifyServiceProvider extends ServiceProvider
                         return redirect()->route('verification.notice');
                     }
 
-                    // Access the position column via the relationship
-                    $position = $user->employmentDetail?->position;
+                    // Redirect based on the access key's configured route
+                    $redirectTo = $user->accessKey?->redirect_to;
 
-                    return match ($position) {
-                        'HR Manager' => redirect()->route('HR.hrdashboard'),
-                        'Housekeeping' => redirect()->route('Maintenance.dashboard'),
-                        'Maintenance_Head' => redirect()->route('Maintenance.checklist.verify'),
-                        'Cashier' => redirect()->route('pos.dashboard'),
-                        'Staff' => redirect()->route('users.leaveform'),
-                        default        => redirect()->route('users.waiting')
-                            ->withErrors(['email' => 'Your position is not assigned to a dashboard.']),
-                    };
+                    if ($redirectTo && \Illuminate\Support\Facades\Route::has($redirectTo)) {
+                        return redirect()->route($redirectTo);
+                    }
+
+                    return redirect()->route('users.waiting')
+                        ->withErrors(['email' => 'No access key assigned. Please contact HR.']);
                 }
             };
         });

@@ -13,6 +13,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // 0. Seed positions and access keys first (referenced by other seeders)
+        $this->call([
+            PositionSeeder::class,
+            AccessKeySeeder::class,
+        ]);
+
         // 1. Create Departments
         $deptMIS = Department::create([
             'name' => 'Management Information Systems',

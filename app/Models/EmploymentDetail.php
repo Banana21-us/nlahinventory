@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmploymentDetail extends Model
 {
     protected $fillable = [
-        'employee_id', 'department_id', 'position', 'rank',
+        'employee_id', 'department_id', 'position', 'access_key_id', 'rank',
         'employment_status', 'hiring_date', 'regularization_date',
         'license_no', 'license_expiry', 're_membership',
         'philhealth_no', 'pagibig_no', 'tin_no', 'sss_no', 'gsis_no',
@@ -27,5 +27,10 @@ class EmploymentDetail extends Model
     public function department()
     {
         return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function accessKey()
+    {
+        return $this->belongsTo(AccessKey::class);
     }
 }

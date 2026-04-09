@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AccessKey;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmploymentDetail;
@@ -83,6 +84,14 @@ class HRAccountSeeder extends Seeder
                 'gsis_no' => null,
             ]
         );
+
+        // Assign HR access key to this user
+        $hrKey = AccessKey::where('name', 'HR Access')->first();
+        if ($hrKey) {
+            $user->update(['access_key_id' => $hrKey->id]);
+            EmploymentDetail::where('employee_id', $employeeRecord->id)
+                ->update(['access_key_id' => $hrKey->id]);
+        }
 
         // Make this user the dept head of HR
         $deptHR->update(['dept_head_id' => $user->id]);
