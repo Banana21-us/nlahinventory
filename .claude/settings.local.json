@@ -32,7 +32,14 @@
       "Bash(cmd /c \"where ollama && ollama --version\")",
       "Bash(powershell -Command 'ollama --version; if \\($LASTEXITCODE -ne 0\\) { Write-Host '\\\\''not in PATH'\\\\'' } else { Write-Host '\\\\''ok'\\\\'' }')",
       "Bash(powershell -Command \"Test-Path 'C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.exe'; Test-Path 'C:\\\\Program Files\\\\Ollama\\\\ollama.exe'\")",
-      "Bash(powershell -Command \"& 'C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.exe' --version\")"
+      "Bash(powershell -Command \"& 'C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.exe' --version\")",
+      "Bash(composer test:*)",
+      "Bash(grep -l \"EnsureUserIsActive\\\\|SecurityHeaders\\\\|AuditService\\\\|invalidateSessions\" app/Http/Middleware/*.php app/Models/User.php app/Services/AuditService.php bootstrap/app.php)",
+      "Bash(ls app/Models/Location*)",
+      "Bash(ls app/Models/Maintenance*)",
+      "Bash(npm run:*)",
+      "Bash(php vendor/laravel/pint/builds/pint app/Livewire/Maintenance/RoundRunner.php)",
+      "Read(//tmp/**)"
     ]
   }
 }
