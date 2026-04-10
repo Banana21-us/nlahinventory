@@ -105,11 +105,8 @@
     transition: background 0.15s;
     font-family: 'DM Sans', sans-serif;
     margin-left: auto;
-    margin-left: auto;
   }
-  .nlah-feedback-btn:hover {
-    background: rgba(255,255,255,0.3);
-  }
+  .nlah-feedback-btn:hover { background: rgba(255,255,255,0.3); }
 
   /* Messages */
   .nlah-messages {
@@ -137,6 +134,7 @@
     font-size: 0.875rem; line-height: 1.55;
     word-break: break-word;
     font-family: 'DM Sans', sans-serif;
+    white-space: pre-wrap;
   }
   .nlah-msg.ai .nlah-bubble {
     background: #fff;
@@ -222,70 +220,6 @@
   #nlah-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
   #nlah-send-btn svg { width: 16px; height: 16px; fill: #fff; }
 
-  /* Feedback Form - Simple */
-  .nlah-feedback-form {
-    background: white;
-    border-radius: 12px;
-    padding: 1.2rem;
-    margin-bottom: 900px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
-  .nlah-feedback-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #0369a1;
-    margin-bottom: 1rem;
-    text-align: center;
-  }
-  .nlah-star-rating {
-    display: flex;
-    justify-content: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  .nlah-star {
-    font-size: 2rem;
-    cursor: pointer;
-    color: #d1d5db;
-  }
-  .nlah-star.selected {
-    color: #fbbf24;
-  }
-  .nlah-feedback-input, .nlah-feedback-name {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.875rem;
-    margin-bottom: 1rem;
-  }
-  .nlah-feedback-input:focus, .nlah-feedback-name:focus {
-    outline: none;
-    border-color: #0369a1;
-  }
-  .nlah-feedback-submit {
-    width: 100%;
-    padding: 0.75rem;
-    background: linear-gradient(135deg, #0e7490, #0369a1);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .nlah-back-btn {
-    display: block;
-    text-align: center;
-    margin-top: 0.75rem;
-    color: #6b7280;
-    font-size: 0.75rem;
-    cursor: pointer;
-    text-decoration: underline;
-  }
-
   @media (max-width: 440px) {
     #nlah-chat-window { width: calc(100vw - 2rem); right: 1rem; bottom: 5.5rem; }
   }
@@ -304,7 +238,7 @@
     <div class="nlah-header-info">
       <div class="nlah-header-name">
         NLAH Virtual Assistant
-        <span class="nlah-feedback-btn" onclick="showFeedbackForm()">Feedback</span>
+        <span class="nlah-feedback-btn" onclick="nlahShowFeedback()">Feedback</span>
       </div>
       <div class="nlah-header-status"><span class="nlah-status-dot"></span> Online · Here to help</div>
     </div>
@@ -317,8 +251,29 @@
     </div>
   </div>
 
-  <!-- Feedback Form Container -->
-  <div id="nlah-feedback-container" style="display: none; position: absolute; top: 72px; left: 0; right: 0; bottom: 0; background: white; z-index: 1000; overflow-y: auto; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;"></div>
+  <!-- Feedback Form Overlay -->
+  <div id="nlah-feedback-container" style="display:none; position:absolute; top:72px; left:0; right:0; bottom:0; background:#f9fafb; z-index:1000; overflow-y:auto; border-bottom-left-radius:20px; border-bottom-right-radius:20px; padding:1.5rem;">
+    <div style="font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:600; color:#0369a1; margin-bottom:1.25rem; text-align:center;">Share Your Feedback</div>
+
+    <!-- Star Rating -->
+    <div id="nlah-stars" style="display:flex; justify-content:center; gap:10px; margin-bottom:1.25rem;">
+      <span data-val="1" onclick="nlahSetRating(1)" style="font-size:2.2rem; cursor:pointer; color:#d1d5db; transition:color 0.15s;">★</span>
+      <span data-val="2" onclick="nlahSetRating(2)" style="font-size:2.2rem; cursor:pointer; color:#d1d5db; transition:color 0.15s;">★</span>
+      <span data-val="3" onclick="nlahSetRating(3)" style="font-size:2.2rem; cursor:pointer; color:#d1d5db; transition:color 0.15s;">★</span>
+      <span data-val="4" onclick="nlahSetRating(4)" style="font-size:2.2rem; cursor:pointer; color:#d1d5db; transition:color 0.15s;">★</span>
+      <span data-val="5" onclick="nlahSetRating(5)" style="font-size:2.2rem; cursor:pointer; color:#d1d5db; transition:color 0.15s;">★</span>
+    </div>
+
+    <input type="text" id="nlah-fb-name" placeholder="Your name (optional)" style="width:100%; padding:12px; border:1px solid #e5e7eb; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:0.875rem; margin-bottom:12px; box-sizing:border-box; background:#fff;">
+
+    <textarea id="nlah-fb-comment" rows="4" placeholder="Tell us about your experience..." style="width:100%; padding:12px; border:1px solid #e5e7eb; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:0.875rem; margin-bottom:16px; box-sizing:border-box; resize:vertical; background:#fff;"></textarea>
+
+    <button id="nlah-fb-submit-btn" onclick="nlahSubmitFeedback()" style="width:100%; padding:14px; background:linear-gradient(135deg,#0e7490,#0369a1); color:#fff; border:none; border-radius:8px; font-family:'Syne',sans-serif; font-weight:600; font-size:0.95rem; cursor:pointer; margin-bottom:10px;">
+      Submit Feedback
+    </button>
+
+    <span onclick="nlahHideFeedback()" style="display:block; text-align:center; color:#6b7280; font-size:0.85rem; cursor:pointer; text-decoration:underline;">← Back to chat</span>
+  </div>
 
   <div class="nlah-suggestions" id="nlah-suggestions">
     <span class="nlah-chip">Our services</span>
@@ -328,7 +283,7 @@
     <span class="nlah-chip">Leave feedback</span>
   </div>
 
-  <div class="nlah-input-area">
+  <div class="nlah-input-area" id="nlah-input-area">
     <textarea id="nlah-user-input" rows="1" placeholder="Type your message..." maxlength="1000"></textarea>
     <button id="nlah-send-btn" aria-label="Send">
       <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -338,23 +293,24 @@
 
 <script>
 (function () {
-  const API_KEY = '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';
-  const MODEL   = 'meta-llama/llama-4-scout-17b-16e-instruct';
-  const SYSTEM  = `You are a friendly virtual assistant for Northern Luzon Adventist Hospital. Keep responses brief and helpful.`;
-
-  const trigger = document.getElementById('nlah-chat-trigger');
-  const chatWin = document.getElementById('nlah-chat-window');
-  const messagesEl = document.getElementById('nlah-messages');
-  const input = document.getElementById('nlah-user-input');
-  const sendBtn = document.getElementById('nlah-send-btn');
-  const chips = document.querySelectorAll('.nlah-chip');
-  const feedbackContainer = document.getElementById('nlah-feedback-container');
+  // ── DOM refs ──
+  const trigger        = document.getElementById('nlah-chat-trigger');
+  const chatWin        = document.getElementById('nlah-chat-window');
+  const messagesEl     = document.getElementById('nlah-messages');
+  const input          = document.getElementById('nlah-user-input');
+  const sendBtn        = document.getElementById('nlah-send-btn');
+  const chips          = document.querySelectorAll('.nlah-chip');
+  const feedbackCont   = document.getElementById('nlah-feedback-container');
   const suggestionsDiv = document.getElementById('nlah-suggestions');
+  const inputArea      = document.getElementById('nlah-input-area');
 
-  let isOpen = false;
+  // ── State ──
+  let isOpen         = false;
   let selectedRating = 0;
+  // Conversation history sent to the API (keeps context)
+  let history        = [];
 
-  // Toggle chat window
+  // ── Toggle chat window ──
   trigger.addEventListener('click', () => {
     isOpen = !isOpen;
     chatWin.classList.toggle('open', isOpen);
@@ -362,25 +318,25 @@
     if (isOpen) setTimeout(() => input.focus(), 300);
   });
 
-  // Suggestion chips
+  // ── Suggestion chips ──
   chips.forEach(chip => {
     chip.addEventListener('click', () => {
-      if (chip.textContent === 'Leave feedback') {
-        showFeedbackForm();
+      if (chip.textContent.trim() === 'Leave feedback') {
+        nlahShowFeedback();
       } else {
-        input.value = chip.textContent;
+        input.value = chip.textContent.trim();
         sendMessage();
       }
     });
   });
 
-  // Auto-resize textarea
+  // ── Auto-resize textarea ──
   input.addEventListener('input', () => {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
 
-  // Send on Enter (but allow Shift+Enter for new line)
+  // ── Send on Enter ──
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -390,82 +346,86 @@
 
   sendBtn.addEventListener('click', sendMessage);
 
-  // Simple function to add message to chat
+  // ── Append message bubble ──
   function appendMsg(role, text) {
-    const wrap = document.createElement('div');
+    const wrap   = document.createElement('div');
     wrap.className = `nlah-msg ${role}`;
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'nlah-msg-avatar';
     avatar.textContent = role === 'ai' ? '🏥' : '🧑';
-    
+
     const bubble = document.createElement('div');
     bubble.className = 'nlah-bubble';
     bubble.textContent = text;
-    
+
     wrap.appendChild(avatar);
     wrap.appendChild(bubble);
     messagesEl.appendChild(wrap);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  // Show typing indicator
+  // ── Typing indicator ──
   function showTyping() {
     const wrap = document.createElement('div');
     wrap.className = 'nlah-msg ai';
     wrap.id = 'nlah-typing';
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'nlah-msg-avatar';
     avatar.textContent = '🏥';
-    
+
     const ind = document.createElement('div');
     ind.className = 'nlah-typing';
     ind.innerHTML = '<span></span><span></span><span></span>';
-    
+
     wrap.appendChild(avatar);
     wrap.appendChild(ind);
     messagesEl.appendChild(wrap);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  // Remove typing indicator
   function removeTyping() {
     const el = document.getElementById('nlah-typing');
     if (el) el.remove();
   }
 
-  // Send message to API
+  // ── Send message → Laravel backend → OpenRouter ──
   async function sendMessage() {
     const text = input.value.trim();
     if (!text || sendBtn.disabled) return;
 
+    // Add user turn to UI and history
     appendMsg('user', text);
+    history.push({ role: 'user', content: text });
     input.value = '';
     input.style.height = 'auto';
     sendBtn.disabled = true;
     showTyping();
 
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+      const response = await fetch('/nlah/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`
+          'X-CSRF-TOKEN': csrfToken ?? '',
         },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: text }]
-        })
+        body: JSON.stringify({ messages: history })
       });
 
       const data = await response.json();
       removeTyping();
 
-      if (data.choices && data.choices[0]?.message?.content) {
-        appendMsg('ai', data.choices[0].message.content);
+      if (data.reply) {
+        appendMsg('ai', data.reply);
+        // Add assistant reply to history for context
+        history.push({ role: 'assistant', content: data.reply });
+        // Keep history from growing too large (last 20 turns)
+        if (history.length > 20) history = history.slice(-20);
       } else {
-        appendMsg('ai', 'Sorry, I had trouble responding. Please try again.');
+        appendMsg('ai', data.error ?? 'Sorry, I had trouble responding. Please try again.');
       }
     } catch (err) {
       removeTyping();
@@ -476,114 +436,82 @@
     input.focus();
   }
 
-  // Make functions globally available
-  window.showFeedbackForm = function() {
-    suggestionsDiv.style.display = 'none';
-    document.querySelector('.nlah-input-area').style.display = 'none';
-    
-    // Hide all messages
-    const messages = document.getElementById('nlah-messages');
-    messages.style.display = 'none';
-    
-    feedbackContainer.style.display = 'block';
-    feedbackContainer.innerHTML = `
-      <div style="height: 100%; display: flex; flex-direction: column; padding: 24px; background: white;">
-        <div style="font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 600; color: #0369a1; margin-bottom: 24px; text-align: center;">Share Your Feedback</div>
-        
-        <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 24px;">
-          <span class="nlah-star" onclick="setRating(1)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
-          <span class="nlah-star" onclick="setRating(2)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
-          <span class="nlah-star" onclick="setRating(3)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
-          <span class="nlah-star" onclick="setRating(4)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
-          <span class="nlah-star" onclick="setRating(5)" style="font-size: 2.5rem; cursor: pointer; color: #d1d5db; transition: color 0.2s;">★</span>
-        </div>
-        
-        <input type="text" id="feedback-name" placeholder="Your name (optional)" value="Guest" style="width: 100%; padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; margin-bottom: 16px; box-sizing: border-box;">
-        
-        <textarea id="feedback-comment" rows="5" placeholder="Tell us about your experience..." style="width: 100%; padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; margin-bottom: 24px; box-sizing: border-box; resize: vertical; flex: 1; min-height: 120px;"></textarea>
-        
-        <button onclick="submitFeedback()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #0e7490, #0369a1); color: white; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 1rem; cursor: pointer; margin-bottom: 12px;">Submit Feedback</button>
-        
-        <span onclick="hideFeedbackForm()" style="display: block; text-align: center; color: #6b7280; font-size: 0.9rem; cursor: pointer; text-decoration: underline; padding: 8px;">← Back to chat</span>
-      </div>
-    `;
-    selectedRating = 0;
-};
+  // ─────────────────────────────────────────
+  // FEEDBACK — all functions exposed globally
+  // ─────────────────────────────────────────
 
-  window.setRating = function(rating) {
-    selectedRating = rating;
-    const stars = document.querySelectorAll('.nlah-star');
-    stars.forEach((star, index) => {
-      if (index < rating) {
-        star.classList.add('selected');
-      } else {
-        star.classList.remove('selected');
-      }
+  window.nlahShowFeedback = function () {
+    selectedRating = 0;
+    // Reset stars
+    document.querySelectorAll('#nlah-stars span').forEach(s => s.style.color = '#d1d5db');
+    // Reset fields
+    document.getElementById('nlah-fb-name').value    = '';
+    document.getElementById('nlah-fb-comment').value = '';
+    const btn = document.getElementById('nlah-fb-submit-btn');
+    btn.disabled    = false;
+    btn.textContent = 'Submit Feedback';
+
+    messagesEl.style.display  = 'none';
+    suggestionsDiv.style.display = 'none';
+    inputArea.style.display   = 'none';
+    feedbackCont.style.display = 'block';
+  };
+
+  window.nlahHideFeedback = function () {
+    feedbackCont.style.display   = 'none';
+    messagesEl.style.display     = 'flex';
+    suggestionsDiv.style.display = 'flex';
+    inputArea.style.display      = 'flex';
+  };
+
+  window.nlahSetRating = function (val) {
+    selectedRating = val;
+    document.querySelectorAll('#nlah-stars span').forEach(s => {
+      s.style.color = parseInt(s.dataset.val) <= val ? '#fbbf24' : '#d1d5db';
     });
   };
 
-  window.submitFeedback = function() {
-    const name = document.getElementById('feedback-name').value.trim() || 'Guest';
-    const comment = document.getElementById('feedback-comment').value.trim();
-    
-    if (!comment) {
-      alert('Please enter your feedback');
-      return;
-    }
-    
-    if (selectedRating === 0) {
-      alert('Please select a rating');
-      return;
-    }
-    
-    const submitBtn = document.querySelector('.nlah-feedback-submit');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
-    
-    // Get CSRF token
+  window.nlahSubmitFeedback = function () {
+    const name    = document.getElementById('nlah-fb-name').value.trim() || 'Guest';
+    const comment = document.getElementById('nlah-fb-comment').value.trim();
+    const btn     = document.getElementById('nlah-fb-submit-btn'); // ← fixed selector
+
+    if (!comment) { alert('Please enter your feedback.'); return; }
+    if (selectedRating === 0) { alert('Please select a star rating.'); return; }
+
+    btn.disabled    = true;
+    btn.textContent = 'Submitting…';
+
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
+
     fetch('/nlah/feedback/submit', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        'X-CSRF-TOKEN': csrfToken ?? '',
       },
-      body: JSON.stringify({
-        name: name,
-        comment: comment,
-        rating: selectedRating
-      })
+      body: JSON.stringify({ name, comment, rating: selectedRating })
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
       if (data.success) {
-        hideFeedbackForm();
-        appendMsg('ai', 'Thank you for your feedback! 😊');
+        nlahHideFeedback();
+        appendMsg('ai', 'Thank you for your feedback! 😊 We really appreciate it.');
       } else {
-        alert('Error: ' + (data.message || 'Could not submit feedback'));
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Feedback';
+        alert('Error: ' + (data.message || 'Could not submit feedback.'));
+        btn.disabled    = false;
+        btn.textContent = 'Submit Feedback';
       }
     })
-    .catch(error => {
-      alert('Error submitting feedback');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit Feedback';
+    .catch(() => {
+      alert('Network error. Please try again.');
+      btn.disabled    = false;
+      btn.textContent = 'Submit Feedback';
     });
   };
 
-  window.hideFeedbackForm = function() {
-    feedbackContainer.style.display = 'none';
-    feedbackContainer.innerHTML = '';
-    
-    // Show messages again
-    const messages = document.getElementById('nlah-messages');
-    messages.style.display = 'flex';
-    
-    suggestionsDiv.style.display = 'flex';
-    document.querySelector('.nlah-input-area').style.display = 'flex';
-};
+  // Keep old name as alias in case it's called elsewhere
+  window.showFeedbackForm = window.nlahShowFeedback;
+
 })();
 </script>
-
