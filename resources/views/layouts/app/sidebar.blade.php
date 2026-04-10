@@ -136,6 +136,38 @@
                     {{ __('Attendance') }}
                 </flux:sidebar.item>
 
+                <!-- Holidays -->
+                <flux:sidebar.item
+                    :href="route('HR.holidays')"
+                    :current="request()->routeIs('HR.holidays')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Holidays') }}
+                </flux:sidebar.item>
+
+                <!-- Leave Types -->
+                <flux:sidebar.item
+                    :href="route('HR.leave-types')"
+                    :current="request()->routeIs('HR.leave-types')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Leave Types') }}
+                </flux:sidebar.item>
+
+                <!-- Overtime Applications -->
+                <flux:sidebar.item
+                    :href="route('HR.overtime')"
+                    :current="request()->routeIs('HR.overtime')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Overtime') }}
+                </flux:sidebar.item>
+
+                <!-- Pay-off Applications -->
+                <flux:sidebar.item
+                    :href="route('HR.payoff')"
+                    :current="request()->routeIs('HR.payoff')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Pay-off') }}
+                </flux:sidebar.item>
+
                 {{-- Leave form --}}
                 
             </flux:sidebar.group>

@@ -5,9 +5,11 @@ namespace App\Livewire;
 use App\Mail\LeaveCancellationRequestMail;
 use App\Mail\LeaveRequestMail;
 use App\Models\Leave;
+use App\Models\PayrollAndLeave;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -39,9 +41,13 @@ class LeaveForm extends Component
     public $attachment = null;
 
     // Leave type groups
-    protected array $vlTypes = ['Vacation Leave', 'Birthday Leave'];
+    protected array $vlTypes = ['Vacation Leave'];
 
     protected array $slTypes = ['Sick Leave'];
+
+    protected array $blTypes = ['Birthday Leave'];
+
+    protected array $splTypes = ['Single Parent Leave'];
 
     protected function rules(): array
     {
@@ -85,17 +91,21 @@ class LeaveForm extends Component
 
     public function computeAvailableCredits(): float
     {
-        $userId = Auth::id();
+        $userId  = Auth::id();
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
 
-        if (in_array($this->leave_type, $this->slTypes)) {
-            return Leave::availableSLCredits($userId);
+        if (! $payroll) {
+            return 0;
         }
 
-        if (in_array($this->leave_type, $this->vlTypes)) {
-            return Leave::availableVLCredits($userId);
-        }
-
-        return 0;
+        return match (true) {
+            in_array($this->leave_type, $this->slTypes)  => max(0, $payroll->sl_total  - $payroll->sl_consumed),
+            in_array($this->leave_type, $this->vlTypes)  => max(0, $payroll->vl_total  - $payroll->vl_consumed),
+            in_array($this->leave_type, $this->blTypes)  => max(0, $payroll->bl_total  - $payroll->bl_consumed),
+            in_array($this->leave_type, $this->splTypes) => max(0, $payroll->spl_total - $payroll->spl_consumed),
+            $this->leave_type === 'Leave Without Pay'    => -1,
+            default                                      => 0,
+        };
     }
 
     // ─── Day Calculation ──────────────────────────────────────────────────────
@@ -119,9 +129,10 @@ class LeaveForm extends Component
     {
         $this->validate();
 
-        // Enforce credit cap for VL and SL types
         $hasCreditCap = in_array($this->leave_type, $this->vlTypes)
-                     || in_array($this->leave_type, $this->slTypes);
+            || in_array($this->leave_type, $this->slTypes)
+            || in_array($this->leave_type, $this->blTypes)
+            || in_array($this->leave_type, $this->splTypes);
 
         if ($hasCreditCap && $this->total_days > $this->availableCredits) {
             $this->addError('total_days', "You only have {$this->availableCredits} day(s) remaining for this leave type.");
@@ -134,26 +145,64 @@ class LeaveForm extends Component
             $filePath = $this->attachment->store('leave_attachments', 'public');
         }
 
-        $leave = Leave::create([
-            'user_id' => auth()->id(),
-            'leave_type' => $this->leave_type,
-            'start_date' => $this->start_date,
-            'end_date' => $this->end_date,
-            'day_part' => $this->day_part,
-            'total_days' => $this->total_days,
-            'reason' => $this->reason,
-            'reliever' => $this->reliever ?: null,
-            'attachment' => $filePath,
-            'date_requested' => now()->toDateString(),
-            'dept_head_status' => 'pending',
-            'hr_status' => 'pending',
-        ]);
+        $leave = DB::transaction(function () use ($filePath) {
+            $leave = Leave::create([
+                'user_id'          => auth()->id(),
+                'leave_type'       => $this->leave_type,
+                'start_date'       => $this->start_date,
+                'end_date'         => $this->end_date,
+                'day_part'         => $this->day_part,
+                'total_days'       => $this->total_days,
+                'reason'           => $this->reason,
+                'reliever'         => $this->reliever ?: null,
+                'attachment'       => $filePath,
+                'date_requested'   => now()->toDateString(),
+                'dept_head_status' => 'pending',
+                'hr_status'        => 'pending',
+            ]);
 
-        // Notify the department head by email
+            $this->incrementConsumed(auth()->id(), $this->leave_type, $this->total_days);
+
+            return $leave;
+        });
+
         $this->notifyDeptHead($leave);
-
         $this->resetForm();
         session()->flash('message', 'Leave application submitted successfully! Reference #'.$leave->id);
+    }
+
+    private function incrementConsumed(int $userId, string $leaveType, float $days): void
+    {
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
+
+        if (! $payroll || $days <= 0) {
+            return;
+        }
+
+        match (true) {
+            in_array($leaveType, $this->slTypes)  => $payroll->increment('sl_consumed', $days),
+            in_array($leaveType, $this->vlTypes)  => $payroll->increment('vl_consumed', $days),
+            in_array($leaveType, $this->blTypes)  => $payroll->increment('bl_consumed', $days),
+            in_array($leaveType, $this->splTypes) => $payroll->increment('spl_consumed', $days),
+            default                               => null,
+        };
+    }
+
+    private function decrementConsumed(int $userId, string $leaveType, float $days): void
+    {
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
+
+        if (! $payroll || $days <= 0) {
+            return;
+        }
+
+        match (true) {
+            in_array($leaveType, $this->slTypes)  => $payroll->decrement('sl_consumed', $days),
+            in_array($leaveType, $this->vlTypes)  => $payroll->decrement('vl_consumed', $days),
+            in_array($leaveType, $this->blTypes)  => $payroll->decrement('bl_consumed', $days),
+            in_array($leaveType, $this->splTypes) => $payroll->decrement('spl_consumed', $days),
+            default                               => null,
+        };
     }
 
     private function notifyDeptHead(Leave $leave): void
@@ -195,7 +244,11 @@ class LeaveForm extends Component
             return;
         }
 
-        $leave->delete();
+        DB::transaction(function () use ($leave) {
+            $this->decrementConsumed($leave->user_id, $leave->leave_type, (float) $leave->total_days);
+            $leave->delete();
+        });
+
         session()->flash('message', 'Leave application deleted.');
     }
 
@@ -247,8 +300,18 @@ class LeaveForm extends Component
 
     public function render()
     {
-        $isVL = in_array($this->leave_type, $this->vlTypes);
-        $isSL = in_array($this->leave_type, $this->slTypes);
+        $isVL  = in_array($this->leave_type, $this->vlTypes);
+        $isSL  = in_array($this->leave_type, $this->slTypes);
+        $isBL  = in_array($this->leave_type, $this->blTypes);
+        $isSPL = in_array($this->leave_type, $this->splTypes);
+
+        $creditLabel = match (true) {
+            $isVL  => 'Available VL Credits',
+            $isSL  => 'Available SL Credits',
+            $isBL  => 'Available BL Credits',
+            $isSPL => 'Available SPL Credits',
+            default => 'No Credit Cap',
+        };
 
         $leaves = Leave::where('user_id', auth()->id())
             ->when($this->search, fn ($q) => $q->where(fn ($q) => $q->where('leave_type', 'like', "%{$this->search}%")
@@ -259,9 +322,9 @@ class LeaveForm extends Component
             ->get();
 
         return view('pages.users.leaveform', [
-            'leaves' => $leaves,
-            'creditLabel' => $isVL ? 'Available VL Credits' : ($isSL ? 'Available SL Credits' : 'No Credit Cap'),
-            'showCredits' => $isVL || $isSL,
+            'leaves'      => $leaves,
+            'creditLabel' => $creditLabel,
+            'showCredits' => $isVL || $isSL || $isBL || $isSPL,
         ])->layout('layouts.app');
     }
 }

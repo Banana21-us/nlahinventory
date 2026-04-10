@@ -6,7 +6,9 @@ use App\Mail\LeaveCancellationResultMail;
 use App\Mail\LeaveHRResultMail;
 use App\Mail\LeaveStatusUpdateMail;
 use App\Models\Leave;
+use App\Models\PayrollAndLeave;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
@@ -132,17 +134,43 @@ class HrLeaveManagement extends Component
     {
         $leave = Leave::findOrFail($this->selectedLeaveId);
 
-        $leave->update([
-            'hr_status' => 'cancelled',
-            'remarks' => $this->hrRemarks ?: 'Cancellation approved by HR.',
-            'approved_by' => Auth::id(),
-        ]);
+        DB::transaction(function () use ($leave) {
+            $leave->update([
+                'hr_status'   => 'cancelled',
+                'remarks'     => $this->hrRemarks ?: 'Cancellation approved by HR.',
+                'approved_by' => Auth::id(),
+            ]);
+
+            $this->restoreConsumed($leave->user_id, $leave->leave_type, (float) $leave->total_days);
+        });
 
         $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
         $this->notifyCancellationResult($fresh);
 
         session()->flash('message', "Cancellation approved for {$leave->user->name}. Credits have been restored.");
         $this->closeModal();
+    }
+
+    private function restoreConsumed(int $userId, string $leaveType, float $days): void
+    {
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
+
+        if (! $payroll || $days <= 0) {
+            return;
+        }
+
+        $slTypes  = ['Sick Leave'];
+        $vlTypes  = ['Vacation Leave'];
+        $blTypes  = ['Birthday Leave'];
+        $splTypes = ['Single Parent Leave'];
+
+        match (true) {
+            in_array($leaveType, $slTypes)  => $payroll->decrement('sl_consumed', $days),
+            in_array($leaveType, $vlTypes)  => $payroll->decrement('vl_consumed', $days),
+            in_array($leaveType, $blTypes)  => $payroll->decrement('bl_consumed', $days),
+            in_array($leaveType, $splTypes) => $payroll->decrement('spl_consumed', $days),
+            default                         => null,
+        };
     }
 
     public function rejectCancellation()

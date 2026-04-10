@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,6 +14,7 @@ class Leave extends Model
     protected $fillable = [
         'user_id',
         'leave_type',
+        'is_paid',
         'start_date',
         'end_date',
         'total_days',
@@ -22,6 +22,12 @@ class Leave extends Model
         'reason',
         'reliever',
         'attachment',
+        'child_number',
+        'child_birth_date',
+        'deceased_name',
+        'deceased_relation',
+        'date_of_death',
+        'lwop_duration',
         'date_requested',
         'dept_head_status',
         'dept_head_approved_at',
@@ -34,13 +40,16 @@ class Leave extends Model
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'date_requested' => 'date',
+        'is_paid'               => 'boolean',
+        'start_date'            => 'date',
+        'end_date'              => 'date',
+        'child_birth_date'      => 'date',
+        'date_of_death'         => 'date',
+        'date_requested'        => 'date',
         'dept_head_approved_at' => 'datetime',
-        'hr_approved_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'hr_approved_at'        => 'datetime',
+        'created_at'            => 'datetime',
+        'updated_at'            => 'datetime',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────
@@ -90,68 +99,44 @@ class Leave extends Model
 
     // ─── Credit Helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Total lifetime VL entitlement for a user.
-     *
-     * Each calendar year from hire year → current year the employee earns a
-     * tier-based allocation.  Unused days carry forward indefinitely.
-     *
-     * Tiers (years of service at Jan 1 of each year):
-     *   < 7 yrs  → 10 days/yr
-     *   7–14 yrs → 15 days/yr
-     *   ≥ 15 yrs → 20 days/yr
-     */
     public static function availableVLCredits(int $userId): float
     {
-        $vlTypes = ['Vacation Leave', 'Birthday Leave'];
-
-        $employeeId = \DB::table('employee')->where('user_id', $userId)->value('id');
-        $emp = $employeeId ? \DB::table('employment_details')->where('employee_id', $employeeId)->first() : null;
-        $user = User::find($userId);
-        $hireDate = Carbon::parse($emp?->hiring_date ?? $user->created_at);
-
-        $hireYear = (int) $hireDate->format('Y');
-        $currentYear = (int) now()->format('Y');
-
-        // Sum up entitlement for every year from hire to now (VL carries over)
-        $totalEarned = 0;
-        for ($year = $hireYear; $year <= $currentYear; $year++) {
-            // Years of service at the start of this year (0 for hire year)
-            $yearsService = $year === $hireYear
-                ? 0
-                : (int) $hireDate->diffInYears(Carbon::create($year, 1, 1));
-
-            $totalEarned += match (true) {
-                $yearsService >= 15 => 20,
-                $yearsService >= 7 => 15,
-                default => 10,
-            };
+        $payroll = \App\Models\PayrollAndLeave::where('user_id', $userId)->first();
+        if (! $payroll) {
+            return 0;
         }
 
-        // All-time VL used (carryover means we look at total usage, not just this year)
-        // cancellation_requested still counts until HR confirms the cancellation
-        $totalUsed = self::where('user_id', $userId)
-            ->whereIn('leave_type', $vlTypes)
-            ->whereIn('hr_status', ['pending', 'approved', 'cancellation_requested'])
-            ->sum('total_days');
-
-        return max(0, $totalEarned - $totalUsed);
+        return max(0, $payroll->vl_total - $payroll->vl_consumed);
     }
 
-    /**
-     * Available SL credits for the current year only (resets every Jan 1).
-     */
     public static function availableSLCredits(int $userId): float
     {
-        $slTypes = ['Sick Leave'];
+        $payroll = \App\Models\PayrollAndLeave::where('user_id', $userId)->first();
+        if (! $payroll) {
+            return 0;
+        }
 
-        $usedSL = self::where('user_id', $userId)
-            ->whereIn('leave_type', $slTypes)
-            ->whereIn('hr_status', ['pending', 'approved', 'cancellation_requested'])
-            ->whereYear('start_date', now()->year)
-            ->sum('total_days');
+        return max(0, $payroll->sl_total - $payroll->sl_consumed);
+    }
 
-        return max(0, 3 - $usedSL);
+    public static function availableBLCredits(int $userId): float
+    {
+        $payroll = \App\Models\PayrollAndLeave::where('user_id', $userId)->first();
+        if (! $payroll) {
+            return 0;
+        }
+
+        return max(0, $payroll->bl_total - $payroll->bl_consumed);
+    }
+
+    public static function availableSPLCredits(int $userId): float
+    {
+        $payroll = \App\Models\PayrollAndLeave::where('user_id', $userId)->first();
+        if (! $payroll) {
+            return 0;
+        }
+
+        return max(0, $payroll->spl_total - $payroll->spl_consumed);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

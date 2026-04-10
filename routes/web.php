@@ -1,10 +1,15 @@
 <?php
 
+use App\Http\Controllers\ChecklistSyncController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LeaveResponseController;
 use App\Http\Controllers\NewsEventController;
 use App\Livewire\AccessKeyManagement;
 use App\Livewire\AttendanceManagement;
+use App\Livewire\HolidayManagement;
+use App\Livewire\LeaveTypeManagement;
+use App\Livewire\OvertimeManagement;
+use App\Livewire\PayoffManagement;
 use App\Livewire\Dashboard;
 use App\Livewire\DepartmentManagement;
 use App\Livewire\DHead;
@@ -110,10 +115,15 @@ Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/departments', DepartmentManagement::class)->name('HR.departments');
     Route::get('/HR/positions', PositionManagement::class)->name('HR.positions');
     Route::get('/HR/access-keys', AccessKeyManagement::class)->name('HR.access-keys');
+    Route::get('/HR/holidays', HolidayManagement::class)->name('HR.holidays');
+    Route::get('/HR/leave-types', LeaveTypeManagement::class)->name('HR.leave-types');
+    Route::get('/HR/overtime', OvertimeManagement::class)->name('HR.overtime');
+    Route::get('/HR/payoff', PayoffManagement::class)->name('HR.payoff');
 });
 
 // Maintenance routes
 Route::middleware(['auth', 'can:access-maintenance'])->group(function () {
+    Route::post('/api/maintenance/checklist/sync', [ChecklistSyncController::class, 'sync'])->name('maintenance.checklist.sync');
     Route::get('/Maintenance/dashboard', MaintenanceDashboard::class)->name('Maintenance.dashboard');
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');

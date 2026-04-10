@@ -32,6 +32,10 @@
                         <span id="proofSavingBadgeText">Saving…</span>
                     </span>
                     <span id="proofAreaCounter" class="text-xs text-zinc-500 dark:text-zinc-400"></span>
+                    <span id="proofOfflineBadge" class="hidden items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
+                        <span class="inline-block h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+                        <span id="proofOfflineBadgeText">Offline</span>
+                    </span>
                 </div>
             </div>
             <div class="p-4">
@@ -168,6 +172,131 @@
         captureOverlayBtn, discardBtn, confirmBtn, cancelBtn,
         areaNameDisplay, areaCounter;
 
+    // ─── IndexedDB offline queue ──────────────────────────────────────────────
+    const IDB_NAME  = 'nlah-checklist';
+    const IDB_STORE = 'pending';
+
+    const openChecklistDB = () => new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = (e) => e.target.result.createObjectStore(IDB_STORE, { keyPath: 'id', autoIncrement: true });
+        req.onsuccess       = (e) => resolve(e.target.result);
+        req.onerror         = (e) => reject(e.target.error);
+    });
+
+    const idbSavePending = async (task) => {
+        try {
+            const db = await openChecklistDB();
+            const tx = db.transaction(IDB_STORE, 'readwrite');
+            tx.objectStore(IDB_STORE).add({ ...task, savedAt: Date.now() });
+            await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+            db.close();
+        } catch (e) { console.error('IDB save failed:', e); }
+    };
+
+    const idbGetAll = async () => {
+        try {
+            const db = await openChecklistDB();
+            const tx = db.transaction(IDB_STORE, 'readonly');
+            const results = await new Promise((res, rej) => {
+                const r = tx.objectStore(IDB_STORE).getAll();
+                r.onsuccess = () => res(r.result);
+                r.onerror   = () => rej(r.error);
+            });
+            db.close();
+            return results;
+        } catch (e) { return []; }
+    };
+
+    const idbDelete = async (id) => {
+        try {
+            const db = await openChecklistDB();
+            const tx = db.transaction(IDB_STORE, 'readwrite');
+            tx.objectStore(IDB_STORE).delete(id);
+            await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+            db.close();
+        } catch (e) {}
+    };
+
+    let offlinePendingCount = 0;
+
+    const updateOfflineBadge = () => {
+        const badge = document.getElementById('proofOfflineBadge');
+        const text  = document.getElementById('proofOfflineBadgeText');
+        if (!badge) return;
+        if (offlinePendingCount > 0) {
+            if (text) text.textContent = offlinePendingCount > 1 ? `${offlinePendingCount} offline` : 'Offline';
+            badge.classList.remove('hidden');
+            badge.classList.add('inline-flex');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('inline-flex');
+        }
+    };
+
+    // Parse "Apr 10, 2026 | 10:30" → "2026-04-10" using local date parts to avoid UTC offset bug
+    const parseDateLabel = (label) => {
+        if (!label) return null;
+        try {
+            const d = new Date(label.split(' | ')[0].trim());
+            if (isNaN(d)) return null;
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        } catch (e) { return null; }
+    };
+
+    let isFlushing = false;
+
+    const flushFromIDB = async () => {
+        if (isFlushing) return;
+        isFlushing = true;
+        try {
+            const pending = await idbGetAll();
+            if (!pending.length) { isFlushing = false; return; }
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+            let synced = 0;
+            for (const task of pending) {
+                if (!navigator.onLine) break;
+                try {
+                    const res = await fetch('/api/maintenance/checklist/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                        body: JSON.stringify({ records: [task] }),
+                    });
+                    if (res.ok) {
+                        await idbDelete(task.id);
+                        offlinePendingCount = Math.max(0, offlinePendingCount - 1);
+                        updateOfflineBadge();
+                        synced++;
+                    }
+                } catch (e) {
+                    // Network error on this record — skip it and try the next one
+                    continue;
+                }
+            }
+            if (synced > 0) {
+                const component = getChecklistComponent();
+                if (component) { try { component.call('$refresh'); } catch (e) {} }
+            }
+        } finally {
+            isFlushing = false;
+        }
+    };
+
+    window.addEventListener('online', () => setTimeout(flushFromIDB, 1500)); // brief delay so connection stabilises
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && offlinePendingCount > 0) flushFromIDB(); });
+
+    // Periodic retry every 20 s — catches cases where online event misfires
+    setInterval(() => { if (offlinePendingCount > 0 && navigator.onLine) flushFromIDB(); }, 20000);
+
+    // Check for leftover offline records on page load
+    idbGetAll().then((rows) => {
+        offlinePendingCount = rows.length;
+        updateOfflineBadge();
+        if (rows.length > 0 && navigator.onLine) flushFromIDB();
+    });
+
     // ─── Background save queue ────────────────────────────────────────────────
     let uploadQueue     = [];
     let isSavingQueue   = false;
@@ -192,6 +321,17 @@
         isSavingQueue = true;
         while (uploadQueue.length > 0) {
             const task = uploadQueue.shift();
+
+            if (!navigator.onLine) {
+                // Dead spot — store locally, UI already shows the check optimistically
+                await idbSavePending(task);
+                offlinePendingCount++;
+                pendingSaveCount = Math.max(0, pendingSaveCount - 1);
+                updatePendingIndicator();
+                updateOfflineBadge();
+                continue;
+            }
+
             try {
                 const component = getChecklistComponent();
                 if (component) {
@@ -202,7 +342,13 @@
                     }
                 }
             } catch (e) {
-                console.error('Background proof save failed:', e);
+                if (!navigator.onLine) {
+                    await idbSavePending(task);
+                    offlinePendingCount++;
+                    updateOfflineBadge();
+                } else {
+                    console.error('Background proof save failed:', e);
+                }
             }
             pendingSaveCount = Math.max(0, pendingSaveCount - 1);
             updatePendingIndicator();
@@ -563,11 +709,13 @@
 
         // ── 2. Queue the actual save — runs silently in background ────────────
         enqueueSave({
-            partId:    Number(item.dataset.partId),
-            dayKey:    String(item.dataset.dayKey),
+            partId:       Number(item.dataset.partId),
+            dayKey:       String(item.dataset.dayKey),
             shift,
             imageData,
             comment,
+            periodType:   String(item.dataset.frequency  ?? 'daily'),
+            selectedDate: parseDateLabel(item.dataset.dateLabel) ?? new Date().toISOString().split('T')[0],
         });
 
         // ── 3. Flash preview briefly then advance to next area immediately ────
@@ -704,7 +852,7 @@
             item.dataset.hasAm = '1';
         }
         if (commentInput) commentInput.value = '';
-        enqueueSave({ partId: Number(item.dataset.partId), dayKey: String(item.dataset.dayKey), shift, imageData: null, comment: null, skipReason });
+        enqueueSave({ partId: Number(item.dataset.partId), dayKey: String(item.dataset.dayKey), shift, imageData: null, comment: null, skipReason, periodType: String(item.dataset.frequency ?? 'daily'), selectedDate: parseDateLabel(item.dataset.dateLabel) ?? new Date().toISOString().split('T')[0] });
         goToIndex(currentIndex + 1);
         refreshAreaListUI();
     };

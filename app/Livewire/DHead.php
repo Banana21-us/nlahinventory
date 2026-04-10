@@ -6,9 +6,11 @@ use App\Mail\LeaveCancellationRequestMail;
 use App\Mail\LeaveDHeadDecisionMail;
 use App\Mail\LeaveHRNotificationMail;
 use App\Models\Leave;
+use App\Models\PayrollAndLeave;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
@@ -30,9 +32,13 @@ class DHead extends Component
 
     public float $availableCredits = 0;
 
-    protected array $vlTypes = ['Vacation Leave', 'Birthday Leave'];
+    protected array $vlTypes = ['Vacation Leave'];
 
     protected array $slTypes = ['Sick Leave'];
+
+    protected array $blTypes = ['Birthday Leave'];
+
+    protected array $splTypes = ['Single Parent Leave'];
 
     // ─── Search & Modal State ───
     public $search = '';
@@ -84,18 +90,56 @@ class DHead extends Component
 
     public function computeAvailableCredits(): float
     {
-        $userId = Auth::id();
+        $userId    = Auth::id();
         $leaveType = $this->form['leave_type'];
+        $payroll   = PayrollAndLeave::where('user_id', $userId)->first();
 
-        if (in_array($leaveType, $this->slTypes)) {
-            return Leave::availableSLCredits($userId);
+        if (! $payroll) {
+            return 0;
         }
 
-        if (in_array($leaveType, $this->vlTypes)) {
-            return Leave::availableVLCredits($userId);
+        return match (true) {
+            in_array($leaveType, $this->slTypes)  => max(0, $payroll->sl_total  - $payroll->sl_consumed),
+            in_array($leaveType, $this->vlTypes)  => max(0, $payroll->vl_total  - $payroll->vl_consumed),
+            in_array($leaveType, $this->blTypes)  => max(0, $payroll->bl_total  - $payroll->bl_consumed),
+            in_array($leaveType, $this->splTypes) => max(0, $payroll->spl_total - $payroll->spl_consumed),
+            $leaveType === 'Leave Without Pay'    => -1,
+            default                               => 0,
+        };
+    }
+
+    private function incrementConsumed(int $userId, string $leaveType, float $days): void
+    {
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
+
+        if (! $payroll || $days <= 0) {
+            return;
         }
 
-        return 0;
+        match (true) {
+            in_array($leaveType, $this->slTypes)  => $payroll->increment('sl_consumed', $days),
+            in_array($leaveType, $this->vlTypes)  => $payroll->increment('vl_consumed', $days),
+            in_array($leaveType, $this->blTypes)  => $payroll->increment('bl_consumed', $days),
+            in_array($leaveType, $this->splTypes) => $payroll->increment('spl_consumed', $days),
+            default                               => null,
+        };
+    }
+
+    private function decrementConsumed(int $userId, string $leaveType, float $days): void
+    {
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
+
+        if (! $payroll || $days <= 0) {
+            return;
+        }
+
+        match (true) {
+            in_array($leaveType, $this->slTypes)  => $payroll->decrement('sl_consumed', $days),
+            in_array($leaveType, $this->vlTypes)  => $payroll->decrement('vl_consumed', $days),
+            in_array($leaveType, $this->blTypes)  => $payroll->decrement('bl_consumed', $days),
+            in_array($leaveType, $this->splTypes) => $payroll->decrement('spl_consumed', $days),
+            default                               => null,
+        };
     }
 
     protected function calculateTotalDays(): void
@@ -120,9 +164,12 @@ class DHead extends Component
     {
         $this->validate();
 
-        // Enforce credit cap for VL and SL types
+        // Enforce credit cap for VL, SL, BL, SPL types
         $leaveType = $this->form['leave_type'];
-        $hasCreditCap = in_array($leaveType, $this->vlTypes) || in_array($leaveType, $this->slTypes);
+        $hasCreditCap = in_array($leaveType, $this->vlTypes)
+            || in_array($leaveType, $this->slTypes)
+            || in_array($leaveType, $this->blTypes)
+            || in_array($leaveType, $this->splTypes);
 
         if ($hasCreditCap && $this->form['total_days'] > $this->availableCredits) {
             $this->addError('form.total_days', "You only have {$this->availableCredits} day(s) remaining for this leave type.");
@@ -137,36 +184,41 @@ class DHead extends Component
             }
 
             // DHead bypasses the dept_head approval step — auto-approve it
-            $leave = Leave::create([
-                'user_id' => Auth::id(),
-                'leave_type' => $this->form['leave_type'],
-                'start_date' => $this->form['start_date'],
-                'end_date' => $this->form['end_date'],
-                'total_days' => $this->form['total_days'],
-                'day_part' => $this->form['day_part'],
-                'reason' => $this->form['reason'],
-                'reliever' => $this->form['reliever'] ?: null,
-                'attachment' => $attachmentPath,
-                'date_requested' => now()->toDateString(),
-                'dept_head_status' => 'approved',
-                'dept_head_id' => Auth::id(),
-                'dept_head_approved_at' => now(),
-                'hr_status' => 'pending',
-            ]);
+            $leave = DB::transaction(function () use ($attachmentPath) {
+                $leave = Leave::create([
+                    'user_id'               => Auth::id(),
+                    'leave_type'            => $this->form['leave_type'],
+                    'start_date'            => $this->form['start_date'],
+                    'end_date'              => $this->form['end_date'],
+                    'total_days'            => $this->form['total_days'],
+                    'day_part'              => $this->form['day_part'],
+                    'reason'                => $this->form['reason'],
+                    'reliever'              => $this->form['reliever'] ?: null,
+                    'attachment'            => $attachmentPath,
+                    'date_requested'        => now()->toDateString(),
+                    'dept_head_status'      => 'approved',
+                    'dept_head_id'          => Auth::id(),
+                    'dept_head_approved_at' => now(),
+                    'hr_status'             => 'pending',
+                ]);
 
-            // Notify all HR users
+                $this->incrementConsumed(Auth::id(), $this->form['leave_type'], (float) $this->form['total_days']);
+
+                return $leave;
+            });
+
             $this->notifyHR($leave->load('user.employmentDetail.department'));
 
             $this->form = [
                 'leave_type' => '',
                 'start_date' => '',
-                'end_date' => '',
-                'day_part' => 'Full',
+                'end_date'   => '',
+                'day_part'   => 'Full',
                 'total_days' => 0,
-                'reason' => '',
-                'reliever' => '',
+                'reason'     => '',
+                'reliever'   => '',
             ];
-            $this->attachment = null;
+            $this->attachment     = null;
             $this->availableCredits = 0;
 
             session()->flash('message', 'Leave application submitted successfully!');
@@ -186,7 +238,11 @@ class DHead extends Component
             return;
         }
 
-        $leave->delete();
+        DB::transaction(function () use ($leave) {
+            $this->decrementConsumed($leave->user_id, $leave->leave_type, (float) $leave->total_days);
+            $leave->delete();
+        });
+
         session()->flash('message', 'Leave application removed.');
     }
 
@@ -331,18 +387,28 @@ class DHead extends Component
             ->count();
 
         $leaveType = $this->form['leave_type'];
-        $isVL = in_array($leaveType, $this->vlTypes);
-        $isSL = in_array($leaveType, $this->slTypes);
+        $isVL  = in_array($leaveType, $this->vlTypes);
+        $isSL  = in_array($leaveType, $this->slTypes);
+        $isBL  = in_array($leaveType, $this->blTypes);
+        $isSPL = in_array($leaveType, $this->splTypes);
+
+        $creditLabel = match (true) {
+            $isVL  => 'Available VL Credits',
+            $isSL  => 'Available SL Credits',
+            $isBL  => 'Available BL Credits',
+            $isSPL => 'Available SPL Credits',
+            default => 'No Credit Cap',
+        };
 
         return view('pages.users.dhead-leave', [
-            'leaves' => $leaves,
-            'myLeaves' => $myLeaves,
-            'pendingCount' => $this->pendingCount,
+            'leaves'            => $leaves,
+            'myLeaves'          => $myLeaves,
+            'pendingCount'      => $this->pendingCount,
             'approvedThisMonth' => $this->approvedThisMonth,
-            'onLeaveToday' => $this->onLeaveToday,
-            'availableCredits' => $this->availableCredits,
-            'creditLabel' => $isVL ? 'Available VL Credits' : ($isSL ? 'Available SL Credits' : 'No Credit Cap'),
-            'showCredits' => $isVL || $isSL,
+            'onLeaveToday'      => $this->onLeaveToday,
+            'availableCredits'  => $this->availableCredits,
+            'creditLabel'       => $creditLabel,
+            'showCredits'       => $isVL || $isSL || $isBL || $isSPL,
         ])->layout('layouts.app');
     }
 }

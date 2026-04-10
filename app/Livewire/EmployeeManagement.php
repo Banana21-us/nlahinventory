@@ -140,10 +140,6 @@ class EmployeeManagement extends Component
 
     public $wage_factor;
 
-    public $po_consumed;
-
-    public $po_total;
-
     public $probi_rate;
 
     public $picture;
@@ -213,7 +209,7 @@ class EmployeeManagement extends Component
             $this->saveDependents($emp->id);
             // Propagate access key to the linked user account
             if ($this->user_id && $this->access_key_id) {
-                User::where('id', $this->user_id)->update(['access_key_id' => $this->access_key_id]);
+                User::findOrFail($this->user_id)->update(['access_key_id' => $this->access_key_id]);
             }
         });
 
@@ -292,12 +288,10 @@ class EmployeeManagement extends Component
             $this->sl_consumed = $payroll->sl_consumed;
             $this->spl_total = $payroll->spl_total;
             $this->el_total = $payroll->el_total;
-            $this->min_scale = $payroll->min_scale;
-            $this->max_scale = $payroll->max_scale;
+            $this->min_scale   = $payroll->min_scale;
+            $this->max_scale   = $payroll->max_scale;
             $this->wage_factor = $payroll->wage_factor;
-            $this->po_consumed = $payroll->po_consumed;
-            $this->po_total = $payroll->po_total;
-            $this->probi_rate = $payroll->probi_rate;
+            $this->probi_rate  = $payroll->probi_rate;
         }
 
         $this->dependents = Dependency::where('employee_id', $employee->id)
@@ -363,9 +357,7 @@ class EmployeeManagement extends Component
                 'min_scale' => $this->min_scale ?: 0,
                 'max_scale' => $this->max_scale ?: 0,
                 'wage_factor' => $this->wage_factor ?: 1.00,
-                'po_consumed' => $this->po_consumed ?: 0,
-                'po_total' => $this->po_total ?: 0,
-                'probi_rate' => $this->probi_rate ?: 1.00,
+                'probi_rate'  => $this->probi_rate ?: 1.00,
             ]
         );
     }
@@ -433,7 +425,7 @@ class EmployeeManagement extends Component
             $this->saveDependents($employee->id);
             // Propagate access key to the linked user account
             if ($this->user_id && $this->access_key_id) {
-                User::where('id', $this->user_id)->update(['access_key_id' => $this->access_key_id]);
+                User::findOrFail($this->user_id)->update(['access_key_id' => $this->access_key_id]);
             }
         });
 
@@ -499,8 +491,7 @@ class EmployeeManagement extends Component
             'philhealth_no', 'pagibig_no', 'tin_no', 'sss_no', 'gsis_no',
             'salary_rate', 'daily_rate', 'monthly_rate', 'cola', 'grocery_allowance',
             'night_diff_factor', 'vl_total', 'vl_consumed', 'sl_total', 'sl_consumed',
-            'spl_total', 'el_total', 'min_scale', 'max_scale', 'wage_factor',
-            'po_consumed', 'po_total', 'probi_rate',
+            'spl_total', 'el_total', 'min_scale', 'max_scale', 'wage_factor', 'probi_rate',
             'dependents', 'new_dependent',
             'selectedId', 'isEditing', 'showForm', 'confirmingDeletion', 'isViewing',
         ]);
