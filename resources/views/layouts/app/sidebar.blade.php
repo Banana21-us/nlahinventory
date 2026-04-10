@@ -10,8 +10,6 @@
             collapsible
             class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
 
-            
-
             {{-- 2. MAINTENANCE --}}
             @can('access-maintenance')
             <flux:sidebar.item
@@ -175,7 +173,7 @@
 
             {{-- 4. PAYROLL | LABOR COMPLIANCE --}}
             @can('access-payroll')
-            <flux:sidebar.item
+            <!-- <flux:sidebar.item
                     icon="calendar"
                     :href="route('users.leaveform')"
                     :current="request()->routeIs('users.leaveform')"
@@ -189,7 +187,7 @@
                     :current="request()->routeIs('users.dhead-leaveform')"
                     wire:navigate="wire:navigate">
                     {{ __('Department Head Form') }}
-            </flux:sidebar.item>
+            </flux:sidebar.item> -->
             
             
             <flux:sidebar.group

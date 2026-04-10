@@ -26,4 +26,37 @@ class LeaveType extends Model
         'is_active'               => 'boolean',
         'annual_days'             => 'float',
     ];
+
+    /**
+     * Map this leave type to its payroll_and_leaves column prefix.
+     * e.g. 'vl' → vl_total / vl_consumed
+     * Returns null when there is no per-employee running balance.
+     */
+    public function getPayrollKey(): ?string
+    {
+        return match ($this->code) {
+            'VL'                  => 'vl',
+            'SL', 'SL_X', 'SL_M' => 'sl',
+            'BL'                  => 'bl',
+            'SPL'                 => 'spl',
+            'EL'                  => 'el',
+            default               => null,
+        };
+    }
+
+    public function isLWOP(): bool
+    {
+        return $this->code === 'LWOP';
+    }
+
+    /**
+     * Look up a LeaveType by code first, then fall back to label.
+     * Handles records created before the code-based refactor.
+     */
+    public static function resolve(string $value): ?self
+    {
+        return static::where('code', $value)
+            ->orWhere('label', $value)
+            ->first();
+    }
 }

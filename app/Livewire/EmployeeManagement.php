@@ -76,6 +76,8 @@ class EmployeeManagement extends Component
 
     public $contact_relationship;
 
+    public bool $is_solo_parent = false;
+
     // Employment Detail (employment_details table)
     public $department_id;
 
@@ -198,6 +200,7 @@ class EmployeeManagement extends Component
                 'contact_person' => $this->contact_person,
                 'contact_number' => $this->contact_number,
                 'contact_relationship' => $this->contact_relationship ?? null,
+                'is_solo_parent' => $this->is_solo_parent,
             ]);
 
             EmploymentDetail::updateOrCreate(
@@ -252,6 +255,7 @@ class EmployeeManagement extends Component
         $this->contact_person = $employee->contact_person;
         $this->contact_number = $employee->contact_number;
         $this->contact_relationship = $employee->contact_relationship;
+        $this->is_solo_parent = (bool) $employee->is_solo_parent;
 
         $detail = EmploymentDetail::where('employee_id', $employee->id)->first();
         if ($detail) {
@@ -414,6 +418,7 @@ class EmployeeManagement extends Component
                 'contact_person' => $this->contact_person,
                 'contact_number' => $this->contact_number,
                 'contact_relationship' => $this->contact_relationship ?? null,
+                'is_solo_parent' => $this->is_solo_parent,
             ]);
 
             EmploymentDetail::updateOrCreate(
@@ -484,7 +489,7 @@ class EmployeeManagement extends Component
             'birth_date', 'place_of_birth', 'civil_status',
             'religion', 'blood_type', 'height', 'weight',
             'mobile_no', 'telephone', 'email_add', 'p_address', 'c_address',
-            'contact_person', 'contact_number', 'contact_relationship',
+            'contact_person', 'contact_number', 'contact_relationship', 'is_solo_parent',
             'department_id', 'position', 'selectedPositions', 'access_key_id', 'rank',
             'hiring_date', 'regularization_date',
             'license_no', 'license_expiry',

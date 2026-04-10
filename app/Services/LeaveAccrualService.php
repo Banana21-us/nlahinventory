@@ -34,6 +34,19 @@ class LeaveAccrualService
     }
 
     /**
+     * Compute the expected regularization date based on hiring date.
+     * Philippine probationary period = 6 months (≈ 180 calendar days).
+     * Hospital policy shortens this to 73 working days; we approximate as
+     * 73 × 7/5 ≈ 102 calendar days for scheduling purposes.
+     * The exact gate is tracked via employment_details.regularization_date.
+     */
+    public function computeExpectedRegularizationDate(Carbon $hiringDate): Carbon
+    {
+        // Philippine Labor Code: probationary period is 6 months from hiring date
+        return $hiringDate->copy()->addMonths(6);
+    }
+
+    /**
      * Grant the transition VL when an employee is regularized.
      */
     public function onRegularization(User $user): void

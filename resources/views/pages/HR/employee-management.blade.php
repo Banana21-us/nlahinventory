@@ -356,6 +356,15 @@
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
 
+                    <div class="flex items-center gap-3 pt-6">
+                        <input type="checkbox" wire:model="is_solo_parent" id="is_solo_parent_create"
+                               class="w-4 h-4 rounded border-gray-300 accent-[#015581] cursor-pointer"/>
+                        <label for="is_solo_parent_create" class="text-xs font-bold uppercase tracking-wide text-gray-500 cursor-pointer select-none">
+                            Solo Parent
+                            <span class="normal-case font-normal text-gray-400 ml-1">(RA 8972 — 7 days SPL)</span>
+                        </label>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PRC License No.</label>
                         <input type="text" wire:model="license_no"
@@ -513,45 +522,45 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">VL Total</label>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Vacation Leave Total</label>
                         <input type="number" step="0.01" wire:model="vl_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">VL Consumed</label>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Vacation Leave Consumed</label>
                         <input type="number" step="0.01" wire:model="vl_consumed"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SL Total</label>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Sick Leave Total</label>
                         <input type="number" step="0.01" wire:model="sl_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SL Consumed</label>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Sick Leave Consumed</label>
                         <input type="number" step="0.01" wire:model="sl_consumed"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SPL Total</label>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Special Leave Total</label>
                         <input type="number" step="0.01" wire:model="spl_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">EL Total</label>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Emergency Leave Total</label>
                         <input type="number" step="0.01" wire:model="el_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
-                    <div>
+                    <!-- <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Total</label>
                         <input type="number" step="0.01" wire:model="po_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div>
-                    <div>
+                    </div> -->
+                    <!-- <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Consumed</label>
                         <input type="number" step="0.01" wire:model="po_consumed"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div>
+                    </div> -->
 
                     {{-- Picture & Signature --}}
                     <div class="md:col-span-3 mt-4 mb-2">
@@ -896,6 +905,14 @@
                                 <div><span class="block text-xs text-gray-400 font-semibold">Status</span>{{ $detail->employment_status }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">Hiring Date</span>{{ $detail->hiring_date?->format('M d, Y') }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">Regularization Date</span>{{ $detail->regularization_date?->format('M d, Y') ?? '—' }}</div>
+                                <div>
+                                    <span class="block text-xs text-gray-400 font-semibold">Solo Parent</span>
+                                    @if($viewEmployee?->is_solo_parent)
+                                        <span class="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 rounded-full px-2 py-0.5">Yes — SPL eligible</span>
+                                    @else
+                                        <span class="text-sm text-gray-600">No</span>
+                                    @endif
+                                </div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">PRC License No.</span>{{ $detail->license_no ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">License Expiry</span>{{ $detail->license_expiry?->format('M d, Y') ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">RE Membership</span>{{ $detail->re_membership ?: '—' }}</div>
@@ -1220,6 +1237,15 @@
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
 
+                                <div class="flex items-center gap-3 pt-6">
+                                    <input type="checkbox" wire:model="is_solo_parent" id="is_solo_parent_edit"
+                                           class="w-4 h-4 rounded border-gray-300 accent-[#015581] cursor-pointer"/>
+                                    <label for="is_solo_parent_edit" class="text-xs font-bold uppercase tracking-wide text-gray-500 cursor-pointer select-none">
+                                        Solo Parent
+                                        <span class="normal-case font-normal text-gray-400 ml-1">(RA 8972 — 7 days SPL)</span>
+                                    </label>
+                                </div>
+
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PRC License No.</label>
                                     <input type="text" wire:model="license_no"
@@ -1232,7 +1258,7 @@
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
 
-                                
+
 
                                 <div class="md:col-span-2 mt-2 pt-4 border-t border-gray-100">
                                     <p class="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Government IDs</p>
@@ -1373,36 +1399,36 @@
                                     <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Leave Balances</p>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">VL Total</label>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Vacation Leave Total</label>
                                     <input type="number" step="0.01" wire:model="vl_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">VL Consumed</label>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Vacation Leave Consumed</label>
                                     <input type="number" step="0.01" wire:model="vl_consumed"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SL Total</label>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Sick Leave Total</label>
                                     <input type="number" step="0.01" wire:model="sl_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SL Consumed</label>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Sick Leave Consumed</label>
                                     <input type="number" step="0.01" wire:model="sl_consumed"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SPL Total</label>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Special Leave Total</label>
                                     <input type="number" step="0.01" wire:model="spl_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">EL Total</label>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Emergency Leave Total</label>
                                     <input type="number" step="0.01" wire:model="el_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
-                                <div>
+                                <!-- <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Total</label>
                                     <input type="number" step="0.01" wire:model="po_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
@@ -1411,7 +1437,7 @@
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Consumed</label>
                                     <input type="number" step="0.01" wire:model="po_consumed"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                </div>
+                                </div> -->
 
                                 {{-- Picture & Signature --}}
                                 <div class="md:col-span-3 mt-4 mb-2">

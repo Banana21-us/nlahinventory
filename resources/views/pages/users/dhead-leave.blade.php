@@ -134,17 +134,7 @@
                         <x-custom-select
                             wire-property="form.leave_type"
                             :current="$form['leave_type']"
-                            :options="[
-                                ['value' => 'Vacation Leave',    'label' => 'Vacation Leave (VL)'],
-                                ['value' => 'Sick Leave',        'label' => 'Sick Leave (SL)'],
-                                ['value' => 'Pay-Off',           'label' => 'Pay-Off'],
-                                ['value' => 'Compassionate Leave','label' => 'Compassionate Leave'],
-                                ['value' => 'Leave Without Pay', 'label' => 'Leave Without Pay (LWOP)'],
-                                ['value' => 'Birthday Leave',    'label' => 'Birthday Leave'],
-                                ['value' => 'Single Parent Leave','label' => 'Single Parent Leave'],
-                                ['value' => 'Maternity Leave',   'label' => 'Maternity Leave'],
-                                ['value' => 'Paternity Leave',   'label' => 'Paternity Leave'],
-                            ]"
+                            :options="$leaveTypeOptions"
                             placeholder="Select Type…"
                             :error="$errors->first('form.leave_type')"
                         />
@@ -326,7 +316,7 @@
                                 </td>
                                 {{-- Leave Info --}}
                                 <td class="px-6 py-4">
-                                    <div class="text-sm font-semibold text-gray-700">{{ $leave->leave_type }}</div>
+                                    <div class="text-sm font-semibold text-gray-700">{{ $leaveTypeMap[$leave->leave_type] ?? $leave->leave_type }}</div>
                                     <div class="text-[10px] text-gray-400 italic">
                                         {{ Str::limit($leave->reason, 30) }}
                                     </div>
@@ -413,13 +403,7 @@
                     <tbody class="bg-white divide-y divide-gray-100">
                         @forelse ($myLeaves as $leave)
                             @php
-                                $typeColors = [
-                                    'Vacation'   => 'background:#e6f0f7;color:#015581;',
-                                    'Sick'       => 'background:#fef2f2;color:#dc2626;',
-                                    'Emergency'  => 'background:#fef8e7;color:#b45309;',
-                                    'Maternity'  => 'background:#f5e6f7;color:#7e22ce;',
-                                    'Solo Parent'=> 'background:#e6f4f5;color:#027c8b;',
-                                ];
+                                $myLeaveLabel = $leaveTypeMap[$leave->leave_type] ?? $leave->leave_type;
                                 $hrColors = [
                                     'pending'                => 'background:#fef8e7;color:#b45309;',
                                     'approved'               => 'background:#e6f4f5;color:#027c8b;',
@@ -431,8 +415,8 @@
                             <tr class="brand-row-hover transition-colors">
                                 <td class="px-6 py-4">
                                     <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                          style="{{ $typeColors[$leave->leave_type] ?? 'background:#f3f4f6;color:#374151;' }}">
-                                        {{ $leave->leave_type }}
+                                          style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;">
+                                        {{ $myLeaveLabel }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">

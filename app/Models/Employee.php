@@ -16,10 +16,12 @@ class Employee extends Model
         'mobile_no', 'telephone', 'email_add', 'p_address', 'c_address',
         'contact_person', 'contact_number', 'contact_relationship',
         'signature', 'picture', 'id_no',
+        'is_solo_parent',
     ];
 
     protected $casts = [
-        'birth_date' => 'date',
+        'birth_date'     => 'date',
+        'is_solo_parent' => 'boolean',
     ];
 
     public function dependencies()

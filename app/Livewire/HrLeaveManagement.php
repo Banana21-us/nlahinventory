@@ -153,24 +153,25 @@ class HrLeaveManagement extends Component
 
     private function restoreConsumed(int $userId, string $leaveType, float $days): void
     {
-        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
-
-        if (! $payroll || $days <= 0) {
+        if ($days <= 0) {
             return;
         }
 
-        $slTypes  = ['Sick Leave'];
-        $vlTypes  = ['Vacation Leave'];
-        $blTypes  = ['Birthday Leave'];
-        $splTypes = ['Single Parent Leave'];
+        // Resolves by code first, then falls back to legacy label strings
+        $lt  = \App\Models\LeaveType::resolve($leaveType);
+        $key = $lt?->getPayrollKey();
 
-        match (true) {
-            in_array($leaveType, $slTypes)  => $payroll->decrement('sl_consumed', $days),
-            in_array($leaveType, $vlTypes)  => $payroll->decrement('vl_consumed', $days),
-            in_array($leaveType, $blTypes)  => $payroll->decrement('bl_consumed', $days),
-            in_array($leaveType, $splTypes) => $payroll->decrement('spl_consumed', $days),
-            default                         => null,
-        };
+        if (! $key) {
+            return;
+        }
+
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
+
+        if (! $payroll) {
+            return;
+        }
+
+        $payroll->decrement("{$key}_consumed", $days);
     }
 
     public function rejectCancellation()
