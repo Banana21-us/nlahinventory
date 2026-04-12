@@ -855,6 +855,8 @@
         const item = areaQueue[currentIndex];
         const freq  = item.dataset.frequency;
         const shift = freq === 'daily' ? activeShift : (freq === 'nightly' ? 'PM' : 'AM');
+        
+        // Mark as captured FIRST so refreshAreaListUI shows checkmark NOW
         capturedMap[item.dataset.partId] = true;
         if (freq === 'daily') {
             if (activeShift === 'PM') item.dataset.hasPm = '1';
@@ -862,10 +864,57 @@
         } else {
             item.dataset.hasAm = '1';
         }
+        
+        // Immediately update UI to show checkmark before any delay
+        refreshAreaListUI();
+        
+        // Show visual feedback (colored placeholder)
+        if (preview && canvas) {
+            const ctx = canvas.getContext('2d');
+            canvas.width = 720; canvas.height = 720;
+            ctx.fillStyle = skipReason === 'patient_present' ? '#f59e0b' : '#10b981';
+            ctx.fillRect(0, 0, 720, 720);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const label = skipReason === 'patient_present' ? '⛔ Patient' : '🧤 Gloves';
+            ctx.fillText(label, 360, 360);
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+            preview.src = imageData;
+            preview.classList.remove('hidden');
+            if (!usingFallback) video.classList.add('hidden');
+            const ph = document.getElementById('proofFallbackPlaceholder');
+            if (ph) ph.classList.add('hidden');
+        }
+        
         if (commentInput) commentInput.value = '';
         enqueueSave({ partId: Number(item.dataset.partId), dayKey: String(item.dataset.dayKey), shift, imageData: null, comment: null, skipReason, periodType: String(item.dataset.frequency ?? 'daily'), selectedDate: parseDateLabel(item.dataset.dateLabel) ?? new Date().toISOString().split('T')[0] });
-        goToIndex(currentIndex + 1);
-        refreshAreaListUI();
+        
+        // Check if this is the last item - advance and show done state
+        const nextIdx = currentIndex + 1;
+        if (nextIdx >= areaQueue.length) {
+            // All done - show checkmark briefly then close
+            setTimeout(async () => {
+                preview.classList.add('hidden');
+                if (!usingFallback) await startCamera();
+                if (areaNameDisplay) areaNameDisplay.textContent = '✓ All areas captured!';
+                if (areaCounter) areaCounter.textContent = `${areaQueue.length}/${areaQueue.length}`;
+                captureOverlayBtn.classList.add('opacity-40', 'pointer-events-none');
+                if (cancelBtn) {
+                    cancelBtn.textContent = 'Done';
+                    cancelBtn.classList.remove('border-zinc-300','text-zinc-700','hover:bg-zinc-100','dark:border-zinc-700','dark:text-zinc-200','dark:hover:bg-zinc-800');
+                    cancelBtn.classList.add('bg-emerald-600','text-white','hover:bg-emerald-700','border-emerald-600');
+                }
+            }, 300);
+        } else {
+            // Not last - advance to next
+            setTimeout(async () => {
+                preview.classList.add('hidden');
+                if (!usingFallback) await startCamera();
+                goToIndex(nextIdx);
+            }, 300);
+        }
     };
 
     // ─── Element-scoped bindings (safe to re-bind — these elements are replaced on navigate) ──
