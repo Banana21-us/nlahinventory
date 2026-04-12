@@ -1,3 +1,6 @@
+@once
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+@endonce
 <div class="bg-white rounded-2xl border border-stone-200 shadow-sm p-5 ms-1 me-1">
     <div class="mb-5">
         <p class="text-[10px] font-black tracking-widest uppercase text-amber-500 mb-0.5">Breakdown</p>

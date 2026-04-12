@@ -1,4 +1,6 @@
-
+@once
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+@endonce
 <div class="rounded-xl p-6 bg-gray-50 min-h-screen">
     <div class="max-w-7xl mx-auto">
         <div class="flex items-center justify-between mb-8">

@@ -34,11 +34,12 @@
       "Bash(powershell -Command \"Test-Path 'C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.exe'; Test-Path 'C:\\\\Program Files\\\\Ollama\\\\ollama.exe'\")",
       "Bash(powershell -Command \"& 'C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.exe' --version\")",
       "Bash(git add:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(composer show:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "claude-flow"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
