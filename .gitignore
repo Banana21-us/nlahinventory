@@ -21,3 +21,5 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+# Laravel bootstrap cache (machine-specific absolute paths)
+/bootstrap/cache/*.php

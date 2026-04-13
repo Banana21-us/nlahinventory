@@ -50,6 +50,31 @@
         </div>
     </div>
 
+    {{-- PROBATIONARY NOTICE --}}
+    @if($isProbationary)
+        <div class="mb-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+            <svg class="mt-0.5 w-5 h-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            <div>
+                <p class="text-sm font-bold text-amber-800">Probationary Period — VL, SL &amp; BL Not Yet Available</p>
+                <p class="text-xs text-amber-700 mt-0.5">
+                    Vacation Leave, Sick Leave, and Birthday Leave credits are granted upon regularization.
+                    @if($expectedRegDate)
+                        Expected regularization date:
+                        <strong>{{ $expectedRegDate->format('M d, Y') }}</strong>
+                        @if($daysLeft > 0)
+                            ({{ $daysLeft }} day{{ $daysLeft === 1 ? '' : 's' }} remaining)
+                        @elseif($daysLeft <= 0)
+                            — regularization is overdue; please contact HR.
+                        @endif
+                    @endif
+                </p>
+            </div>
+        </div>
+    @endif
+
     {{-- COLLAPSIBLE FORM --}}
     <div class="bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden"
          x-data="{ open: @entangle('showForm') }">
@@ -89,17 +114,7 @@
                         <x-custom-select
                             wire-property="leave_type"
                             :current="$leave_type"
-                            :options="[
-                                ['value' => 'Vacation Leave',    'label' => 'Vacation Leave (VL)'],
-                                ['value' => 'Sick Leave',        'label' => 'Sick Leave (SL)'],
-                                ['value' => 'Pay-Off',           'label' => 'Pay-Off'],
-                                ['value' => 'Compassionate Leave','label' => 'Compassionate Leave'],
-                                ['value' => 'Leave Without Pay', 'label' => 'Leave Without Pay (LWOP)'],
-                                ['value' => 'Birthday Leave',    'label' => 'Birthday Leave'],
-                                ['value' => 'Single Parent Leave','label' => 'Single Parent Leave'],
-                                ['value' => 'Maternity Leave',   'label' => 'Maternity Leave'],
-                                ['value' => 'Paternity Leave',   'label' => 'Paternity Leave'],
-                            ]"
+                            :options="$leaveTypeOptions"
                             placeholder="Select Type…"
                             :error="$errors->first('leave_type')"
                         />
@@ -314,12 +329,15 @@
                     @endphp
 
                     @forelse($leaves as $leave)
+                        @php
+                            $leaveLabel = $leaveTypeMap[$leave->leave_type] ?? $leave->leave_type;
+                        @endphp
                         <tr class="brand-row-hover transition-colors">
 
                             <td class="px-6 py-4">
                                 <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                      style="{{ $typeBadge[$leave->leave_type] ?? 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;' }}">
-                                    {{ $leave->leave_type }}
+                                      style="{{ $typeBadge[$leave->leave_type] ?? $typeBadge[$leaveLabel] ?? 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;' }}">
+                                    {{ $leaveLabel }}
                                 </span>
                             </td>
 

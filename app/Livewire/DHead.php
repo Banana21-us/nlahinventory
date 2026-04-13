@@ -6,38 +6,38 @@ use App\Mail\LeaveCancellationRequestMail;
 use App\Mail\LeaveDHeadDecisionMail;
 use App\Mail\LeaveHRNotificationMail;
 use App\Models\Leave;
+use App\Models\LeaveType;
+use App\Models\PayrollAndLeave;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
 
 class DHead extends Component
 {
-    // ─── Form Properties for Leave Entry ───
+    // ─── Leave Entry Form ─────────────────────────────────────────────────────
     public $form = [
-        'leave_type' => '',
+        'leave_type' => '', // stores LeaveType code (VL, SL, …)
         'start_date' => '',
-        'end_date' => '',
-        'day_part' => 'Full',
+        'end_date'   => '',
+        'day_part'   => 'Full',
         'total_days' => 0,
-        'reason' => '',
-        'reliever' => '',
+        'reason'     => '',
+        'reliever'   => '',
     ];
 
     public $attachment = null;
 
     public float $availableCredits = 0;
 
-    protected array $vlTypes = ['Vacation Leave', 'Birthday Leave'];
+    // ─── Search & Modal State ─────────────────────────────────────────────────
+    public $search     = '';
 
-    protected array $slTypes = ['Sick Leave'];
-
-    // ─── Search & Modal State ───
-    public $search = '';
-
-    public $mySearch = '';
+    public $mySearch   = '';
 
     public $showReviewModal = false;
 
@@ -45,21 +45,21 @@ class DHead extends Component
 
     public $remarks = '';
 
-    // ─── Summary Card Properties (computed in render) ───
-    public $pendingCount = 0;
+    // ─── Summary Cards ────────────────────────────────────────────────────────
+    public $pendingCount      = 0;
 
     public $approvedThisMonth = 0;
 
-    public $onLeaveToday = 0;
+    public $onLeaveToday      = 0;
 
-    // ─── Validation Rules ───
+    // ─── Validation ───────────────────────────────────────────────────────────
     protected $rules = [
         'form.leave_type' => 'required|string',
         'form.start_date' => 'required|date',
-        'form.end_date' => 'required|date|after_or_equal:form.start_date',
-        'form.reason' => 'required|string|min:5',
-        'form.reliever' => 'nullable|string|max:255',
-        'attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'form.end_date'   => 'required|date|after_or_equal:form.start_date',
+        'form.reason'     => 'required|string|min:5',
+        'form.reliever'   => 'nullable|string|max:255',
+        'attachment'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
     ];
 
     public function updatedFormLeaveType(): void
@@ -67,42 +67,71 @@ class DHead extends Component
         $this->availableCredits = $this->computeAvailableCredits();
     }
 
-    public function updatedFormStartDate(): void
+    public function updatedFormStartDate(): void { $this->calculateTotalDays(); }
+
+    public function updatedFormEndDate(): void { $this->calculateTotalDays(); }
+
+    public function updatedFormDayPart(): void { $this->calculateTotalDays(); }
+
+    // ─── Internal helpers ─────────────────────────────────────────────────────
+
+    private function resolveFormLeaveType(): ?LeaveType
     {
-        $this->calculateTotalDays();
+        $code = $this->form['leave_type'];
+
+        return $code ? LeaveType::resolve($code) : null;
     }
 
-    public function updatedFormEndDate(): void
+    private function isSoloParent(): bool
     {
-        $this->calculateTotalDays();
+        return (bool) DB::table('employee')
+            ->where('user_id', Auth::id())
+            ->value('is_solo_parent');
     }
 
-    public function updatedFormDayPart(): void
+    private function getAvailableLeaveTypes(): Collection
     {
-        $this->calculateTotalDays();
+        $isSoloParent = $this->isSoloParent();
+
+        // DHead is always regular — no probation filter needed
+        return LeaveType::where('is_active', true)
+            ->when(! $isSoloParent, fn ($q) => $q->where('solo_parent_only', false))
+            ->orderBy('label')
+            ->get();
     }
 
     public function computeAvailableCredits(): float
     {
-        $userId = Auth::id();
-        $leaveType = $this->form['leave_type'];
+        $lt = $this->resolveFormLeaveType();
 
-        if (in_array($leaveType, $this->slTypes)) {
-            return Leave::availableSLCredits($userId);
+        if (! $lt) {
+            return 0;
         }
 
-        if (in_array($leaveType, $this->vlTypes)) {
-            return Leave::availableVLCredits($userId);
+        if ($lt->isLWOP()) {
+            return -1;
         }
 
-        return 0;
+        $key = $lt->getPayrollKey();
+
+        if (! $key) {
+            return 0;
+        }
+
+        $payroll = PayrollAndLeave::where('user_id', Auth::id())->first();
+
+        if (! $payroll) {
+            return 0;
+        }
+
+        return max(0, ($payroll->{$key.'_total'} ?? 0) - ($payroll->{$key.'_consumed'} ?? 0));
     }
 
     protected function calculateTotalDays(): void
     {
         if ($this->form['start_date'] && $this->form['end_date']) {
             $start = Carbon::parse($this->form['start_date']);
-            $end = Carbon::parse($this->form['end_date']);
+            $end   = Carbon::parse($this->form['end_date']);
 
             if ($start <= $end) {
                 $days = $start->diffInDays($end) + 1;
@@ -115,14 +144,38 @@ class DHead extends Component
         }
     }
 
-    // ─── Submit Leave Application (DHead files own leave) ───
+    private function adjustConsumed(int $userId, ?LeaveType $lt, float $days, string $direction): void
+    {
+        if (! $lt || $days <= 0) {
+            return;
+        }
+
+        $key = $lt->getPayrollKey();
+
+        if (! $key) {
+            return;
+        }
+
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
+
+        if (! $payroll) {
+            return;
+        }
+
+        if ($direction === 'increment') {
+            $payroll->increment("{$key}_consumed", $days);
+        } else {
+            $payroll->decrement("{$key}_consumed", $days);
+        }
+    }
+
+    // ─── Submit Own Leave ─────────────────────────────────────────────────────
     public function submitLeave(): void
     {
         $this->validate();
 
-        // Enforce credit cap for VL and SL types
-        $leaveType = $this->form['leave_type'];
-        $hasCreditCap = in_array($leaveType, $this->vlTypes) || in_array($leaveType, $this->slTypes);
+        $lt           = $this->resolveFormLeaveType();
+        $hasCreditCap = $lt && $lt->getPayrollKey() !== null;
 
         if ($hasCreditCap && $this->form['total_days'] > $this->availableCredits) {
             $this->addError('form.total_days', "You only have {$this->availableCredits} day(s) remaining for this leave type.");
@@ -136,46 +189,53 @@ class DHead extends Component
                 $attachmentPath = $this->attachment->store('leave-attachments', 'public');
             }
 
-            // DHead bypasses the dept_head approval step — auto-approve it
-            $leave = Leave::create([
-                'user_id' => Auth::id(),
-                'leave_type' => $this->form['leave_type'],
-                'start_date' => $this->form['start_date'],
-                'end_date' => $this->form['end_date'],
-                'total_days' => $this->form['total_days'],
-                'day_part' => $this->form['day_part'],
-                'reason' => $this->form['reason'],
-                'reliever' => $this->form['reliever'] ?: null,
-                'attachment' => $attachmentPath,
-                'date_requested' => now()->toDateString(),
-                'dept_head_status' => 'approved',
-                'dept_head_id' => Auth::id(),
-                'dept_head_approved_at' => now(),
-                'hr_status' => 'pending',
-            ]);
+            // DHead bypasses the dept_head approval step — auto-approved, sent straight to HR
+            $leave = DB::transaction(function () use ($attachmentPath, $lt) {
+                $leave = Leave::create([
+                    'user_id'               => Auth::id(),
+                    'leave_type'            => $this->form['leave_type'],
+                    'is_paid'               => $lt?->is_paid ?? true,
+                    'start_date'            => $this->form['start_date'],
+                    'end_date'              => $this->form['end_date'],
+                    'total_days'            => $this->form['total_days'],
+                    'day_part'              => $this->form['day_part'],
+                    'reason'                => $this->form['reason'],
+                    'reliever'              => $this->form['reliever'] ?: null,
+                    'attachment'            => $attachmentPath,
+                    'date_requested'        => now()->toDateString(),
+                    'dept_head_status'      => 'approved',
+                    'dept_head_id'          => Auth::id(),
+                    'dept_head_approved_at' => now(),
+                    'hr_status'             => 'pending',
+                ]);
 
-            // Notify all HR users
+                $this->adjustConsumed(Auth::id(), $lt, (float) $this->form['total_days'], 'increment');
+
+                return $leave;
+            });
+
             $this->notifyHR($leave->load('user.employmentDetail.department'));
 
             $this->form = [
                 'leave_type' => '',
                 'start_date' => '',
-                'end_date' => '',
-                'day_part' => 'Full',
+                'end_date'   => '',
+                'day_part'   => 'Full',
                 'total_days' => 0,
-                'reason' => '',
-                'reliever' => '',
+                'reason'     => '',
+                'reliever'   => '',
             ];
-            $this->attachment = null;
+            $this->attachment       = null;
             $this->availableCredits = 0;
 
             session()->flash('message', 'Leave application submitted successfully!');
         } catch (\Exception $e) {
+            Log::error('DHead::submitLeave failed', ['error' => $e->getMessage()]);
             session()->flash('error', 'Something went wrong. Please try again.');
         }
     }
 
-    // ─── Cancel / Delete Own Leaves ───
+    // ─── Cancel / Delete Own Leaves ───────────────────────────────────────────
     public function cancelMyLeave(int $id): void
     {
         $leave = Leave::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
@@ -186,7 +246,12 @@ class DHead extends Component
             return;
         }
 
-        $leave->delete();
+        DB::transaction(function () use ($leave) {
+            $lt = LeaveType::resolve($leave->leave_type);
+            $this->adjustConsumed($leave->user_id, $lt, (float) $leave->total_days, 'decrement');
+            $leave->delete();
+        });
+
         session()->flash('message', 'Leave application removed.');
     }
 
@@ -215,20 +280,18 @@ class DHead extends Component
             try {
                 Mail::to($hr->email)->send(new LeaveCancellationRequestMail($leave));
             } catch (\Exception) {
-                // Mail failure must not block the action
             }
         }
     }
 
-    // ─── Open Review Modal ───
+    // ─── Review Staff Leaves ──────────────────────────────────────────────────
     public function openReviewModal($id): void
     {
-        $this->selectedLeave = Leave::with('user')->findOrFail($id);
-        $this->remarks = $this->selectedLeave->dept_head_remarks ?? '';
-        $this->showReviewModal = true;
+        $this->selectedLeave    = Leave::with('user')->findOrFail($id);
+        $this->remarks          = $this->selectedLeave->dept_head_remarks ?? '';
+        $this->showReviewModal  = true;
     }
 
-    // ─── Process Approval/Rejection ───
     public function process(string $status): void
     {
         if (! $this->selectedLeave) {
@@ -236,18 +299,18 @@ class DHead extends Component
         }
 
         $this->selectedLeave->update([
-            'dept_head_status' => $status,
-            'dept_head_remarks' => $this->remarks,
-            'dept_head_id' => Auth::id(),
+            'dept_head_status'      => $status,
+            'dept_head_remarks'     => $this->remarks,
+            'dept_head_id'          => Auth::id(),
             'dept_head_approved_at' => now(),
         ]);
 
         $fresh = $this->selectedLeave->fresh(['user.employmentDetail.department']);
 
-        // Always notify the staff member of the dept head's decision
+        // Always notify the employee of the dept head's decision
         $this->notifyStaff($fresh);
 
-        // If approved, forward to HR for final action
+        // Forward to HR when approved
         if ($status === 'approved') {
             $this->notifyHR($fresh);
         }
@@ -256,7 +319,6 @@ class DHead extends Component
         session()->flash('message', 'Application has been '.$status.' successfully.');
     }
 
-    // ─── Close Modal ───
     public function closeModal(): void
     {
         $this->reset(['showReviewModal', 'selectedLeave', 'remarks']);
@@ -265,6 +327,7 @@ class DHead extends Component
     private function notifyStaff(Leave $leave): void
     {
         $email = $leave->user?->email;
+
         if (! $email) {
             return;
         }
@@ -274,8 +337,8 @@ class DHead extends Component
         } catch (\Exception $e) {
             Log::error('LeaveDHeadDecisionMail failed', [
                 'leave_id' => $leave->id,
-                'email' => $email,
-                'error' => $e->getMessage(),
+                'email'    => $email,
+                'error'    => $e->getMessage(),
             ]);
         }
     }
@@ -290,14 +353,13 @@ class DHead extends Component
             try {
                 Mail::to($hr->email)->send(new LeaveHRNotificationMail($leave));
             } catch (\Exception) {
-                // Mail failure must not block the action
             }
         }
     }
 
+    // ─── Render ───────────────────────────────────────────────────────────────
     public function render()
     {
-        // Incoming leaves for dept head's team — filter to exclude own leaves
         $leavesQuery = Leave::with('user')
             ->where('user_id', '!=', Auth::id())
             ->when($this->search, function ($q) {
@@ -309,40 +371,60 @@ class DHead extends Component
 
         $leaves = $leavesQuery->latest()->get();
 
-        // My own leave requests
         $myLeaves = Leave::where('user_id', Auth::id())
-            ->when($this->mySearch, fn ($q) => $q->where(fn ($sub) => $sub->where('leave_type', 'like', '%'.$this->mySearch.'%')
+            ->when($this->mySearch, fn ($q) => $q->where(fn ($sub) => $sub
+                ->where('leave_type', 'like', '%'.$this->mySearch.'%')
                 ->orWhere('reason', 'like', '%'.$this->mySearch.'%')
-            )
-            )
+            ))
             ->latest()
             ->get();
 
-        $this->pendingCount = Leave::where('user_id', '!=', Auth::id())->where('dept_head_status', 'pending')->count();
+        $this->pendingCount      = Leave::where('user_id', '!=', Auth::id())->where('dept_head_status', 'pending')->count();
         $this->approvedThisMonth = Leave::where('dept_head_status', 'approved')
             ->whereMonth('dept_head_approved_at', now()->month)
             ->whereYear('dept_head_approved_at', now()->year)
             ->count();
 
-        $today = now()->toDateString();
-        $this->onLeaveToday = Leave::where('dept_head_status', 'approved')
+        $today               = now()->toDateString();
+        $this->onLeaveToday  = Leave::where('dept_head_status', 'approved')
             ->whereDate('start_date', '<=', $today)
             ->whereDate('end_date', '>=', $today)
             ->count();
 
-        $leaveType = $this->form['leave_type'];
-        $isVL = in_array($leaveType, $this->vlTypes);
-        $isSL = in_array($leaveType, $this->slTypes);
+        $lt     = $this->resolveFormLeaveType();
+        $isVL   = $lt?->code === 'VL';
+        $isSL   = in_array($lt?->code, ['SL', 'SL_X', 'SL_M']);
+        $isBL   = $lt?->code === 'BL';
+        $isSPL  = $lt?->code === 'SPL';
+        $isLWOP = $lt?->isLWOP() ?? false;
+
+        $creditLabel = match (true) {
+            $isVL   => 'Available VL Credits',
+            $isSL   => 'Available SL Credits',
+            $isBL   => 'Available BL Credits',
+            $isSPL  => 'Available SPL Credits',
+            $isLWOP => 'Leave Without Pay',
+            default => 'No Credit Cap',
+        };
+
+        $leaveTypeOptions = $this->getAvailableLeaveTypes()
+            ->map(fn ($t) => ['value' => $t->code, 'label' => $t->label])
+            ->values()
+            ->toArray();
+
+        $leaveTypeMap = LeaveType::pluck('label', 'code')->toArray();
 
         return view('pages.users.dhead-leave', [
-            'leaves' => $leaves,
-            'myLeaves' => $myLeaves,
-            'pendingCount' => $this->pendingCount,
+            'leaves'            => $leaves,
+            'myLeaves'          => $myLeaves,
+            'pendingCount'      => $this->pendingCount,
             'approvedThisMonth' => $this->approvedThisMonth,
-            'onLeaveToday' => $this->onLeaveToday,
-            'availableCredits' => $this->availableCredits,
-            'creditLabel' => $isVL ? 'Available VL Credits' : ($isSL ? 'Available SL Credits' : 'No Credit Cap'),
-            'showCredits' => $isVL || $isSL,
+            'onLeaveToday'      => $this->onLeaveToday,
+            'availableCredits'  => $this->availableCredits,
+            'creditLabel'       => $creditLabel,
+            'showCredits'       => $isVL || $isSL || $isBL || $isSPL,
+            'leaveTypeOptions'  => $leaveTypeOptions,
+            'leaveTypeMap'      => $leaveTypeMap,
         ])->layout('layouts.app');
     }
 }

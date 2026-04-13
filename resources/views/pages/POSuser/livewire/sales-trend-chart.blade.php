@@ -1,3 +1,6 @@
+@once
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+@endonce
 <div class="bg-white rounded-2xl border border-stone-200 shadow-sm p-6">
 
     {{-- Header — NOT inside wire:ignore so Livewire can update it --}}

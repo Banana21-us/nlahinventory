@@ -5,21 +5,18 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 new class extends Component {
+    // ── Reactive user state (serialised into snapshot) ──────────────────────
     public array $selectedSlots = [];
     public array $slotProofs = [];
     public array $slotComments = [];
-    public bool $hasProofColumn = false;
     public ?int $pendingProofPartId = null;
     public ?string $pendingProofDayKey = null;
     public ?string $pendingProofShift = null;
-    public array $areaParts = [];
-    public array $locations = [];
-    public array $availableFloors = [];
-    public array $locationProgress = [];
     public string $floorFilter = '';
     public string $selectedLocation = '';
     public ?int $selectedLocationId = null;
@@ -33,18 +30,21 @@ new class extends Component {
     public array $monthlyPeriods = [];
     public bool $showDailyChecklist = false;
     public bool $showProofPreviewModal = false;
-    public ?string $proofPreviewUrl = null;
+    // NOTE: $proofPreviewUrl removed from snapshot — sent via JS dispatch instead
     public ?string $proofPreviewTitle = null;
     public ?string $proofPreviewSkipReason = null;
-    public array $days = [
+    public array $weekDates = [];
+
+    // ── Private / static (never serialised) ─────────────────────────────────
+    private bool $hasProofColumn = false;
+    private array $days = [
         'mon' => 'Monday',
         'tue' => 'Tuesday',
         'wed' => 'Wednesday',
         'thu' => 'Thursday',
         'fri' => 'Friday',
     ];
-    public array $shifts = ['AM', 'PM'];
-    public array $weekDates = [];
+    private array $shifts = ['AM', 'PM'];
 
     public function mount(): void
     {
@@ -78,9 +78,24 @@ new class extends Component {
         } catch (\Throwable) {
             $this->hasProofColumn = false;
         }
-        $this->loadLocations();
-        $this->loadAreaParts();
+        // Sync display name if locationId was pre-filled via URL
+        if ($this->selectedLocationId !== null && $this->selectedLocation === '') {
+            $matched = collect($this->locations)
+                ->first(fn (array $l) => $l['id'] === $this->selectedLocationId);
+            if ($matched) {
+                $this->selectedLocation = $matched['display_name'];
+            }
+        }
         $this->loadExistingSlots();
+
+        // If a location was pre-filled (from URL / localStorage redirect) and
+        // the period is daily or nightly, skip the calendar and open today's
+        // checklist immediately — no extra tap needed.
+        if ($this->selectedLocationId !== null
+            && in_array($this->periodType, ['daily', 'nightly'], true)
+        ) {
+            $this->showDailyChecklist = true;
+        }
     }
 
     public function updatedPeriodType(): void
@@ -97,8 +112,23 @@ new class extends Component {
         } elseif ($this->periodType === 'monthly') {
             $this->buildMonthlyPeriods();
         }
-        $this->loadLocations();
-        $this->loadAreaParts();
+        // Sync location validity for new period type (replaces loadLocations side-effect)
+        if ($this->selectedLocationId !== null) {
+            $validIds = array_column($this->locations, 'id');
+            if (! in_array($this->selectedLocationId, $validIds, true)) {
+                $this->selectedLocationId = null;
+                $this->selectedLocation   = '';
+            } else {
+                $matched = collect($this->locations)
+                    ->first(fn (array $l) => $l['id'] === $this->selectedLocationId);
+                if ($matched) {
+                    $this->selectedLocation = $matched['display_name'];
+                }
+            }
+        }
+        if ($this->floorFilter !== '' && ! in_array($this->floorFilter, $this->availableFloors, true)) {
+            $this->floorFilter = '';
+        }
         $this->loadExistingSlots();
     }
 
@@ -161,11 +191,15 @@ new class extends Component {
         $this->selectedLocationId = $matched['id'] ?? null;
         if ($matched !== null) {
             $this->selectedLocation = $matched['display_name'];
-            // Location changed while inside checklist — stay on current date, just reload data
+            // For daily/nightly: jump straight to today instead of showing the calendar.
+            // selectedDate is already set to today from mount(), so no extra tap needed.
+            if (in_array($this->periodType, ['daily', 'nightly'], true)) {
+                $this->showDailyChecklist = true;
+            }
         }
         // Do NOT reset showDailyChecklist here: mid-type no-match is transient.
         // Only clearSelectedLocation() should force the user back to the calendar.
-        $this->loadAreaParts();
+        // areaParts is now #[Computed] — no explicit reload needed.
         $this->loadExistingSlots();
     }
 
@@ -176,7 +210,7 @@ new class extends Component {
         // Keep showDailyChecklist as-is so the user stays on the current date
         // and can immediately type a new location without going back to the calendar.
         $this->selectedSlots = [];
-        $this->loadAreaParts();
+        // areaParts is now #[Computed] — no explicit reload needed.
         $this->loadExistingSlots();
     }
 
@@ -221,7 +255,7 @@ new class extends Component {
             ->delete();
     } catch (\Throwable) {}
 
-    $this->loadLocationProgress();
+    // locationProgress recomputes automatically on next render (#[Computed])
 
     return;
 }
@@ -343,7 +377,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
     $this->slotProofs[$key]    = $proofPath;
     $this->slotComments[$key]  = $commentValue ?? '';
 
-    $this->loadLocationProgress();
+    // locationProgress recomputes automatically on next render (#[Computed])
     $this->clearPendingProof();
 }
 
@@ -440,32 +474,38 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                 'gloves'          => 'Gloves On / Sanitary Concern',
                 default           => ucwords(str_replace('_', ' ', $reason)),
             };
-            $this->proofPreviewUrl   = null;
             $this->proofPreviewTitle = __('Proof Skipped');
             $this->showProofPreviewModal = true;
+            // No image URL — dispatch null so Alpine clears any previous image
+            $this->dispatch('proof-preview-url', url: null);
             return;
         }
 
         $this->proofPreviewSkipReason = null;
+        $this->proofPreviewTitle = __('Proof Preview');
+
         $normalizedPath = ltrim(trim($path), '/');
         if (str_starts_with($normalizedPath, 'storage/')) {
             $normalizedPath = substr($normalizedPath, 8);
         }
 
+        // Build the URL server-side but dispatch it as a JS event instead of storing
+        // in the Livewire snapshot.  A base64-encoded JPEG can easily be 300-500 KB —
+        // keeping it out of the snapshot dramatically reduces serialisation overhead.
         try {
             if (Storage::disk('public')->exists($normalizedPath)) {
-                $raw = Storage::disk('public')->get($normalizedPath);
+                $raw  = Storage::disk('public')->get($normalizedPath);
                 $mime = Storage::disk('public')->mimeType($normalizedPath) ?: 'image/jpeg';
-                $this->proofPreviewUrl = 'data:'.$mime.';base64,'.base64_encode($raw);
+                $url  = 'data:'.$mime.';base64,'.base64_encode($raw);
             } else {
-                $this->proofPreviewUrl = asset('storage/'.$normalizedPath);
+                $url = asset('storage/'.$normalizedPath);
             }
         } catch (\Throwable) {
-            $this->proofPreviewUrl = asset('storage/'.$normalizedPath);
+            $url = asset('storage/'.$normalizedPath);
         }
 
-        $this->proofPreviewTitle = __('Proof Preview');
         $this->showProofPreviewModal = true;
+        $this->dispatch('proof-preview-url', url: $url);
     }
 
     public function getProofMetadata(int $locationAreaPartId, string $dayKey, string $shift): array
@@ -505,9 +545,9 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
     public function closeProofPreview(): void
     {
         $this->showProofPreviewModal = false;
-        $this->proofPreviewUrl = null;
         $this->proofPreviewTitle = null;
         $this->proofPreviewSkipReason = null;
+        $this->dispatch('proof-preview-url', url: null);
     }
 
     public function confirmToggleWithSkip(int $partId, string $dayKey, string $shift, string $skipReason): void
@@ -561,107 +601,153 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
         $this->selectedSlots[$key] = true;
         $this->slotProofs[$key]    = $proofValue;
         $this->slotComments[$key]  = $commentValue;
-        $this->loadLocationProgress();
+        // locationProgress recomputes automatically on next render (#[Computed])
     }
 
-    private function loadAreaParts(): void
-    {
-        if (! in_array($this->periodType, ['daily', 'nightly', 'weekly', 'monthly'], true) || $this->selectedLocationId === null) {
-            $this->areaParts = [];
-            return;
-        }
+    // ── Computed properties (NOT serialised into Livewire snapshot) ─────────
 
-        try {
-            $query = DB::table('location_area_parts as lap')
-                ->join('area_parts as ap', 'ap.id', '=', 'lap.area_part_id')
-                ->join('locations as l', 'l.id', '=', 'lap.location_id')
-                ->where('lap.frequency', $this->periodType)
-                ->where('lap.location_id', $this->selectedLocationId)
-                ->orderBy('l.name')
-                ->orderBy('ap.name');
-
-            $parts = $query->get([
-                'lap.id as location_area_part_id',
-                'ap.name as area_part_name',
-                'l.name as location_name',
-                'l.floor as location_floor',
-                'l.id as location_id',
-            ]);
-
-            $this->areaParts = $parts->map(fn ($part) => [
-                'id' => (int) $part->location_area_part_id,
-                'name' => $part->area_part_name,
-                'location' => $part->location_name,
-                'location_id' => (int) $part->location_id,
-                'location_floor' => $part->location_floor,
-                'location_display' => trim($part->location_name.($part->location_floor ? ' ('.$part->location_floor.')' : '')),
-                'display_name' => $part->area_part_name,
-            ])->all();
-        } catch (\Throwable) {
-            $this->areaParts = [];
-        }
-    }
-
-    private function loadLocations(): void
+    /** All locations valid for the current period type. */
+    #[Computed]
+    public function locations(): array
     {
         if (! in_array($this->periodType, ['daily', 'nightly', 'weekly', 'monthly'], true)) {
-            $this->locations = [];
-            $this->selectedLocation = '';
-            $this->selectedLocationId = null;
-            return;
+            return [];
         }
-
         try {
-            $this->locations = DB::table('location_area_parts as lap')
+            return DB::table('location_area_parts as lap')
                 ->join('locations as l', 'l.id', '=', 'lap.location_id')
                 ->where('lap.frequency', $this->periodType)
                 ->distinct()
                 ->orderBy('l.name')
                 ->get(['l.id as id', 'l.name as name', 'l.floor as floor'])
-                ->map(fn ($location) => [
-                    'id' => (int) $location->id,
-                    'name' => $location->name,
-                    'floor' => $location->floor,
-                    'display_name' => $location->name.' ('.$location->floor.')',
+                ->map(fn ($loc) => [
+                    'id'           => (int) $loc->id,
+                    'name'         => $loc->name,
+                    'floor'        => $loc->floor,
+                    'display_name' => $loc->name . ' (' . $loc->floor . ')',
                 ])
                 ->all();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
 
-            $this->availableFloors = collect($this->locations)
-                ->pluck('floor')
-                ->filter(fn ($f) => is_string($f) && trim($f) !== '')
-                ->unique()
-                ->sort()
-                ->values()
+    /** Unique sorted floor labels derived from the computed locations list. */
+    #[Computed]
+    public function availableFloors(): array
+    {
+        return collect($this->locations)
+            ->pluck('floor')
+            ->filter(fn ($f) => is_string($f) && trim($f) !== '')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /** Area parts for the currently selected location and period. */
+    #[Computed]
+    public function areaParts(): array
+    {
+        if (! in_array($this->periodType, ['daily', 'nightly', 'weekly', 'monthly'], true)
+            || $this->selectedLocationId === null) {
+            return [];
+        }
+        try {
+            return DB::table('location_area_parts as lap')
+                ->join('area_parts as ap', 'ap.id', '=', 'lap.area_part_id')
+                ->join('locations as l', 'l.id', '=', 'lap.location_id')
+                ->where('lap.frequency', $this->periodType)
+                ->where('lap.location_id', $this->selectedLocationId)
+                ->orderBy('l.name')
+                ->orderBy('ap.name')
+                ->get([
+                    'lap.id as location_area_part_id',
+                    'ap.name as area_part_name',
+                    'l.name as location_name',
+                    'l.floor as location_floor',
+                    'l.id as location_id',
+                ])
+                ->map(fn ($part) => [
+                    'id'               => (int) $part->location_area_part_id,
+                    'name'             => $part->area_part_name,
+                    'location'         => $part->location_name,
+                    'location_id'      => (int) $part->location_id,
+                    'location_floor'   => $part->location_floor,
+                    'location_display' => trim($part->location_name . ($part->location_floor ? ' (' . $part->location_floor . ')' : '')),
+                    'display_name'     => $part->area_part_name,
+                ])
                 ->all();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
 
-            // Reset floor filter if it no longer exists in new floors
-            if ($this->floorFilter !== '' && ! in_array($this->floorFilter, $this->availableFloors, true)) {
-                $this->floorFilter = '';
+    /** Completion progress per location for the current period/date. */
+    #[Computed]
+    public function locationProgress(): array
+    {
+        $locs = $this->locations;
+        if (empty($locs)) {
+            return [];
+        }
+
+        $locationIds = array_column($locs, 'id');
+        $shiftsCount = in_array($this->periodType, ['daily', 'nightly'], true) ? 2 : 1;
+        $progress    = [];
+
+        try {
+            $totals = DB::table('location_area_parts')
+                ->whereIn('location_id', $locationIds)
+                ->where('frequency', $this->periodType)
+                ->selectRaw('location_id, COUNT(*) as cnt')
+                ->groupBy('location_id')
+                ->pluck('cnt', 'location_id');
+
+            $doneQuery = DB::table('records as r')
+                ->join('location_area_parts as lap', 'lap.id', '=', 'r.location_area_part_id')
+                ->whereIn('lap.location_id', $locationIds)
+                ->where('r.period_type', $this->periodType)
+                ->where('r.status', 'YES')
+                ->whereNotNull('r.proof')
+                ->where('r.proof', '!=', '');
+
+            if (in_array($this->periodType, ['daily', 'nightly'], true)) {
+                $doneQuery->whereDate('r.cleaning_date', $this->selectedDate);
+            } elseif ($this->periodType === 'weekly') {
+                $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
+                $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+                if ($weekStart && $weekEnd) {
+                    $doneQuery->whereBetween('r.cleaning_date', [$weekStart, $weekEnd]);
+                }
+            } elseif ($this->periodType === 'monthly') {
+                $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
+                $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+                if ($monthStart && $monthEnd) {
+                    $doneQuery->whereBetween('r.cleaning_date', [$monthStart, $monthEnd]);
+                }
             }
 
-            $matchedById = $this->selectedLocationId !== null
-                ? collect($this->locations)->first(fn (array $location) => $location['id'] === $this->selectedLocationId)
-                : null;
-            if ($matchedById !== null) {
-                $this->selectedLocation = $matchedById['display_name'];
-                return;
-            }
+            $done = $doneQuery
+                ->selectRaw('lap.location_id, COUNT(*) as cnt')
+                ->groupBy('lap.location_id')
+                ->pluck('cnt', 'location_id');
 
-            $needle = trim($this->selectedLocation);
-            $matched = collect($this->locations)
-                ->first(fn (array $location) => strcasecmp($location['name'], $needle) === 0
-                    || strcasecmp($location['display_name'], $needle) === 0);
-
-            if ($needle !== '' && $matched === null) {
-                $this->selectedLocationId = null;
-            } elseif ($matched !== null) {
-                $this->selectedLocationId = $matched['id'];
+            foreach ($locationIds as $locId) {
+                $total     = (int) ($totals[$locId] ?? 0) * $shiftsCount;
+                $doneCount = (int) ($done[$locId] ?? 0);
+                $pct       = $total > 0 ? min(100, (int) round(($doneCount / $total) * 100)) : 0;
+                $progress[$locId] = [
+                    'total' => $total,
+                    'done'  => min($doneCount, $total),
+                    'pct'   => $pct,
+                ];
             }
         } catch (\Throwable) {
-            $this->locations = [];
-            $this->selectedLocation = '';
-            $this->selectedLocationId = null;
+            // Leave progress empty; UI still works.
         }
+
+        return $progress;
     }
 
     private function buildWeekDates(): void
@@ -738,73 +824,8 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
         // Keep UI usable.
     }
 
-    $this->loadLocationProgress();
+    // locationProgress recomputes automatically on next render (#[Computed])
 }
-
-    private function loadLocationProgress(): void
-    {
-        $this->locationProgress = [];
-
-        if (empty($this->locations)) {
-            return;
-        }
-
-        $locationIds  = array_column($this->locations, 'id');
-        $shiftsCount  = in_array($this->periodType, ['daily', 'nightly'], true) ? 2 : 1;
-
-        try {
-            // Total area parts per location for this frequency
-            $totals = DB::table('location_area_parts')
-                ->whereIn('location_id', $locationIds)
-                ->where('frequency', $this->periodType)
-                ->selectRaw('location_id, COUNT(*) as cnt')
-                ->groupBy('location_id')
-                ->pluck('cnt', 'location_id');
-
-            // Completed (has proof) per location for current period/date
-            $doneQuery = DB::table('records as r')
-                ->join('location_area_parts as lap', 'lap.id', '=', 'r.location_area_part_id')
-                ->whereIn('lap.location_id', $locationIds)
-                ->where('r.period_type', $this->periodType)
-                ->where('r.status', 'YES')
-                ->whereNotNull('r.proof')
-                ->where('r.proof', '!=', '');
-
-            if (in_array($this->periodType, ['daily', 'nightly'], true)) {
-                $doneQuery->whereDate('r.cleaning_date', $this->selectedDate);
-            } elseif ($this->periodType === 'weekly') {
-                $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
-                $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
-                if ($weekStart && $weekEnd) {
-                    $doneQuery->whereBetween('r.cleaning_date', [$weekStart, $weekEnd]);
-                }
-            } elseif ($this->periodType === 'monthly') {
-                $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
-                $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
-                if ($monthStart && $monthEnd) {
-                    $doneQuery->whereBetween('r.cleaning_date', [$monthStart, $monthEnd]);
-                }
-            }
-
-            $done = $doneQuery
-                ->selectRaw('lap.location_id, COUNT(*) as cnt')
-                ->groupBy('lap.location_id')
-                ->pluck('cnt', 'location_id');
-
-            foreach ($locationIds as $locId) {
-                $total    = (int) ($totals[$locId] ?? 0) * $shiftsCount;
-                $doneCount = (int) ($done[$locId] ?? 0);
-                $pct      = $total > 0 ? min(100, (int) round(($doneCount / $total) * 100)) : 0;
-                $this->locationProgress[$locId] = [
-                    'total' => $total,
-                    'done'  => min($doneCount, $total),
-                    'pct'   => $pct,
-                ];
-            }
-        } catch (\Throwable) {
-            // Leave progress empty; UI still works.
-        }
-    }
 
     private function saveChecklist(): void
 {
@@ -1081,6 +1102,88 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 }; ?>
 
 <div>
+@php
+    // #[Computed] methods are NOT auto-injected into blade scope for Volt anonymous
+    // class components — pull them in explicitly. The methods are still memoized
+    // (cached per request), so each call below does not re-query the database.
+    $locations        = $this->locations;
+    $availableFloors  = $this->availableFloors;
+    $areaParts        = $this->areaParts;
+    $locationProgress = $this->locationProgress;
+    $shifts           = ['AM', 'PM'];
+    $days             = ['mon' => 'Monday', 'tue' => 'Tuesday', 'wed' => 'Wednesday', 'thu' => 'Thursday', 'fri' => 'Friday'];
+@endphp
+
+{{--
+    Global touch-action CSS — eliminates the 300 ms tap delay on Android.
+    touch-action:manipulation tells the browser we won't use double-tap-to-zoom,
+    so it can fire click immediately on first tap.
+--}}
+<style>
+    .checklist-interactive {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        cursor: pointer;
+    }
+    /* When offline, dim all Livewire-dependent buttons so staff know they won't respond */
+    body.is-offline .checklist-interactive {
+        opacity: 0.4;
+        pointer-events: none;
+        cursor: not-allowed;
+    }
+    /* Thin progress bar at the top — shown only when a Livewire request takes
+       longer than 200 ms (wire:loading.delay).  Does not block the UI. */
+    .checklist-progress-bar {
+        position: fixed; top: 0; left: 0; z-index: 9999;
+        height: 3px; width: 0;
+        background: linear-gradient(90deg, #097b86, #1e3a5f);
+        animation: checklist-progress 1.4s ease-in-out infinite alternate;
+    }
+    @keyframes checklist-progress {
+        from { width: 15%; }
+        to   { width: 80%; }
+    }
+</style>
+
+{{--
+    wire:loading.delay means Livewire waits 200 ms before showing this element.
+    Fast round-trips (cached responses, simple property sets) never show it.
+    wire:loading.remove hides it again as soon as the response arrives.
+--}}
+<div wire:loading.delay style="display:none" class="checklist-progress-bar"></div>
+
+{{--
+    Offline banner — pure Alpine.js, no server needed.
+    Shows automatically when the device loses connectivity.
+    Hides again when connectivity returns.
+    Tells staff exactly what still works (camera) vs what doesn't (navigation).
+--}}
+<div
+    x-data="{ offline: !navigator.onLine }"
+    x-on:online.window="offline = false; document.body.classList.remove('is-offline')"
+    x-on:offline.window="offline = true; document.body.classList.add('is-offline')"
+    x-init="if (offline) document.body.classList.add('is-offline')"
+    x-show="offline"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 -translate-y-2"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    style="display:none"
+    class="fixed inset-x-0 top-0 z-[9998] flex items-start gap-3 bg-amber-50 border-b border-amber-300 px-4 py-3 text-sm shadow-md dark:bg-amber-900/30 dark:border-amber-700"
+    role="alert"
+>
+    <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    </svg>
+    <div class="min-w-0">
+        <p class="font-semibold text-amber-800 dark:text-amber-300">You're offline</p>
+        <p class="text-amber-700 dark:text-amber-400">
+            Camera still works — photos are saved locally.
+            Changing location or date requires a connection.
+        </p>
+    </div>
+</div>
+
 <section class="w-full">
     @include('partials.checklist-heading')
 
@@ -1155,7 +1258,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                             <button
                                 type="button"
                                 wire:click="$set('floorFilter', '')"
-                                class="rounded-lg border px-3 py-1 text-xs font-semibold transition"
+                                class="checklist-interactive rounded-lg border px-3 py-1 text-xs font-semibold transition"
                                 style="{{ $floorFilter === ''
                                     ? 'border-color:#097b86;background-color:#097b86;color:white;'
                                     : 'border-color:#e5e7eb;background-color:white;color:#4b5563;' }}"
@@ -1164,7 +1267,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                 <button
                                     type="button"
                                     wire:click="$set('floorFilter', '{{ addslashes($floor) }}')"
-                                    class="rounded-lg border px-3 py-1 text-xs font-semibold transition hover:border-[#097b86] hover:bg-teal-50 dark:hover:border-[#097b86] dark:hover:bg-teal-900/20"
+                                    class="checklist-interactive rounded-lg border px-3 py-1 text-xs font-semibold transition hover:border-[#097b86] hover:bg-teal-50 dark:hover:border-[#097b86] dark:hover:bg-teal-900/20"
                                     style="{{ $floorFilter === $floor
                                         ? 'border-color:#097b86;background-color:#097b86;color:white;'
                                         : 'border-color:#e5e7eb;background-color:white;color:#4b5563;' }}"
@@ -1175,11 +1278,11 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 
                     <div
                         x-data="{
-                            page: 0,
+                            page: Math.min(window._locSliderPage ?? 0, Math.max(0, {{ count($locationChunks) }} - 1)),
                             total: {{ count($locationChunks) }},
                             touchStartX: 0,
-                            prev() { if (this.page > 0) this.page--; },
-                            next() { if (this.page < this.total - 1) this.page++; },
+                            prev() { if (this.page > 0) { this.page--; window._locSliderPage = this.page; } },
+                            next() { if (this.page < this.total - 1) { this.page++; window._locSliderPage = this.page; } },
                             onTouchStart(e) { this.touchStartX = e.changedTouches[0].screenX; },
                             onTouchEnd(e) {
                                 const dx = e.changedTouches[0].screenX - this.touchStartX;
@@ -1198,7 +1301,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                 <button
                                     type="button"
                                     wire:click="clearSelectedLocation"
-                                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                    class="checklist-interactive inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                     aria-label="{{ __('Clear location') }}"
                                 >&times;</button>
                             </div>
@@ -1229,7 +1332,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                             <button
                                                 type="button"
                                                 wire:click="selectLocationByName('{{ addslashes($location['display_name']) }}')"
-                                                class="relative flex flex-col items-center gap-1 overflow-hidden rounded-xl border px-1 py-3 text-center text-xs font-medium transition
+                                                class="checklist-interactive relative flex flex-col items-center gap-1 overflow-hidden rounded-xl border px-1 py-3 text-center text-xs font-medium transition
                                                     {{ $isActive
                                                         ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-900/30 dark:text-sky-300'
                                                         : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800' }}"
@@ -1315,7 +1418,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     {{-- Calendar Header --}}
                     <div class="flex items-center justify-between px-5 py-4" style="background: linear-gradient(135deg, #1e3a5f 0%, #097b86 100%);">
                         <button type="button" wire:click="previousCalendarMonth"
-                                class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                class="checklist-interactive flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
                                 aria-label="{{ __('Previous month') }}">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
@@ -1331,7 +1434,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                             </p>
                         </div>
                         <button type="button" wire:click="nextCalendarMonth"
-                                class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                class="checklist-interactive flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
                                 aria-label="{{ __('Next month') }}">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -1363,7 +1466,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                             <button type="button"
                                     wire:click="selectCalendarDate('{{ $cellDate }}')"
                                     @disabled($isFuture)
-                                    class="relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
+                                    class="{{ $isFuture ? '' : 'checklist-interactive' }} relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
                                         {{ $isSelected ? 'text-white shadow-md' : '' }}
                                         {{ $isToday && ! $isSelected ? 'ring-2 ring-offset-1' : '' }}
                                         {{ ! $isSelected && ! $isFuture && $isCurrentMonth ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
@@ -1413,7 +1516,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     <div class="flex items-center justify-between px-5 py-4" style="background: linear-gradient(135deg, #1e3a5f 0%, #097b86 100%);">
                         <button type="button"
                                 wire:click="{{ $periodType === 'weekly' ? 'previousWeeklyPeriod' : 'previousMonthlyPeriod' }}"
-                                class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                class="checklist-interactive flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
                                 aria-label="{{ __('Previous period') }}">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
@@ -1431,7 +1534,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                         </div>
                         <button type="button"
                                 wire:click="{{ $periodType === 'weekly' ? 'nextWeeklyPeriod' : 'nextMonthlyPeriod' }}"
-                                class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                                class="checklist-interactive flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
                                 aria-label="{{ __('Next period') }}">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -1449,7 +1552,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                 data-date-label="{{ \Carbon\Carbon::parse($activeDate)->format('M d, Y') }}"
                                 data-location="{{ $selectedLocation }}"
                                 data-captured-by="{{ auth()->user()?->name ?? '' }}"
-                                class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                                class="checklist-interactive inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
                                 aria-label="{{ __('Open camera') }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4z" />
@@ -1578,7 +1681,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                     data-date-label="{{ \Carbon\Carbon::parse($selectedDate)->format('M d, Y') }}"
                                     data-location="{{ $selectedLocation }}"
                                     data-captured-by="{{ auth()->user()?->name ?? '' }}"
-                                    class="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-white px-3 py-2 text-sm font-medium text-indigo-700 shadow-sm hover:bg-indigo-50 dark:border-indigo-700 dark:bg-zinc-900 dark:text-indigo-300 dark:hover:bg-indigo-900/30"
+                                    class="checklist-interactive inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-white px-3 py-2 text-sm font-medium text-indigo-700 shadow-sm hover:bg-indigo-50 dark:border-indigo-700 dark:bg-zinc-900 dark:text-indigo-300 dark:hover:bg-indigo-900/30"
                                     aria-label="{{ __('Open camera') }}"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1675,7 +1778,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                     data-date-label="{{ \Carbon\Carbon::parse($selectedDate)->format('M d, Y') }}"
                                     data-location="{{ $selectedLocation }}"
                                     data-captured-by="{{ auth()->user()?->name ?? '' }}"
-                                    class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                    class="checklist-interactive inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
                                     aria-label="{{ __('Open camera') }}"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1786,7 +1889,16 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
             @endif
 
             @if ($showProofPreviewModal)
-                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+                {{--
+                    proofPreviewUrl is NO LONGER stored in the Livewire snapshot.
+                    It is delivered via the 'proof-preview-url' JS event dispatched
+                    from openProofPreview() and stored only in Alpine component state.
+                --}}
+                <div
+                    x-data="{ url: null }"
+                    x-on:proof-preview-url.window="url = $event.detail.url"
+                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+                >
                     <div class="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-zinc-900">
                         <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
                             <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -1814,15 +1926,14 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                         <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">{{ $proofPreviewSkipReason }}</p>
                                     </div>
                                 </div>
-                            @elseif ($proofPreviewUrl)
-                                <div class="mx-auto w-full max-w-sm">
-                                    <div class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                                        <img src="{{ $proofPreviewUrl }}" alt="{{ __('Proof image') }}" class="h-full w-full object-contain">
-                                    </div>
-                                </div>
                             @else
-                                <div class="rounded-md border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
-                                    {{ __('No proof image available for this item.') }}
+                                <div class="mx-auto w-full max-w-sm">
+                                    <div x-show="url" class="aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                        <img :src="url" alt="{{ __('Proof image') }}" class="h-full w-full object-contain">
+                                    </div>
+                                    <div x-show="!url" class="rounded-md border border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-300">
+                                        {{ __('No proof image available for this item.') }}
+                                    </div>
                                 </div>
                             @endif
                         </div>
@@ -1839,7 +1950,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
         ? 'w1'
         : ($periodType === 'monthly' ? 'm1' : 'selected');
 @endphp
-<x-checklist-proof-camera-modal 
+<x-checklist-proof-camera-modal
     :area-parts="$areaParts"
     :selected-slots="$selectedSlots"
     :selected-location="$selectedLocation"
@@ -1847,4 +1958,55 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
     :period-type="$periodType"
     :active-period-key="$activePeriodKey"
 />
+
+@once
+<script>
+(function () {
+    const STORE_KEY = 'nlah_checklist_last_location';
+    const userId    = {{ auth()->id() ?? 'null' }};
+    const storageKey = STORE_KEY + (userId ? '_' + userId : '');
+
+    // ── Save current location whenever Livewire updates the page ────────────
+    // We read the location ID and name from the server-rendered data attributes
+    // so we don't need to know Livewire internals.
+    function saveIfSelected() {
+        const locId   = {{ $selectedLocationId ?? 'null' }};
+        const locName = @js($selectedLocation);
+        const period  = @js($periodType);
+        if (locId) {
+            try {
+                localStorage.setItem(storageKey, JSON.stringify({
+                    id: locId, name: locName, period: period
+                }));
+            } catch {}
+        }
+    }
+
+    // Run on initial render
+    saveIfSelected();
+
+    // Re-run after every Livewire update (location may have changed)
+    document.addEventListener('livewire:update', saveIfSelected);
+
+    // ── On page load: if no location is pre-selected, redirect to last one ──
+    // This only runs when arriving at the bare checklist URL with no location.
+    const currentLocId = {{ $selectedLocationId ?? 'null' }};
+    if (!currentLocId) {
+        try {
+            const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+            if (saved && saved.id && saved.name) {
+                // Build the URL with saved location pre-selected and navigate
+                const url = new URL(window.location.href);
+                url.searchParams.set('location', saved.id);
+                url.searchParams.set('location_name', saved.name);
+                url.searchParams.set('prefill_location', '1');
+                if (saved.period) url.searchParams.set('period', saved.period);
+                // Replace current history entry so Back button still works
+                window.location.replace(url.toString());
+            }
+        } catch {}
+    }
+})();
+</script>
+@endonce
 </div>

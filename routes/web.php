@@ -1,10 +1,15 @@
 <?php
 
+use App\Http\Controllers\ChecklistSyncController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LeaveResponseController;
 use App\Http\Controllers\NewsEventController;
 use App\Livewire\AccessKeyManagement;
 use App\Livewire\AttendanceManagement;
+use App\Livewire\HolidayManagement;
+use App\Livewire\LeaveTypeManagement;
+use App\Livewire\OvertimeManagement;
+use App\Livewire\PayoffManagement;
 use App\Livewire\Dashboard;
 use App\Livewire\DepartmentManagement;
 use App\Livewire\DHead;
@@ -111,10 +116,15 @@ Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/departments', DepartmentManagement::class)->name('HR.departments');
     Route::get('/HR/positions', PositionManagement::class)->name('HR.positions');
     Route::get('/HR/access-keys', AccessKeyManagement::class)->name('HR.access-keys');
+    Route::get('/HR/holidays', HolidayManagement::class)->name('HR.holidays');
+    Route::get('/HR/leave-types', LeaveTypeManagement::class)->name('HR.leave-types');
+    Route::get('/HR/overtime', OvertimeManagement::class)->name('HR.overtime');
+    Route::get('/HR/payoff', PayoffManagement::class)->name('HR.payoff');
 });
 
 // Maintenance routes
 Route::middleware(['auth', 'can:access-maintenance'])->group(function () {
+    Route::post('/api/maintenance/checklist/sync', [ChecklistSyncController::class, 'sync'])->name('maintenance.checklist.sync');
     Route::get('/Maintenance/dashboard', MaintenanceDashboard::class)->name('Maintenance.dashboard');
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');
@@ -178,5 +188,71 @@ Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->
 Route::get('/waiting', fn () => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
 
 Route::get('/Assetsmanagement/assets', Assets::class)->name('Assetsmanagement.assets');
+
+Route::post('/nlah/chat', function (Request $request) {
+    $request->validate([
+        'messages' => 'required|array|max:50',
+        'messages.*.role' => 'required|in:user,assistant',
+        'messages.*.content' => 'required|string|max:2000',
+    ]);
+
+    $systemPrompt = "You are a friendly virtual assistant for Northern Luzon Adventist Hospital (NLAH). 
+Keep responses brief, warm, and helpful. You can help with:
+- Hospital services and departments
+- Appointment booking guidance
+- Emergency contacts
+- Hospital hours and location
+- General health inquiries
+Always recommend consulting a doctor for medical advice.";
+
+    $messages = array_merge(
+        [['role' => 'system', 'content' => $systemPrompt]],
+        $request->input('messages')
+    );
+
+    $response = Http::withHeaders([
+        'Authorization' => 'Bearer ' . config('services.openrouter.key'),
+        'HTTP-Referer'  => config('app.url'),
+        'X-Title'       => config('app.name'),
+        'Content-Type'  => 'application/json',
+    ])->post('https://openrouter.ai/api/v1/chat/completions', [
+        'model'    => 'google/gemini-2.0-flash-exp:free', // free model, change if needed
+        'messages' => $messages,
+        'max_tokens' => 500,
+    ]);
+
+    if ($response->failed()) {
+        return response()->json([
+            'error' => 'AI service unavailable. Please try again.'
+        ], 502);
+    }
+
+    $data = $response->json();
+
+    return response()->json([
+        'reply' => $data['choices'][0]['message']['content'] ?? 'Sorry, I could not generate a response.'
+    ]);
+})->middleware('throttle:30,1'); // 30 requests per minute per user
+
+
+Route::post('/nlah/feedback/submit', function (Request $request) {
+    $request->validate([
+        'name'    => 'nullable|string|max:100',
+        'comment' => 'required|string|max:2000',
+        'rating'  => 'required|integer|min:1|max:5',
+    ]);
+
+    // Save to DB — make sure you have a feedbacks table
+    // Run: php artisan make:model Feedback -m
+    // Migration columns: name, comment, rating (tinyint), ip_address
+    \App\Models\Feedback::create([
+        'name'       => $request->input('name', 'Guest'),
+        'comment'    => $request->input('comment'),
+        'rating'     => $request->input('rating'),
+        'ip_address' => $request->ip(),
+    ]);
+
+    return response()->json(['success' => true]);
+});
 
 require __DIR__.'/settings.php';

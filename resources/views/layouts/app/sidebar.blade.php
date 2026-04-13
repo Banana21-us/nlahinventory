@@ -10,8 +10,6 @@
             collapsible
             class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
 
-            
-
             {{-- 2. MAINTENANCE --}}
             @can('access-maintenance')
             <flux:sidebar.item
@@ -136,6 +134,38 @@
                     {{ __('Attendance') }}
                 </flux:sidebar.item>
 
+                <!-- Holidays -->
+                <flux:sidebar.item
+                    :href="route('HR.holidays')"
+                    :current="request()->routeIs('HR.holidays')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Holidays') }}
+                </flux:sidebar.item>
+
+                <!-- Leave Types -->
+                <flux:sidebar.item
+                    :href="route('HR.leave-types')"
+                    :current="request()->routeIs('HR.leave-types')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Leave Types') }}
+                </flux:sidebar.item>
+
+                <!-- Overtime Applications -->
+                <flux:sidebar.item
+                    :href="route('HR.overtime')"
+                    :current="request()->routeIs('HR.overtime')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Overtime') }}
+                </flux:sidebar.item>
+
+                <!-- Pay-off Applications -->
+                <flux:sidebar.item
+                    :href="route('HR.payoff')"
+                    :current="request()->routeIs('HR.payoff')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Pay-off') }}
+                </flux:sidebar.item>
+
                 {{-- Leave form --}}
                 
             </flux:sidebar.group>
@@ -151,7 +181,7 @@
 
             {{-- 4. PAYROLL | LABOR COMPLIANCE --}}
             @can('access-payroll')
-            <flux:sidebar.item
+            <!-- <flux:sidebar.item
                     icon="calendar"
                     :href="route('users.leaveform')"
                     :current="request()->routeIs('users.leaveform')"
@@ -165,7 +195,7 @@
                     :current="request()->routeIs('users.dhead-leaveform')"
                     wire:navigate="wire:navigate">
                     {{ __('Department Head Form') }}
-            </flux:sidebar.item>
+            </flux:sidebar.item> -->
             
             
             <flux:sidebar.group

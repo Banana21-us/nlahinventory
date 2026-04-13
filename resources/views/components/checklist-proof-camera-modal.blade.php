@@ -22,20 +22,35 @@
         ];
     @endphp
 
-    <div id="proofCaptureModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-3" wire:ignore.self>
-        <div class="w-full max-w-sm bg-white shadow-2xl dark:bg-zinc-900 rounded-xl">
-            <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
-                <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Capture Proof Photo') }}</h3>
+    {{-- Eliminate 300 ms tap delay on all buttons inside this modal --}}
+    @once
+    <style>
+        #proofCaptureModal button,
+        #proofCaptureModal [role="button"] {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+    @endonce
+
+    <div id="proofCaptureModal" class="fixed inset-0 z-50 hidden bg-black/70 p-2 overflow-y-auto" wire:ignore.self>
+        <div class="w-full max-w-sm mx-auto bg-white shadow-2xl dark:bg-zinc-900 rounded-xl overflow-hidden">
+            <div class="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Capture Proof Photo') }}</h3>
                 <div class="flex items-center gap-2">
                     <span id="proofSavingBadge" class="hidden items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
                         <span class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500"></span>
                         <span id="proofSavingBadgeText">Saving…</span>
                     </span>
                     <span id="proofAreaCounter" class="text-xs text-zinc-500 dark:text-zinc-400"></span>
+                    <span id="proofOfflineBadge" class="hidden items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
+                        <span class="inline-block h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+                        <span id="proofOfflineBadgeText">Offline</span>
+                    </span>
                 </div>
             </div>
-            <div class="p-4">
-                <div class="flex flex-col gap-3">
+            <div class="p-3 max-h-[calc(100vh-20px)] sm:max-h-[calc(100vh-24px)] overflow-y-auto">
+                <div class="flex flex-col gap-2">
 
                     {{-- Top bar: Area label + AM/PM toggle --}}
                     <div class="flex items-center justify-between gap-2">
@@ -49,7 +64,7 @@
                     </div>
 
                     {{-- Step indicator — 5 per row --}}
-                    <div id="proofStepIndicator" class="flex flex-wrap gap-2 justify-start">
+                    <div id="proofStepIndicator" class="flex gap-2 overflow-x-auto pb-1 justify-start">
                         @forelse ($areaParts as $index => $part)
                             @php
                                 $amChecked = false;
@@ -69,7 +84,7 @@
                                 }
                             @endphp
                             <div
-                                class="js-proof-area-item flex flex-col items-center gap-1"
+                                class="js-proof-area-item flex flex-col items-center gap-1 min-h-[3rem]"
                                 style="width: calc(20% - 0.4rem)"
                                 data-part-id="{{ $part['id'] }}"
                                 data-day-key="{{ $dayKey }}"
@@ -85,7 +100,7 @@
                                 <div data-area-status class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-zinc-300 bg-zinc-100 text-xs font-bold text-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 transition-all">
                                     {{ $index + 1 }}
                                 </div>
-                                <span class="text-[9px] text-center text-zinc-500 dark:text-zinc-400 leading-tight line-clamp-2 w-full">{{ $part['display_name'] }}</span>
+                                <span class="text-[9px] text-center text-zinc-500 dark:text-zinc-400 leading-tight w-full min-h-[1.8em]">{{ $part['display_name'] }}</span>
                             </div>
                         @empty
                             <p class="text-xs text-zinc-400 py-2">{{ __('No area parts available') }}</p>
@@ -93,7 +108,7 @@
                     </div>
 
                     {{-- Camera --}}
-                    <div class="w-full space-y-3">
+                    <div class="w-full space-y-2">
                         <div class="relative aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
                             <video id="proofVideo" class="h-full w-full rounded-lg bg-black object-cover" autoplay playsinline muted></video>
                             <img id="proofPreview" class="hidden h-full w-full rounded-lg bg-black object-cover" alt="{{ __('Proof preview') }}">
@@ -113,7 +128,7 @@
 
                             {{-- Shutter --}}
                             <button type="button" id="proofCaptureOverlayBtn"
-                                class="inline-flex aspect-square items-center justify-center rounded-full border-2 border-zinc-300 bg-zinc-500 p-0 leading-none text-white shadow-[0_6px_14px_rgba(0,0,0,0.35)] transition hover:scale-105 hover:bg-zinc-400"
+                                class="inline-flex aspect-[4/3] items-center justify-center rounded-full border-2 border-zinc-300 bg-zinc-500 p-0 leading-none text-white shadow-[0_6px_14px_rgba(0,0,0,0.35)] transition hover:scale-105 hover:bg-zinc-400"
                                 style="width:56px;height:56px;min-width:56px;min-height:56px;max-width:56px;max-height:56px;border-radius:9999px;"
                                 aria-label="{{ __('Capture photo') }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
@@ -168,6 +183,131 @@
         captureOverlayBtn, discardBtn, confirmBtn, cancelBtn,
         areaNameDisplay, areaCounter;
 
+    // ─── IndexedDB offline queue ──────────────────────────────────────────────
+    const IDB_NAME  = 'nlah-checklist';
+    const IDB_STORE = 'pending';
+
+    const openChecklistDB = () => new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = (e) => e.target.result.createObjectStore(IDB_STORE, { keyPath: 'id', autoIncrement: true });
+        req.onsuccess       = (e) => resolve(e.target.result);
+        req.onerror         = (e) => reject(e.target.error);
+    });
+
+    const idbSavePending = async (task) => {
+        try {
+            const db = await openChecklistDB();
+            const tx = db.transaction(IDB_STORE, 'readwrite');
+            tx.objectStore(IDB_STORE).add({ ...task, savedAt: Date.now() });
+            await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+            db.close();
+        } catch (e) { console.error('IDB save failed:', e); }
+    };
+
+    const idbGetAll = async () => {
+        try {
+            const db = await openChecklistDB();
+            const tx = db.transaction(IDB_STORE, 'readonly');
+            const results = await new Promise((res, rej) => {
+                const r = tx.objectStore(IDB_STORE).getAll();
+                r.onsuccess = () => res(r.result);
+                r.onerror   = () => rej(r.error);
+            });
+            db.close();
+            return results;
+        } catch (e) { return []; }
+    };
+
+    const idbDelete = async (id) => {
+        try {
+            const db = await openChecklistDB();
+            const tx = db.transaction(IDB_STORE, 'readwrite');
+            tx.objectStore(IDB_STORE).delete(id);
+            await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+            db.close();
+        } catch (e) {}
+    };
+
+    let offlinePendingCount = 0;
+
+    const updateOfflineBadge = () => {
+        const badge = document.getElementById('proofOfflineBadge');
+        const text  = document.getElementById('proofOfflineBadgeText');
+        if (!badge) return;
+        if (offlinePendingCount > 0) {
+            if (text) text.textContent = offlinePendingCount > 1 ? `${offlinePendingCount} offline` : 'Offline';
+            badge.classList.remove('hidden');
+            badge.classList.add('inline-flex');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('inline-flex');
+        }
+    };
+
+    // Parse "Apr 10, 2026 | 10:30" → "2026-04-10" using local date parts to avoid UTC offset bug
+    const parseDateLabel = (label) => {
+        if (!label) return null;
+        try {
+            const d = new Date(label.split(' | ')[0].trim());
+            if (isNaN(d)) return null;
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        } catch (e) { return null; }
+    };
+
+    let isFlushing = false;
+
+    const flushFromIDB = async () => {
+        if (isFlushing) return;
+        isFlushing = true;
+        try {
+            const pending = await idbGetAll();
+            if (!pending.length) { isFlushing = false; return; }
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+            let synced = 0;
+            for (const task of pending) {
+                if (!navigator.onLine) break;
+                try {
+                    const res = await fetch('/api/maintenance/checklist/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                        body: JSON.stringify({ records: [task] }),
+                    });
+                    if (res.ok) {
+                        await idbDelete(task.id);
+                        offlinePendingCount = Math.max(0, offlinePendingCount - 1);
+                        updateOfflineBadge();
+                        synced++;
+                    }
+                } catch (e) {
+                    // Network error on this record — skip it and try the next one
+                    continue;
+                }
+            }
+            if (synced > 0) {
+                const component = getChecklistComponent();
+                if (component) { try { component.call('$refresh'); } catch (e) {} }
+            }
+        } finally {
+            isFlushing = false;
+        }
+    };
+
+    window.addEventListener('online', () => setTimeout(flushFromIDB, 1500)); // brief delay so connection stabilises
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && offlinePendingCount > 0) flushFromIDB(); });
+
+    // Periodic retry every 20 s — catches cases where online event misfires
+    setInterval(() => { if (offlinePendingCount > 0 && navigator.onLine) flushFromIDB(); }, 20000);
+
+    // Check for leftover offline records on page load
+    idbGetAll().then((rows) => {
+        offlinePendingCount = rows.length;
+        updateOfflineBadge();
+        if (rows.length > 0 && navigator.onLine) flushFromIDB();
+    });
+
     // ─── Background save queue ────────────────────────────────────────────────
     let uploadQueue     = [];
     let isSavingQueue   = false;
@@ -192,6 +332,17 @@
         isSavingQueue = true;
         while (uploadQueue.length > 0) {
             const task = uploadQueue.shift();
+
+            if (!navigator.onLine) {
+                // Dead spot — store locally, UI already shows the check optimistically
+                await idbSavePending(task);
+                offlinePendingCount++;
+                pendingSaveCount = Math.max(0, pendingSaveCount - 1);
+                updatePendingIndicator();
+                updateOfflineBadge();
+                continue;
+            }
+
             try {
                 const component = getChecklistComponent();
                 if (component) {
@@ -202,7 +353,13 @@
                     }
                 }
             } catch (e) {
-                console.error('Background proof save failed:', e);
+                if (!navigator.onLine) {
+                    await idbSavePending(task);
+                    offlinePendingCount++;
+                    updateOfflineBadge();
+                } else {
+                    console.error('Background proof save failed:', e);
+                }
             }
             pendingSaveCount = Math.max(0, pendingSaveCount - 1);
             updatePendingIndicator();
@@ -563,11 +720,13 @@
 
         // ── 2. Queue the actual save — runs silently in background ────────────
         enqueueSave({
-            partId:    Number(item.dataset.partId),
-            dayKey:    String(item.dataset.dayKey),
+            partId:       Number(item.dataset.partId),
+            dayKey:       String(item.dataset.dayKey),
             shift,
             imageData,
             comment,
+            periodType:   String(item.dataset.frequency  ?? 'daily'),
+            selectedDate: parseDateLabel(item.dataset.dateLabel) ?? new Date().toISOString().split('T')[0],
         });
 
         // ── 3. Flash preview briefly then advance to next area immediately ────
@@ -696,6 +855,8 @@
         const item = areaQueue[currentIndex];
         const freq  = item.dataset.frequency;
         const shift = freq === 'daily' ? activeShift : (freq === 'nightly' ? 'PM' : 'AM');
+        
+        // Mark as captured FIRST so refreshAreaListUI shows checkmark NOW
         capturedMap[item.dataset.partId] = true;
         if (freq === 'daily') {
             if (activeShift === 'PM') item.dataset.hasPm = '1';
@@ -703,38 +864,99 @@
         } else {
             item.dataset.hasAm = '1';
         }
-        if (commentInput) commentInput.value = '';
-        enqueueSave({ partId: Number(item.dataset.partId), dayKey: String(item.dataset.dayKey), shift, imageData: null, comment: null, skipReason });
-        goToIndex(currentIndex + 1);
+        
+        // Immediately update UI to show checkmark before any delay
         refreshAreaListUI();
+        
+        // Show visual feedback (colored placeholder)
+        if (preview && canvas) {
+            const ctx = canvas.getContext('2d');
+            canvas.width = 720; canvas.height = 720;
+            ctx.fillStyle = skipReason === 'patient_present' ? '#f59e0b' : '#10b981';
+            ctx.fillRect(0, 0, 720, 720);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const label = skipReason === 'patient_present' ? '⛔ Patient' : '🧤 Gloves';
+            ctx.fillText(label, 360, 360);
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+            preview.src = imageData;
+            preview.classList.remove('hidden');
+            if (!usingFallback) video.classList.add('hidden');
+            const ph = document.getElementById('proofFallbackPlaceholder');
+            if (ph) ph.classList.add('hidden');
+        }
+        
+        if (commentInput) commentInput.value = '';
+        enqueueSave({ partId: Number(item.dataset.partId), dayKey: String(item.dataset.dayKey), shift, imageData: null, comment: null, skipReason, periodType: String(item.dataset.frequency ?? 'daily'), selectedDate: parseDateLabel(item.dataset.dateLabel) ?? new Date().toISOString().split('T')[0] });
+        
+        // Check if this is the last item - advance and show done state
+        const nextIdx = currentIndex + 1;
+        if (nextIdx >= areaQueue.length) {
+            // All done - show checkmark briefly then close
+            setTimeout(async () => {
+                preview.classList.add('hidden');
+                if (!usingFallback) await startCamera();
+                if (areaNameDisplay) areaNameDisplay.textContent = '✓ All areas captured!';
+                if (areaCounter) areaCounter.textContent = `${areaQueue.length}/${areaQueue.length}`;
+                captureOverlayBtn.classList.add('opacity-40', 'pointer-events-none');
+                if (cancelBtn) {
+                    cancelBtn.textContent = 'Done';
+                    cancelBtn.classList.remove('border-zinc-300','text-zinc-700','hover:bg-zinc-100','dark:border-zinc-700','dark:text-zinc-200','dark:hover:bg-zinc-800');
+                    cancelBtn.classList.add('bg-emerald-600','text-white','hover:bg-emerald-700','border-emerald-600');
+                }
+            }, 300);
+        } else {
+            // Not last - advance to next
+            setTimeout(async () => {
+                preview.classList.add('hidden');
+                if (!usingFallback) await startCamera();
+                goToIndex(nextIdx);
+            }, 300);
+        }
     };
 
-    // ─── Event bindings ───────────────────────────────────────────────────────
+    // ─── Element-scoped bindings (safe to re-bind — these elements are replaced on navigate) ──
     document.getElementById('proofCaptureOverlayBtn').addEventListener('click', handleCapture);
     document.getElementById('proofCancelBtn').addEventListener('click', closeModal);
     document.getElementById('proofSkipPatientBtn').addEventListener('click', () => handleSkip('patient_present'));
     document.getElementById('proofSkipGlovesBtn').addEventListener('click', () => handleSkip('gloves'));
 
-    document.addEventListener('click', (e) => {
-        const shiftBtn     = e.target.closest('.js-shift-toggle');
-        const dailyOpenBtn = e.target.closest('#openDailyCameraBtn');
-        if (shiftBtn)      setActiveShift(shiftBtn.getAttribute('data-shift'));
-        if (dailyOpenBtn) {
-            const payload = {
-                frequency:   dailyOpenBtn.dataset.frequency  || DEFAULT_PROOF_PAYLOAD.frequency,
-                dayKey:      dailyOpenBtn.dataset.dayKey     || DEFAULT_PROOF_PAYLOAD.dayKey,
-                dateLabel:   dailyOpenBtn.dataset.dateLabel  || DEFAULT_PROOF_PAYLOAD.dateLabel,
-                location:    dailyOpenBtn.dataset.location   || DEFAULT_PROOF_PAYLOAD.location,
-                capturedBy:  dailyOpenBtn.dataset.capturedBy || DEFAULT_PROOF_PAYLOAD.capturedBy,
-            };
-            openModal(payload);
-        }
-    });
+    // ─── Global listeners — guard against duplicate registration across wire:navigate ──────────
+    // Each wire:navigate to this page re-executes this script. Without a guard, global
+    // document/window listeners accumulate and create thousands of closures in memory.
+    if (!window.__proofCameraModalBound) {
+        window.__proofCameraModalBound = true;
 
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('open-proof-camera', (event) => openModal(event));
-    });
-    window.addEventListener('open-proof-camera', (e) => openModal(e?.detail ?? e));
+        document.addEventListener('click', (e) => {
+            const shiftBtn     = e.target.closest('.js-shift-toggle');
+            const dailyOpenBtn = e.target.closest('#openDailyCameraBtn');
+            if (shiftBtn)      setActiveShift(shiftBtn.getAttribute('data-shift'));
+            if (dailyOpenBtn) {
+                const payload = {
+                    frequency:   dailyOpenBtn.dataset.frequency  || DEFAULT_PROOF_PAYLOAD.frequency,
+                    dayKey:      dailyOpenBtn.dataset.dayKey     || DEFAULT_PROOF_PAYLOAD.dayKey,
+                    dateLabel:   dailyOpenBtn.dataset.dateLabel  || DEFAULT_PROOF_PAYLOAD.dateLabel,
+                    location:    dailyOpenBtn.dataset.location   || DEFAULT_PROOF_PAYLOAD.location,
+                    capturedBy:  dailyOpenBtn.dataset.capturedBy || DEFAULT_PROOF_PAYLOAD.capturedBy,
+                };
+                openModal(payload);
+            }
+        });
+
+        window.addEventListener('open-proof-camera', (e) => openModal(e?.detail ?? e));
+
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('open-proof-camera', (event) => openModal(event));
+        });
+
+        // Reset flag when user navigates away so the handlers re-attach to the
+        // refreshed DOM element references (openModal/handleCapture etc.) on return.
+        document.addEventListener('livewire:navigating', () => {
+            window.__proofCameraModalBound = false;
+        });
+    }
 })();
 </script>
 @endonce

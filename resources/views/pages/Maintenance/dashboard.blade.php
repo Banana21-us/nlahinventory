@@ -32,7 +32,7 @@
 
     {{-- ═══════ PERIOD CARDS ═══════ --}}
     <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Team Progress — tap a card to see details</p>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
         @php
         $periods = [
@@ -173,23 +173,33 @@
     </div>
 
     {{-- ═══════ DETAIL MODAL ═══════ --}}
-    @if($showModal)
-    <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-         x-data x-init="document.body.style.overflow='hidden'"
-         x-effect="if(!$wire.showModal) document.body.style.overflow=''">
-
+    <div
+        x-data="{ open: @entangle('showModal') }"
+        x-show="open"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @keydown.escape.window="open && $wire.closeModal()"
+        x-effect="document.body.style.overflow = open ? 'hidden' : ''"
+        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        style="display:none"
+    >
         {{-- Backdrop --}}
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"
              wire:click="closeModal"></div>
 
-        {{-- Panel --}}
-        <div class="relative bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        {{-- Panel — explicit height so inner scroll works everywhere --}}
+        <div class="relative bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col"
+             style="height: 85vh; max-height: 85vh;">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+            <div class="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-gray-100 flex-shrink-0">
                 <div>
                     <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Checklist Details</p>
-                    <h2 class="text-lg font-bold text-gray-900 capitalize">{{ $modalPeriod }} Tasks</h2>
+                    <h2 class="text-base sm:text-lg font-bold text-gray-900 capitalize">{{ $modalPeriod }} Tasks</h2>
                 </div>
                 <button type="button" wire:click="closeModal"
                         class="p-2 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-gray-600">
@@ -200,15 +210,15 @@
             </div>
 
             {{-- Legend --}}
-            <div class="px-5 py-2 border-b border-gray-50 flex items-center gap-4 text-[11px] text-gray-500 shrink-0">
-                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full m-bg-green inline-block"></span>Verified OK</span>
-                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full m-bg-amber inline-block"></span>Done, awaiting</span>
-                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full m-bg-red inline-block"></span>Flagged / Not done</span>
+            <div class="px-4 sm:px-5 py-2 border-b border-gray-50 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500 flex-shrink-0">
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full m-bg-green inline-block"></span>Verified</span>
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full m-bg-amber inline-block"></span>Awaiting</span>
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full m-bg-red inline-block"></span>Flagged</span>
                 <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>Not yet</span>
             </div>
 
-            {{-- Body --}}
-            <div class="overflow-y-auto flex-1">
+            {{-- Body — explicit overflow scroll with iOS touch support --}}
+            <div style="overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1 1 0; min-height: 0;">
                 @forelse($modalRows ?? [] as $row)
                 @php
                     $done = ! is_null($row->maintenance_name);
@@ -217,49 +227,44 @@
                         : ($row->verifier_status === 'YES' ? 'm-bg-green'
                             : ($row->verifier_status === 'NO' ? 'm-bg-red' : 'm-bg-amber'));
                 @endphp
-                <div class="px-5 py-4 border-b border-gray-50 flex items-start gap-3 last:border-0">
-                    <span class="w-2.5 h-2.5 rounded-full {{ $dot }} mt-1.5 shrink-0 block"></span>
-
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900">{{ $row->part_name }}</p>
-                        <p class="text-xs text-gray-400">{{ $row->location_name }}
-                            @if($row->location_floor) · {{ $row->location_floor }} @endif
-                        </p>
-                    </div>
-
-                    <div class="text-right shrink-0 space-y-1">
-                        @if($done)
-                            <p class="text-sm font-bold text-[#1e3a5f]">{{ $row->maintenance_name }}</p>
-                            <div class="flex items-center gap-1 justify-end">
-                                @if($row->shift)
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded font-bold"
-                                          style="{{ $row->shift === 'AM' ? 'background:#fef3c7;color:#92400e;' : 'background:#e0e7ff;color:#3730a3;' }}">
-                                        {{ $row->shift }}
-                                    </span>
-                                @endif
-                                @if($row->verifier_status === 'YES')
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-bold">Verified</span>
-                                @elseif($row->verifier_status === 'NO')
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold">Flagged</span>
-                                @else
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold">Pending</span>
-                                @endif
-                            </div>
-                        @else
-                            <span class="text-xs text-gray-400 italic">Not cleaned yet</span>
-                        @endif
+                <div class="px-4 sm:px-5 py-3 border-b border-gray-50 last:border-0">
+                    <div class="flex items-start gap-3">
+                        <span class="w-2.5 h-2.5 rounded-full {{ $dot }} mt-1.5 shrink-0 block"></span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 leading-tight">{{ $row->part_name }}</p>
+                            <p class="text-xs text-gray-400 mt-0.5">{{ $row->location_name }}@if($row->location_floor) · {{ $row->location_floor }}@endif</p>
+                            @if($done)
+                                <div class="flex flex-wrap items-center gap-1 mt-1.5">
+                                    <span class="text-xs font-semibold text-[#1e3a5f]">{{ $row->maintenance_name }}</span>
+                                    @if($row->shift)
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                                              style="{{ $row->shift === 'AM' ? 'background:#fef3c7;color:#92400e;' : 'background:#e0e7ff;color:#3730a3;' }}">
+                                            {{ $row->shift }}
+                                        </span>
+                                    @endif
+                                    @if($row->verifier_status === 'YES')
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-bold">Verified</span>
+                                    @elseif($row->verifier_status === 'NO')
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold">Flagged</span>
+                                    @else
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold">Pending</span>
+                                    @endif
+                                </div>
+                            @else
+                                <span class="text-xs text-gray-400 italic mt-1 block">Not cleaned yet</span>
+                            @endif
+                        </div>
                     </div>
                 </div>
                 @empty
                     <div class="px-5 py-12 text-center text-gray-400">
                         <p class="text-sm font-medium">No tasks found for this period.</p>
-                        <p class="text-xs mt-1">Add entries to location_area_parts with frequency="{{ $modalPeriod }}".</p>
                     </div>
                 @endforelse
             </div>
 
             {{-- Footer --}}
-            <div class="px-5 py-3 border-t border-gray-100 shrink-0">
+            <div class="px-4 sm:px-5 py-3 border-t border-gray-100 shrink-0">
                 <button type="button" wire:click="closeModal"
                         class="w-full py-2.5 rounded-xl text-sm font-semibold text-white m-bg-primary hover:opacity-90 transition">
                     Close
@@ -267,6 +272,5 @@
             </div>
         </div>
     </div>
-    @endif
 
 </div>
