@@ -288,7 +288,9 @@
             }
             if (synced > 0) {
                 const component = getChecklistComponent();
-                if (component) { try { component.call('$refresh'); } catch (e) {} }
+                // reloadSlots() re-runs loadExistingSlots() so slotProofs is updated
+                // and the proof preview button appears for newly-synced photos.
+                if (component) { try { component.call('reloadSlots'); } catch (e) {} }
             }
         } finally {
             isFlushing = false;
@@ -353,13 +355,14 @@
                     }
                 }
             } catch (e) {
-                if (!navigator.onLine) {
-                    await idbSavePending(task);
-                    offlinePendingCount++;
-                    updateOfflineBadge();
-                } else {
-                    console.error('Background proof save failed:', e);
-                }
+                // Always fall back to IDB on any Livewire call failure.
+                // navigator.onLine can be true even when the network is unreachable
+                // (e.g., WiFi with no internet), so checking it here causes silent
+                // photo loss.  Saving to IDB is always safe — flushFromIDB will
+                // retry when connectivity is genuinely restored.
+                await idbSavePending(task);
+                offlinePendingCount++;
+                updateOfflineBadge();
             }
             pendingSaveCount = Math.max(0, pendingSaveCount - 1);
             updatePendingIndicator();
@@ -505,7 +508,11 @@
     };
 
     const getChecklistComponent = () => {
-        const root = modal?.closest('[wire\\:id]');
+        // Prefer the modal's own Livewire ancestor; fall back to any wire:id on
+        // the page so reloadSlots() works even if the modal was never opened
+        // (e.g., flush triggered by the 'online' event on page load).
+        const root = modal?.closest('[wire\\:id]')
+                  ?? document.querySelector('[wire\\:id]');
         return root ? window.Livewire?.find(root.getAttribute('wire:id')) : null;
     };
 

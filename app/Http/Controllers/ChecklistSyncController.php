@@ -77,7 +77,9 @@ class ChecklistSyncController extends Controller
                 'gloves'          => 'Skipped — Gloves On',
                 default           => 'Skipped',
             };
-            $proofPath = null;
+            // Store as "skip:<reason>" to match what confirmToggleWithSkip() writes,
+            // so loadExistingSlots() populates slotProofs and the preview button appears.
+            $proofPath = 'skip:' . $skipReason;
         } else {
             $proofPath = $this->storeProofImage($imageData, $partId, $cleaningDate, $normalizedShift);
             $remarks   = 'Checked';
