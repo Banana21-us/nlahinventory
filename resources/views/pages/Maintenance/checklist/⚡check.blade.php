@@ -1278,11 +1278,11 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 
                     <div
                         x-data="{
-                            page: 0,
+                            page: Math.min(window._locSliderPage ?? 0, Math.max(0, {{ count($locationChunks) }} - 1)),
                             total: {{ count($locationChunks) }},
                             touchStartX: 0,
-                            prev() { if (this.page > 0) this.page--; },
-                            next() { if (this.page < this.total - 1) this.page++; },
+                            prev() { if (this.page > 0) { this.page--; window._locSliderPage = this.page; } },
+                            next() { if (this.page < this.total - 1) { this.page++; window._locSliderPage = this.page; } },
                             onTouchStart(e) { this.touchStartX = e.changedTouches[0].screenX; },
                             onTouchEnd(e) {
                                 const dx = e.changedTouches[0].screenX - this.touchStartX;
