@@ -40,14 +40,14 @@ class OvertimeManagement extends Component
     protected function rules(): array
     {
         return [
-            'user_id'        => ['required', 'integer', 'exists:users,id'],
-            'type'           => ['required', 'in:overtime,on_call'],
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'type' => ['required', 'in:overtime,on_call'],
             'start_datetime' => ['required', 'date'],
-            'end_datetime'   => ['required', 'date', 'after:start_datetime'],
-            'reason'         => ['nullable', 'string', 'max:1000'],
-            'remarks'        => ['nullable', 'string', 'max:1000'],
-            'status'         => ['required', 'in:pending,approved,rejected'],
-            'approved_by'    => ['nullable', 'integer', 'exists:users,id'],
+            'end_datetime' => ['required', 'date', 'after:start_datetime'],
+            'reason' => ['nullable', 'string', 'max:1000'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
+            'status' => ['required', 'in:pending,approved,rejected'],
+            'approved_by' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 
@@ -56,14 +56,14 @@ class OvertimeManagement extends Component
         $this->validate();
 
         OvertimeApplication::create([
-            'user_id'        => $this->user_id,
-            'type'           => $this->type,
+            'user_id' => $this->user_id,
+            'type' => $this->type,
             'start_datetime' => $this->start_datetime,
-            'end_datetime'   => $this->end_datetime,
-            'reason'         => $this->reason,
-            'remarks'        => $this->remarks,
-            'status'         => $this->status,
-            'approved_by'    => $this->approved_by ?: null,
+            'end_datetime' => $this->end_datetime,
+            'reason' => $this->reason,
+            'remarks' => $this->remarks,
+            'status' => $this->status,
+            'approved_by' => $this->approved_by ?: null,
         ]);
 
         $this->resetForm();
@@ -74,16 +74,16 @@ class OvertimeManagement extends Component
     {
         $app = OvertimeApplication::findOrFail($id);
 
-        $this->selectedId      = $app->id;
-        $this->user_id         = $app->user_id;
-        $this->type            = $app->type;
-        $this->start_datetime  = $app->start_datetime->format('Y-m-d\TH:i');
-        $this->end_datetime    = $app->end_datetime->format('Y-m-d\TH:i');
-        $this->reason          = $app->reason;
-        $this->remarks         = $app->remarks;
-        $this->status          = $app->status;
-        $this->approved_by     = $app->approved_by;
-        $this->isEditing       = true;
+        $this->selectedId = $app->id;
+        $this->user_id = $app->user_id;
+        $this->type = $app->type;
+        $this->start_datetime = $app->start_datetime->format('Y-m-d\TH:i');
+        $this->end_datetime = $app->end_datetime->format('Y-m-d\TH:i');
+        $this->reason = $app->reason;
+        $this->remarks = $app->remarks;
+        $this->status = $app->status;
+        $this->approved_by = $app->approved_by;
+        $this->isEditing = true;
     }
 
     public function update(): void
@@ -91,14 +91,14 @@ class OvertimeManagement extends Component
         $this->validate();
 
         OvertimeApplication::findOrFail($this->selectedId)->update([
-            'user_id'        => $this->user_id,
-            'type'           => $this->type,
+            'user_id' => $this->user_id,
+            'type' => $this->type,
             'start_datetime' => $this->start_datetime,
-            'end_datetime'   => $this->end_datetime,
-            'reason'         => $this->reason,
-            'remarks'        => $this->remarks,
-            'status'         => $this->status,
-            'approved_by'    => $this->approved_by ?: null,
+            'end_datetime' => $this->end_datetime,
+            'reason' => $this->reason,
+            'remarks' => $this->remarks,
+            'status' => $this->status,
+            'approved_by' => $this->approved_by ?: null,
         ]);
 
         $this->resetForm();
@@ -108,7 +108,7 @@ class OvertimeManagement extends Component
     public function approve(int $id): void
     {
         OvertimeApplication::findOrFail($id)->update([
-            'status'      => 'approved',
+            'status' => 'approved',
             'approved_by' => Auth::id(),
         ]);
         session()->flash('message', 'Application approved.');
@@ -117,7 +117,7 @@ class OvertimeManagement extends Component
     public function reject(int $id): void
     {
         OvertimeApplication::findOrFail($id)->update([
-            'status'      => 'rejected',
+            'status' => 'rejected',
             'approved_by' => Auth::id(),
         ]);
         session()->flash('message', 'Application rejected.');
@@ -142,7 +142,7 @@ class OvertimeManagement extends Component
             'user_id', 'start_datetime', 'end_datetime', 'reason', 'remarks', 'approved_by',
             'selectedId', 'isEditing', 'showForm', 'confirmingDeletion',
         ]);
-        $this->type   = 'overtime';
+        $this->type = 'overtime';
         $this->status = 'pending';
     }
 

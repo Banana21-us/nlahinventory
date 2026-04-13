@@ -6,6 +6,7 @@ use App\Mail\LeaveCancellationResultMail;
 use App\Mail\LeaveHRResultMail;
 use App\Mail\LeaveStatusUpdateMail;
 use App\Models\Leave;
+use App\Models\LeaveType;
 use App\Models\PayrollAndLeave;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -136,8 +137,8 @@ class HrLeaveManagement extends Component
 
         DB::transaction(function () use ($leave) {
             $leave->update([
-                'hr_status'   => 'cancelled',
-                'remarks'     => $this->hrRemarks ?: 'Cancellation approved by HR.',
+                'hr_status' => 'cancelled',
+                'remarks' => $this->hrRemarks ?: 'Cancellation approved by HR.',
                 'approved_by' => Auth::id(),
             ]);
 
@@ -158,7 +159,7 @@ class HrLeaveManagement extends Component
         }
 
         // Resolves by code first, then falls back to legacy label strings
-        $lt  = \App\Models\LeaveType::resolve($leaveType);
+        $lt = LeaveType::resolve($leaveType);
         $key = $lt?->getPayrollKey();
 
         if (! $key) {

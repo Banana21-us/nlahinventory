@@ -25,11 +25,11 @@ class LeaveAccrualService
         $month = (int) $regularizationDate->month;
 
         return match (true) {
-            $month <= 3  => 5,
-            $month <= 5  => 4,
-            $month <= 8  => 3,
+            $month <= 3 => 5,
+            $month <= 5 => 4,
+            $month <= 8 => 3,
             $month <= 10 => 2,
-            default      => 1,
+            default => 1,
         };
     }
 
@@ -75,11 +75,11 @@ class LeaveAccrualService
 
             if (! $payroll) {
                 $payroll = PayrollAndLeave::create([
-                    'employee_id'              => $employeeId,
-                    'user_id'                  => $user->id,
+                    'employee_id' => $employeeId,
+                    'user_id' => $user->id,
                     'initial_transition_grant' => 0,
-                    'vl_total'                 => 0,
-                    'years_accrued_count'      => 0,
+                    'vl_total' => 0,
+                    'years_accrued_count' => 0,
                 ]);
             }
 
@@ -91,7 +91,7 @@ class LeaveAccrualService
 
         Log::info('LeaveAccrualService::onRegularization — grant applied', [
             'user_id' => $user->id,
-            'grant'   => $grant,
+            'grant' => $grant,
         ]);
     }
 
@@ -135,18 +135,18 @@ class LeaveAccrualService
 
             if ($count >= 15) {
                 // Year 15+: cap at 20/yr, reset consumed, record date
-                $payroll->vl_total       = 20;
-                $payroll->vl_consumed    = 0;
+                $payroll->vl_total = 20;
+                $payroll->vl_consumed = 0;
                 $payroll->vl_last_reset_at = now()->toDateString();
                 $action = 'capped at 20, consumed reset';
             } elseif ($count >= 6) {
                 // Years 7–15: +15/yr
-                $payroll->vl_total          += 15;
+                $payroll->vl_total += 15;
                 $payroll->years_accrued_count = $count + 1;
                 $action = '+15 VL';
             } else {
                 // Years 2–6: +10/yr
-                $payroll->vl_total          += 10;
+                $payroll->vl_total += 10;
                 $payroll->years_accrued_count = $count + 1;
                 $action = '+10 VL';
             }
@@ -155,8 +155,8 @@ class LeaveAccrualService
 
             Log::info('LeaveAccrualService::processAnniversary — processed', [
                 'user_id' => $user->id,
-                'name'    => $user->name,
-                'action'  => $action,
+                'name' => $user->name,
+                'action' => $action,
             ]);
         });
     }
@@ -183,10 +183,10 @@ class LeaveAccrualService
             return;
         }
 
-        DB::transaction(function () use ($user, $employeeId, $payroll) {
-            $payroll->sl_total    = 10;
+        DB::transaction(function () use ($employeeId, $payroll) {
+            $payroll->sl_total = 10;
             $payroll->sl_consumed = 0;
-            $payroll->bl_total    = 1;
+            $payroll->bl_total = 1;
             $payroll->bl_consumed = 0;
 
             $isSoloParent = $employeeId
@@ -194,7 +194,7 @@ class LeaveAccrualService
                 : false;
 
             if ($isSoloParent) {
-                $payroll->spl_total    = 7;
+                $payroll->spl_total = 7;
                 $payroll->spl_consumed = 0;
             }
 
@@ -203,7 +203,7 @@ class LeaveAccrualService
 
         Log::info('LeaveAccrualService::processAnnualReset — reset applied', [
             'user_id' => $user->id,
-            'name'    => $user->name,
+            'name' => $user->name,
         ]);
     }
 
@@ -211,9 +211,9 @@ class LeaveAccrualService
      * DOLE holiday pay multiplier.
      *
      * @param  string  $holidayType  'regular' | 'special_non_working' | 'special_working'
-     * @param  bool    $didWork      Whether the employee worked on the holiday
-     * @param  bool    $isOvertime   Whether it is an overtime/rest-day scenario
-     * @param  bool    $isRestDay    Whether the holiday falls on a rest day
+     * @param  bool  $didWork  Whether the employee worked on the holiday
+     * @param  bool  $isOvertime  Whether it is an overtime/rest-day scenario
+     * @param  bool  $isRestDay  Whether the holiday falls on a rest day
      */
     public function getHolidayMultiplier(
         string $holidayType,
@@ -222,15 +222,15 @@ class LeaveAccrualService
         bool $isRestDay = false
     ): float {
         return match (true) {
-            $holidayType === 'regular'              && $didWork  && ($isOvertime || $isRestDay) => 2.60,
-            $holidayType === 'regular'              && $didWork                                 => 2.00,
-            $holidayType === 'regular'              && ! $didWork                               => 1.00,
-            $holidayType === 'special_non_working'  && $didWork  && $isOvertime                 => 1.69,
-            $holidayType === 'special_non_working'  && $didWork                                 => 1.30,
-            $holidayType === 'special_non_working'  && ! $didWork                               => 0.00,
-            $holidayType === 'special_working'      && $didWork                                 => 1.30,
-            $holidayType === 'special_working'      && ! $didWork                               => 1.00,
-            default                                                                             => 1.00,
+            $holidayType === 'regular' && $didWork && ($isOvertime || $isRestDay) => 2.60,
+            $holidayType === 'regular' && $didWork => 2.00,
+            $holidayType === 'regular' && ! $didWork => 1.00,
+            $holidayType === 'special_non_working' && $didWork && $isOvertime => 1.69,
+            $holidayType === 'special_non_working' && $didWork => 1.30,
+            $holidayType === 'special_non_working' && ! $didWork => 0.00,
+            $holidayType === 'special_working' && $didWork => 1.30,
+            $holidayType === 'special_working' && ! $didWork => 1.00,
+            default => 1.00,
         };
     }
 }

@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\Employee;
+use App\Models\EmploymentDetail;
 use App\Models\PayrollAndLeave;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +39,7 @@ class CreateNewUser implements CreatesNewUsers
             ->first();
 
         $name = trim(implode(' ', array_filter([
-            $employee->last_name . ',',
+            $employee->last_name.',',
             $employee->first_name,
             $employee->middle_name,
             $employee->extension,
@@ -59,7 +60,7 @@ class CreateNewUser implements CreatesNewUsers
                 $emp->update(['user_id' => $user->id]);
 
                 // Copy the intended access key from employment_details to the user
-                $detail = \App\Models\EmploymentDetail::where('employee_id', $emp->id)->first();
+                $detail = EmploymentDetail::where('employee_id', $emp->id)->first();
                 if ($detail?->access_key_id) {
                     $user->update(['access_key_id' => $detail->access_key_id]);
                 }

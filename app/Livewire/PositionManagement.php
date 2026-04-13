@@ -41,8 +41,8 @@ class PositionManagement extends Component
         $this->validate();
 
         Position::create([
-            'name'        => $this->name,
-            'code'        => strtoupper($this->code) ?: null,
+            'name' => $this->name,
+            'code' => strtoupper($this->code) ?: null,
             'description' => $this->description ?: null,
         ]);
 
@@ -54,12 +54,12 @@ class PositionManagement extends Component
     {
         $pos = Position::findOrFail($id);
 
-        $this->selectedId  = $pos->id;
-        $this->name        = $pos->name;
-        $this->code        = $pos->code ?? '';
+        $this->selectedId = $pos->id;
+        $this->name = $pos->name;
+        $this->code = $pos->code ?? '';
         $this->description = $pos->description ?? '';
-        $this->isEditing   = true;
-        $this->showForm    = true;
+        $this->isEditing = true;
+        $this->showForm = true;
     }
 
     public function update(): void
@@ -67,8 +67,8 @@ class PositionManagement extends Component
         $this->validate();
 
         Position::findOrFail($this->selectedId)->update([
-            'name'        => $this->name,
-            'code'        => strtoupper($this->code) ?: null,
+            'name' => $this->name,
+            'code' => strtoupper($this->code) ?: null,
             'description' => $this->description ?: null,
         ]);
 
@@ -78,7 +78,7 @@ class PositionManagement extends Component
 
     public function confirmDelete(int $id): void
     {
-        $this->selectedId      = $id;
+        $this->selectedId = $id;
         $this->confirmingDeletion = true;
     }
 

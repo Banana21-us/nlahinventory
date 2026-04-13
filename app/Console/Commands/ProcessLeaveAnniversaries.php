@@ -18,7 +18,7 @@ class ProcessLeaveAnniversaries extends Command
     {
         $today = Carbon::today();
         $month = $today->month;
-        $day   = $today->day;
+        $day = $today->day;
 
         // Leap-year guard: if today is Feb 28 in a non-leap year,
         // also process employees hired on Feb 29.
@@ -27,7 +27,7 @@ class ProcessLeaveAnniversaries extends Command
         $users = User::where('is_active', true)
             ->whereHas('employmentDetail', function ($q) use ($month, $day, $includeFeb29) {
                 $q->whereMonth('hiring_date', $month)
-                  ->whereDay('hiring_date', $day);
+                    ->whereDay('hiring_date', $day);
 
                 if ($includeFeb29) {
                     $q->orWhere(function ($sub) {

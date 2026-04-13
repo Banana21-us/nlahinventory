@@ -14,7 +14,7 @@ return [
     |
     */
     'openrouter' => [
-    'key' => env('OPENROUTER_KEY'),
+        'key' => env('OPENROUTER_KEY'),
     ],
 
     'postmark' => [

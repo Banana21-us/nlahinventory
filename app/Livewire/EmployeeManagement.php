@@ -292,10 +292,10 @@ class EmployeeManagement extends Component
             $this->sl_consumed = $payroll->sl_consumed;
             $this->spl_total = $payroll->spl_total;
             $this->el_total = $payroll->el_total;
-            $this->min_scale   = $payroll->min_scale;
-            $this->max_scale   = $payroll->max_scale;
+            $this->min_scale = $payroll->min_scale;
+            $this->max_scale = $payroll->max_scale;
             $this->wage_factor = $payroll->wage_factor;
-            $this->probi_rate  = $payroll->probi_rate;
+            $this->probi_rate = $payroll->probi_rate;
         }
 
         $this->dependents = Dependency::where('employee_id', $employee->id)
@@ -361,7 +361,7 @@ class EmployeeManagement extends Component
                 'min_scale' => $this->min_scale ?: 0,
                 'max_scale' => $this->max_scale ?: 0,
                 'wage_factor' => $this->wage_factor ?: 1.00,
-                'probi_rate'  => $this->probi_rate ?: 1.00,
+                'probi_rate' => $this->probi_rate ?: 1.00,
             ]
         );
     }

@@ -38,13 +38,13 @@ class PayoffManagement extends Component
     protected function rules(): array
     {
         return [
-            'user_id'        => ['required', 'integer', 'exists:users,id'],
+            'user_id' => ['required', 'integer', 'exists:users,id'],
             'start_datetime' => ['required', 'date'],
-            'end_datetime'   => ['required', 'date', 'after:start_datetime'],
-            'hours'          => ['required', 'numeric', 'min:0.5', 'max:24'],
-            'reason'         => ['nullable', 'string', 'max:1000'],
-            'status'         => ['required', 'in:pending,approved,rejected'],
-            'approved_by'    => ['nullable', 'integer', 'exists:users,id'],
+            'end_datetime' => ['required', 'date', 'after:start_datetime'],
+            'hours' => ['required', 'numeric', 'min:0.5', 'max:24'],
+            'reason' => ['nullable', 'string', 'max:1000'],
+            'status' => ['required', 'in:pending,approved,rejected'],
+            'approved_by' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 
@@ -53,13 +53,13 @@ class PayoffManagement extends Component
         $this->validate();
 
         PayoffApplication::create([
-            'user_id'        => $this->user_id,
+            'user_id' => $this->user_id,
             'start_datetime' => $this->start_datetime,
-            'end_datetime'   => $this->end_datetime,
-            'hours'          => $this->hours,
-            'reason'         => $this->reason,
-            'status'         => $this->status,
-            'approved_by'    => $this->approved_by ?: null,
+            'end_datetime' => $this->end_datetime,
+            'hours' => $this->hours,
+            'reason' => $this->reason,
+            'status' => $this->status,
+            'approved_by' => $this->approved_by ?: null,
         ]);
 
         $this->resetForm();
@@ -70,15 +70,15 @@ class PayoffManagement extends Component
     {
         $app = PayoffApplication::findOrFail($id);
 
-        $this->selectedId     = $app->id;
-        $this->user_id        = $app->user_id;
+        $this->selectedId = $app->id;
+        $this->user_id = $app->user_id;
         $this->start_datetime = $app->start_datetime->format('Y-m-d\TH:i');
-        $this->end_datetime   = $app->end_datetime->format('Y-m-d\TH:i');
-        $this->hours          = $app->hours;
-        $this->reason         = $app->reason;
-        $this->status         = $app->status;
-        $this->approved_by    = $app->approved_by;
-        $this->isEditing      = true;
+        $this->end_datetime = $app->end_datetime->format('Y-m-d\TH:i');
+        $this->hours = $app->hours;
+        $this->reason = $app->reason;
+        $this->status = $app->status;
+        $this->approved_by = $app->approved_by;
+        $this->isEditing = true;
     }
 
     public function update(): void
@@ -86,13 +86,13 @@ class PayoffManagement extends Component
         $this->validate();
 
         PayoffApplication::findOrFail($this->selectedId)->update([
-            'user_id'        => $this->user_id,
+            'user_id' => $this->user_id,
             'start_datetime' => $this->start_datetime,
-            'end_datetime'   => $this->end_datetime,
-            'hours'          => $this->hours,
-            'reason'         => $this->reason,
-            'status'         => $this->status,
-            'approved_by'    => $this->approved_by ?: null,
+            'end_datetime' => $this->end_datetime,
+            'hours' => $this->hours,
+            'reason' => $this->reason,
+            'status' => $this->status,
+            'approved_by' => $this->approved_by ?: null,
         ]);
 
         $this->resetForm();
@@ -102,7 +102,7 @@ class PayoffManagement extends Component
     public function approve(int $id): void
     {
         PayoffApplication::findOrFail($id)->update([
-            'status'      => 'approved',
+            'status' => 'approved',
             'approved_by' => Auth::id(),
         ]);
         session()->flash('message', 'Application approved.');
@@ -111,7 +111,7 @@ class PayoffManagement extends Component
     public function reject(int $id): void
     {
         PayoffApplication::findOrFail($id)->update([
-            'status'      => 'rejected',
+            'status' => 'rejected',
             'approved_by' => Auth::id(),
         ]);
         session()->flash('message', 'Application rejected.');
