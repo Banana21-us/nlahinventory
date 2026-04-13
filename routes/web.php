@@ -22,6 +22,7 @@ use App\Livewire\PatientDetail;
 use App\Livewire\PatientManager;
 use App\Livewire\PayrollCompliance;
 use App\Livewire\PositionManagement;
+use App\Livewire\Assets;
 use App\Livewire\PointOfSale\POS;
 use App\Livewire\PointOfSale\PosCustomer;
 use App\Livewire\PointOfSale\Posdashboard;
@@ -175,5 +176,7 @@ Route::get('/leave/{leave}/respond/{action}', [LeaveResponseController::class, '
 Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
 Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
 Route::get('/waiting', fn () => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
+
+Route::get('/Assetsmanagement/assets', Assets::class)->name('Assetsmanagement.assets');
 
 require __DIR__.'/settings.php';
