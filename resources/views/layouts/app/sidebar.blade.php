@@ -171,7 +171,42 @@
             </flux:sidebar.group>
             @endcan
 
-             
+            {{-- ASSETS INVENTORY KUNO --}}
+            <flux:sidebar.group
+                class="grid"
+                icon="queue-list"
+                expandable="expandable"
+                heading="Assets Inventory">
+                <flux:sidebar.item
+                    icon="square-3-stack-3d"
+                    :href="route('Assetsmanagement.assets')"
+                    :current="request()->routeIs('Assetsmanagement.assets')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Assets') }}
+                </flux:sidebar.item>
+                <flux:sidebar.item 
+                    icon="calendar-days"
+                    :href="route('Assetsmanagement.transfer')"
+                    :current="request()->routeIs('Assetsmanagement.transfer')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Transfer') }}
+                </flux:sidebar.item>
+                <flux:sidebar.item
+                    icon="clipboard-document-list"
+                    :href="route('Assetsmanagement.item-entry')"
+                    :current="request()->routeIs('Assetsmanagement.item-entry')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Item Entry') }}
+                </flux:sidebar.item>
+                <flux:sidebar.item
+                    icon="document-text"
+                    :href="route('Assetsmanagement.transaction-records')"
+                    :current="request()->routeIs('Assetsmanagement.transaction-records')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Transaction Records') }}
+                </flux:sidebar.item>
+            </flux:sidebar.group>
+
             {{-- 4. PAYROLL | LABOR COMPLIANCE --}}
             @can('access-payroll')
             <!-- <flux:sidebar.item
