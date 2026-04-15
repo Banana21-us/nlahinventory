@@ -37,6 +37,11 @@ class OvertimeManagement extends Component
 
     public $approved_by;
 
+    public function mount(): void
+    {
+        $this->user_id = Auth::id();
+    }
+
     protected function rules(): array
     {
         return [
@@ -142,6 +147,7 @@ class OvertimeManagement extends Component
             'user_id', 'start_datetime', 'end_datetime', 'reason', 'remarks', 'approved_by',
             'selectedId', 'isEditing', 'showForm', 'confirmingDeletion',
         ]);
+        $this->user_id = Auth::id();
         $this->type = 'overtime';
         $this->status = 'pending';
     }

@@ -224,15 +224,7 @@
                     wire:navigate="wire:navigate">
                     {{ __('Department Head Form') }}
             </flux:sidebar.item> -->
-            
-            <flux:sidebar.item
-                    icon="calendar"
-                    :href="route('Assetsmanagement.assets')"
-                    :current="request()->routeIs('Assetsmanagement.assets')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Assets') }}
-            </flux:sidebar.item>
-
+        
             
             <flux:sidebar.group
                 icon="banknotes"

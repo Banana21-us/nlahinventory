@@ -218,28 +218,33 @@ Always recommend consulting a doctor for medical advice.';
         $request->input('messages')
     );
 
-    $response = Http::withHeaders([
-        'Authorization' => 'Bearer '.config('services.openrouter.key'),
-        'HTTP-Referer' => config('app.url'),
-        'X-Title' => config('app.name'),
-        'Content-Type' => 'application/json',
-    ])->post('https://openrouter.ai/api/v1/chat/completions', [
-        'model' => 'google/gemini-2.0-flash-exp:free', // free model, change if needed
-        'messages' => $messages,
-        'max_tokens' => 500,
-    ]);
+    try {
+        $response = Http::timeout(60)->post(
+            config('services.ollama.host').'/api/chat',
+            [
+                'model'    => config('services.ollama.model'),
+                'messages' => $messages,
+                'stream'   => false,
+            ]
+        );
+    } catch (\Illuminate\Http\Client\ConnectionException $e) {
+        return response()->json(['error' => 'AI service is offline. Please try again later.'], 503);
+    } catch (\Throwable $e) {
+        return response()->json(['error' => 'Unexpected error. Please try again.'], 500);
+    }
 
     if ($response->failed()) {
-        return response()->json([
-            'error' => 'AI service unavailable. Please try again.',
-        ], 502);
+        return response()->json(['error' => 'AI service unavailable. (HTTP '.$response->status().')'], 502);
     }
 
     $data = $response->json();
 
-    return response()->json([
-        'reply' => $data['choices'][0]['message']['content'] ?? 'Sorry, I could not generate a response.',
-    ]);
+    // Ollama: { message: { content: "..." } }
+    $reply = $data['message']['content']
+          ?? $data['choices'][0]['message']['content']  // fallback for OpenAI-compat endpoint
+          ?? 'Sorry, I could not generate a response.';
+
+    return response()->json(['reply' => $reply]);
 })->middleware('throttle:30,1'); // 30 requests per minute per user
 
 Route::post('/nlah/feedback/submit', function (Request $request) {
@@ -253,10 +258,11 @@ Route::post('/nlah/feedback/submit', function (Request $request) {
     // Run: php artisan make:model Feedback -m
     // Migration columns: name, comment, rating (tinyint), ip_address
     Feedback::create([
-        'name' => $request->input('name', 'Guest'),
-        'comment' => $request->input('comment'),
-        'rating' => $request->input('rating'),
-        'ip_address' => $request->ip(),
+        'name'          => $request->input('name', 'Guest'),
+        'comment'       => $request->input('comment'),
+        'rating'        => $request->input('rating'),
+        'ip_address'    => $request->ip(),
+        'feedback_date' => now(),
     ]);
 
     return response()->json(['success' => true]);

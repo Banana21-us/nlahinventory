@@ -39,6 +39,7 @@ class PayrollCompliance extends Component
     public function mount(): void
     {
         $this->shiftDate = now()->toDateString();
+        $this->hourlyRate = 0.0;
     }
 
     // ─── Shift Differential ───────────────────────────────────────────────

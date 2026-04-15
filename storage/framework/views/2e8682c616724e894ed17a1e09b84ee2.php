@@ -684,32 +684,7 @@
 <?php $component = $__componentOriginalfe86969babb72517ecf97426e7c9330d; ?>
 <?php unset($__componentOriginalfe86969babb72517ecf97426e7c9330d); ?>
 <?php endif; ?> -->
-            
-            <?php if (isset($component)) { $__componentOriginalfe86969babb72517ecf97426e7c9330d = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginalfe86969babb72517ecf97426e7c9330d = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'e60dd9d2c3a62d619c9acb38f20d5aa5::sidebar.item','data' => ['icon' => 'calendar','href' => route('Assetsmanagement.assets'),'current' => request()->routeIs('Assetsmanagement.assets'),'wire:navigate' => 'wire:navigate']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('flux::sidebar.item'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['icon' => 'calendar','href' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('Assetsmanagement.assets')),'current' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->routeIs('Assetsmanagement.assets')),'wire:navigate' => 'wire:navigate']); ?>
-<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
-
-                    <?php echo e(__('Assets')); ?>
-
-             <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginalfe86969babb72517ecf97426e7c9330d)): ?>
-<?php $attributes = $__attributesOriginalfe86969babb72517ecf97426e7c9330d; ?>
-<?php unset($__attributesOriginalfe86969babb72517ecf97426e7c9330d); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginalfe86969babb72517ecf97426e7c9330d)): ?>
-<?php $component = $__componentOriginalfe86969babb72517ecf97426e7c9330d; ?>
-<?php unset($__componentOriginalfe86969babb72517ecf97426e7c9330d); ?>
-<?php endif; ?>
-
+        
             
             <?php if (isset($component)) { $__componentOriginal31257750338e37e989bcfa8eb3c88bb1 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal31257750338e37e989bcfa8eb3c88bb1 = $attributes; } ?>
