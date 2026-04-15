@@ -1,6 +1,6 @@
 // ─── Cache names ─────────────────────────────────────────────────────────────
 // Bump CACHE_VER whenever you want to force-refresh all clients.
-const CACHE_VER   = 'nlah-v3';
+const CACHE_VER   = 'nlah-v4';
 const SHELL_CACHE = `${CACHE_VER}-shell`;   // HTML pages (checklist shell)
 const ASSET_CACHE = `${CACHE_VER}-assets`;  // JS / CSS / fonts / images
 

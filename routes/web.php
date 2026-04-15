@@ -15,6 +15,8 @@ use App\Livewire\DepartmentManagement;
 use App\Livewire\DHead;
 use App\Livewire\DispenseMedicine;
 use App\Livewire\EmployeeManagement;
+use App\Livewire\AssetItemEntry;
+use App\Livewire\AssetTransactionRecords;
 use App\Livewire\Home;
 use App\Livewire\HR;
 use App\Livewire\HRCorner;
@@ -28,6 +30,7 @@ use App\Livewire\PatientManager;
 use App\Livewire\PayrollCompliance;
 use App\Livewire\PositionManagement;
 use App\Livewire\Assets;
+use App\Livewire\Transfer;
 use App\Livewire\PointOfSale\POS;
 use App\Livewire\PointOfSale\PosCustomer;
 use App\Livewire\PointOfSale\Posdashboard;
@@ -188,6 +191,9 @@ Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->
 Route::get('/waiting', fn () => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
 
 Route::get('/Assetsmanagement/assets', Assets::class)->name('Assetsmanagement.assets');
+Route::get('/Assetsmanagement/transfer', Transfer::class)->name('Assetsmanagement.transfer');
+Route::get('/Assetsmanagement/item-entry', AssetItemEntry::class)->name('Assetsmanagement.item-entry');
+Route::get('/Assetsmanagement/transaction-records', AssetTransactionRecords::class)->name('Assetsmanagement.transaction-records');
 
 Route::post('/nlah/chat', function (Request $request) {
     $request->validate([

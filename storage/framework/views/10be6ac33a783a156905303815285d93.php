@@ -14,7 +14,7 @@
     </div>
 
     <div class="bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden"
-         x-data="{ open: @entangle('showForm') }">
+         x-data="{ open: <?php if ((object) ('showForm') instanceof \Livewire\WireDirective) : ?>window.Livewire.find('<?php echo e($__livewire->getId()); ?>').entangle('<?php echo e('showForm'->value()); ?>')<?php echo e('showForm'->hasModifier('live') ? '.live' : ''); ?><?php else : ?>window.Livewire.find('<?php echo e($__livewire->getId()); ?>').entangle('<?php echo e('showForm'); ?>')<?php endif; ?> }">
         <button
             type="button"
             @click="open = !open"
@@ -48,11 +48,18 @@
                         class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2 bg-white"
                     >
                         <option value="">Select item type</option>
-                        @foreach($this->itemTypes as $itemType)
-                            <option value="{{ $itemType->id }}">{{ $itemType->name }}</option>
-                        @endforeach
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $this->itemTypes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemType): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                            <option value="<?php echo e($itemType->id); ?>"><?php echo e($itemType->name); ?></option>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                     </select>
-                    @error('item_type_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['item_type_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div>
@@ -62,13 +69,21 @@
                         class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2 bg-white"
                     >
                         <option value="">Select location</option>
-                        @foreach($this->locations as $location)
-                            <option value="{{ $location->id }}">
-                                {{ $location->name }}{{ $location->floor ? ' - '.$location->floor : '' }}
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $this->locations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $location): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                            <option value="<?php echo e($location->id); ?>">
+                                <?php echo e($location->name); ?><?php echo e($location->floor ? ' - '.$location->floor : ''); ?>
+
                             </option>
-                        @endforeach
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                     </select>
-                    @error('location_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['location_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div>
@@ -82,7 +97,14 @@
                         <option value="maintenance">Maintenance</option>
                         <option value="retired">Retired</option>
                     </select>
-                    @error('status') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['status'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div>
@@ -93,7 +115,14 @@
                         placeholder="Dell, HP, Epson..."
                         class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2"
                     />
-                    @error('brand') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['brand'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div>
@@ -103,7 +132,14 @@
                         wire:model="purchase_date"
                         class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2"
                     />
-                    @error('purchase_date') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['purchase_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div>
@@ -114,7 +150,14 @@
                         placeholder="Enter unique asset SKU"
                         class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2"
                     />
-                    @error('sku') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['sku'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div class="md:col-span-2 xl:col-span-3 flex justify-end items-center gap-3 pt-4 border-t border-gray-100 mt-2">
@@ -153,7 +196,8 @@
                 </div>
                 <h3 class="text-lg font-bold text-gray-800">Asset Records</h3>
                 <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                    {{ $this->assets->count() }} {{ $this->assets->count() === 1 ? 'record' : 'records' }}
+                    <?php echo e($this->assets->count()); ?> <?php echo e($this->assets->count() === 1 ? 'record' : 'records'); ?>
+
                 </span>
             </div>
 
@@ -181,8 +225,8 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
-                    @forelse($this->assets as $asset)
-                        @php
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $this->assets; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $asset): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                        <?php
                             $statusClasses = match ($asset->status) {
                                 'available' => 'bg-emerald-100 text-emerald-700',
                                 'assigned' => 'bg-blue-100 text-blue-700',
@@ -190,46 +234,50 @@
                                 'retired' => 'bg-rose-100 text-rose-700',
                                 default => 'bg-gray-100 text-gray-700',
                             };
-                        @endphp
+                        ?>
                         <tr class="hover:bg-sky-50/40 transition-colors">
                             <td class="px-6 py-4">
-                                <div class="text-sm font-bold text-gray-900">{{ $asset->sku }}</div>
-                                <div class="text-xs text-gray-400">Added {{ $asset->created_at?->format('M d, Y') }}</div>
+                                <div class="text-sm font-bold text-gray-900"><?php echo e($asset->sku); ?></div>
+                                <div class="text-xs text-gray-400">Added <?php echo e($asset->created_at?->format('M d, Y')); ?></div>
                             </td>
                             <td class="px-6 py-4 text-sm font-semibold text-gray-800">
-                                {{ $asset->itemType->name ?? 'Unknown Item Type' }}
+                                <?php echo e($asset->itemType->name ?? 'Unknown Item Type'); ?>
+
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $asset->brand ?: 'N/A' }}
+                                <?php echo e($asset->brand ?: 'N/A'); ?>
+
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-800">{{ $asset->location->name ?? 'Unknown Location' }}</div>
-                                <div class="text-xs text-gray-400">{{ $asset->location->floor ?: 'No floor specified' }}</div>
+                                <div class="text-sm font-medium text-gray-800"><?php echo e($asset->location->name ?? 'Unknown Location'); ?></div>
+                                <div class="text-xs text-gray-400"><?php echo e($asset->location->floor ?: 'No floor specified'); ?></div>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $asset->purchase_date?->format('M d, Y') ?? 'N/A' }}
+                                <?php echo e($asset->purchase_date?->format('M d, Y') ?? 'N/A'); ?>
+
                             </td>
                             <td class="px-6 py-4">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $statusClasses }}">
-                                    {{ ucfirst($asset->status) }}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold <?php echo e($statusClasses); ?>">
+                                    <?php echo e(ucfirst($asset->status)); ?>
+
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
                                 <button
-                                    wire:click="edit({{ $asset->id }})"
+                                    wire:click="edit(<?php echo e($asset->id); ?>)"
                                     class="rounded-md bg-sky-50 px-2.5 py-1.5 text-sm font-semibold text-sky-700 shadow-sm hover:bg-sky-100 transition-colors"
                                 >
                                     Edit
                                 </button>
                                 <button
-                                    wire:click="confirmDelete({{ $asset->id }})"
+                                    wire:click="confirmDelete(<?php echo e($asset->id); ?>)"
                                     class="text-red-500 hover:text-red-700 font-semibold transition-colors"
                                 >
                                     Delete
                                 </button>
                             </td>
                         </tr>
-                    @empty
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                         <tr>
                             <td colspan="7" class="px-6 py-14 text-center">
                                 <div class="flex flex-col items-center text-gray-400">
@@ -237,21 +285,23 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7 12 3 4 7m16 0v10l-8 4-8-4V7m16 0-8 4m-8-4 8 4"/>
                                     </svg>
                                     <p class="text-sm font-medium">
-                                        {{ $search ? 'No assets match your search.' : 'No asset records yet.' }}
+                                        <?php echo e($search ? 'No assets match your search.' : 'No asset records yet.'); ?>
+
                                     </p>
                                     <p class="text-xs mt-1">
-                                        {{ $search ? 'Try a different keyword.' : 'Click "Add Asset" above to get started.' }}
+                                        <?php echo e($search ? 'Try a different keyword.' : 'Click "Add Asset" above to get started.'); ?>
+
                                     </p>
                                 </div>
                             </td>
                         </tr>
-                    @endforelse
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 
-    @if($confirmingDeletion)
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($confirmingDeletion): ?>
         <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
             <div class="fixed inset-0 bg-gray-500/75 transition-opacity" wire:click="cancelDelete"></div>
             <div class="flex min-h-full items-center justify-center p-4">
@@ -290,9 +340,9 @@
                 </div>
             </div>
         </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-    @if($isEditing)
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isEditing): ?>
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="fixed inset-0 bg-gray-500/75 transition-opacity" wire:click="cancelEdit"></div>
             <div class="flex min-h-full items-center justify-center p-4">
@@ -313,24 +363,39 @@
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Item Type *</label>
                                     <select wire:model="item_type_id" class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2 bg-white">
                                         <option value="">Select item type</option>
-                                        @foreach($this->itemTypes as $itemType)
-                                            <option value="{{ $itemType->id }}">{{ $itemType->name }}</option>
-                                        @endforeach
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $this->itemTypes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $itemType): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                                            <option value="<?php echo e($itemType->id); ?>"><?php echo e($itemType->name); ?></option>
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                     </select>
-                                    @error('item_type_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['item_type_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </div>
 
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Location *</label>
                                     <select wire:model="location_id" class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2 bg-white">
                                         <option value="">Select location</option>
-                                        @foreach($this->locations as $location)
-                                            <option value="{{ $location->id }}">
-                                                {{ $location->name }}{{ $location->floor ? ' - '.$location->floor : '' }}
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $this->locations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $location): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                                            <option value="<?php echo e($location->id); ?>">
+                                                <?php echo e($location->name); ?><?php echo e($location->floor ? ' - '.$location->floor : ''); ?>
+
                                             </option>
-                                        @endforeach
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                     </select>
-                                    @error('location_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['location_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </div>
 
                                 <div>
@@ -341,25 +406,53 @@
                                         <option value="maintenance">Maintenance</option>
                                         <option value="retired">Retired</option>
                                     </select>
-                                    @error('status') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['status'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </div>
 
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Brand</label>
                                     <input type="text" wire:model="brand" class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2" />
-                                    @error('brand') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['brand'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </div>
 
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Purchase Date</label>
                                     <input type="date" wire:model="purchase_date" class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2" />
-                                    @error('purchase_date') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['purchase_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </div>
 
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">SKU *</label>
                                     <input type="text" wire:model="sku" class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2" />
-                                    @error('sku') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['sku'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -390,9 +483,9 @@
                 </div>
             </div>
         </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-    @if (session()->has('message'))
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session()->has('message')): ?>
         <div
             x-data="{ show: true }"
             x-show="show"
@@ -413,7 +506,7 @@
                 </div>
                 <div class="flex-1 pt-0.5">
                     <p class="text-sm font-semibold text-gray-900">Success!</p>
-                    <p class="mt-0.5 text-sm text-gray-500">{{ session('message') }}</p>
+                    <p class="mt-0.5 text-sm text-gray-500"><?php echo e(session('message')); ?></p>
                 </div>
                 <button @click="show = false" class="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
                     <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -430,5 +523,6 @@
                 to { width: 0%; }
             }
         </style>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 </div>
+<?php /**PATH C:\Users\admin\Documents\GitHub\nlah\resources\views/pages/Assetsmanagement/assets.blade.php ENDPATH**/ ?>
