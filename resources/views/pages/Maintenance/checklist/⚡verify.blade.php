@@ -2277,8 +2277,8 @@ new class extends Component
 
                 @if ($showProofPreviewModal)
                     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                        <div class="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-zinc-900">
-                            <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                        <div class="flex w-full max-w-lg flex-col rounded-xl bg-white shadow-2xl dark:bg-zinc-900" style="max-height:90vh;">
+                            <div class="flex flex-shrink-0 items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
                                 <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                                     {{ $proofPreviewTitle ?? __('Proof Preview') }}
                                 </h3>
@@ -2290,7 +2290,7 @@ new class extends Component
                                     &times;
                                 </button>
                             </div>
-                            <div class="p-4">
+                            <div class="flex-1 overflow-y-auto p-4">
                                 @if ($proofPreviewSkipReason)
                                     <div class="flex flex-col items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-8 text-center dark:border-amber-700/40 dark:bg-amber-900/20">
                                         <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-800/40">
@@ -2320,6 +2320,14 @@ new class extends Component
                                         {{ __('No proof image available for this item.') }}
                                     </div>
                                 @endif
+                            </div>
+                            <div class="flex-shrink-0 border-t border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                                <button
+                                    type="button"
+                                    wire:click="closeProofPreview"
+                                    class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                                    {{ __('Close') }}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -2590,6 +2598,7 @@ new class extends Component
                                 }
                                 $allChecked = $remainingCount === 0;
                             @endphp
+                            
                             <div class="flex gap-2">
                                 @if (!$photoReviewSubmitted)
                                     <button
@@ -2628,6 +2637,12 @@ new class extends Component
                                     @endif
                                 </button>
                             </div>
+                            <button
+                                type="button"
+                                wire:click="closePhotoReview"
+                                class="mb-1 mt-2 w-full rounded-md border border-zinc-300 bg-white py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                                {{ __('Close') }}
+                            </button>
                         </div>
                     </div>
 

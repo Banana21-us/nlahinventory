@@ -58,7 +58,7 @@ unset($__defined_vars, $__key, $__value); ?>
     ?>
 
     
-    <?php if (! $__env->hasRenderedOnce('194e9214-f3b4-4d54-8f1d-75f59f1c1eff')): $__env->markAsRenderedOnce('194e9214-f3b4-4d54-8f1d-75f59f1c1eff'); ?>
+    <?php if (! $__env->hasRenderedOnce('4faaebee-4df6-4d24-9d92-6e8bf82f21c9')): $__env->markAsRenderedOnce('4faaebee-4df6-4d24-9d92-6e8bf82f21c9'); ?>
     <style>
         #proofCaptureModal button,
         #proofCaptureModal [role="button"] {
@@ -153,13 +153,15 @@ unset($__defined_vars, $__key, $__value); ?>
                         <div class="flex items-center justify-center gap-4">
                             
                             <button type="button" id="proofSkipPatientBtn"
-                                class="flex flex-col items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-2 py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                class="relative flex flex-col items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-2 py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400 overflow-hidden select-none"
                                 style="min-width:58px;"
-                                aria-label="<?php echo e(__('Skip — patient present')); ?>">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                aria-label="<?php echo e(__('Skip — patient present. Hold to skip all.')); ?>">
+                                <svg class="h-5 w-5 relative z-10" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                 </svg>
-                                Patient
+                                <span class="relative z-10">Patient</span>
+                                <span id="proofSkipPatientHoldHint" class="relative z-10 text-[8px] text-amber-400 leading-none">hold=all</span>
+                                <span id="proofSkipPatientProgress" class="absolute inset-0 bg-amber-300/50 dark:bg-amber-500/30 origin-left scale-x-0 transition-none"></span>
                             </button>
 
                             
@@ -174,13 +176,15 @@ unset($__defined_vars, $__key, $__value); ?>
 
                             
                             <button type="button" id="proofSkipGlovesBtn"
-                                class="flex flex-col items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-2 py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                class="relative flex flex-col items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-2 py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400 overflow-hidden select-none"
                                 style="min-width:58px;"
-                                aria-label="<?php echo e(__('Skip — gloves on')); ?>">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                aria-label="<?php echo e(__('Skip — gloves on. Hold to skip all.')); ?>">
+                                <svg class="h-5 w-5 relative z-10" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/>
                                 </svg>
-                                Gloves
+                                <span class="relative z-10">Gloves</span>
+                                <span class="relative z-10 text-[8px] text-amber-400 leading-none">hold=all</span>
+                                <span id="proofSkipGlovesProgress" class="absolute inset-0 bg-amber-300/50 dark:bg-amber-500/30 origin-left scale-x-0 transition-none"></span>
                             </button>
                         </div>
 
@@ -203,7 +207,7 @@ unset($__defined_vars, $__key, $__value); ?>
         </div>
     </div>
 
-  <?php if (! $__env->hasRenderedOnce('e09aa982-7bae-48b2-a318-7154620f5556')): $__env->markAsRenderedOnce('e09aa982-7bae-48b2-a318-7154620f5556'); ?>
+  <?php if (! $__env->hasRenderedOnce('a69b655f-6134-4077-be5c-95b7c99d1343')): $__env->markAsRenderedOnce('a69b655f-6134-4077-be5c-95b7c99d1343'); ?>
 <script>
 (() => {
     const DEFAULT_PROOF_PAYLOAD = <?php echo json_encode($defaultProofPayload, 15, 512) ?>;
@@ -960,11 +964,106 @@ unset($__defined_vars, $__key, $__value); ?>
         }
     };
 
+    // ─── Skip-all handler: marks every remaining area as patient_present ────────
+    const handleSkipAll = (skipReason) => {
+        areaQueue = buildQueue();
+        const remaining = areaQueue.slice(currentIndex);
+        if (remaining.length === 0) return;
+
+        remaining.forEach((item) => {
+            const freq  = item.dataset.frequency;
+            const shift = freq === 'daily' ? activeShift : (freq === 'nightly' ? 'PM' : 'AM');
+            capturedMap[item.dataset.partId] = true;
+            if (freq === 'daily') {
+                if (activeShift === 'PM') item.dataset.hasPm = '1';
+                else item.dataset.hasAm = '1';
+            } else {
+                item.dataset.hasAm = '1';
+            }
+            enqueueSave({ partId: Number(item.dataset.partId), dayKey: String(item.dataset.dayKey), shift, imageData: null, comment: null, skipReason, periodType: String(item.dataset.frequency ?? 'daily'), selectedDate: parseDateLabel(item.dataset.dateLabel) ?? new Date().toISOString().split('T')[0] });
+        });
+
+        refreshAreaListUI();
+
+        // Show done state immediately
+        if (areaNameDisplay) areaNameDisplay.textContent = '✓ All areas marked!';
+        if (areaCounter) areaCounter.textContent = `${areaQueue.length}/${areaQueue.length}`;
+        captureOverlayBtn.classList.add('opacity-40', 'pointer-events-none');
+        if (cancelBtn) {
+            cancelBtn.textContent = 'Done';
+            cancelBtn.classList.remove('border-zinc-300','text-zinc-700','hover:bg-zinc-100','dark:border-zinc-700','dark:text-zinc-200','dark:hover:bg-zinc-800');
+            cancelBtn.classList.add('bg-emerald-600','text-white','hover:bg-emerald-700','border-emerald-600');
+        }
+    };
+
     // ─── Element-scoped bindings (safe to re-bind — these elements are replaced on navigate) ──
     document.getElementById('proofCaptureOverlayBtn').addEventListener('click', handleCapture);
     document.getElementById('proofCancelBtn').addEventListener('click', closeModal);
-    document.getElementById('proofSkipPatientBtn').addEventListener('click', () => handleSkip('patient_present'));
-    document.getElementById('proofSkipGlovesBtn').addEventListener('click', () => handleSkip('gloves'));
+    // Gloves button: tap = skip current, hold (600ms) = skip ALL remaining
+    (() => {
+        const btn      = document.getElementById('proofSkipGlovesBtn');
+        const progress = document.getElementById('proofSkipGlovesProgress');
+        const HOLD_MS  = 600;
+        let holdTimer  = null;
+        let holding    = false;
+
+        const startHold = () => {
+            holding = false;
+            progress.style.transition = `transform ${HOLD_MS}ms linear`;
+            progress.style.transform  = 'scaleX(1)';
+            holdTimer = setTimeout(() => {
+                holding = true;
+                progress.style.transition = 'none';
+                progress.style.transform  = 'scaleX(0)';
+                handleSkipAll('gloves');
+            }, HOLD_MS);
+        };
+
+        const cancelHold = () => {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+            progress.style.transition = 'none';
+            progress.style.transform  = 'scaleX(0)';
+        };
+
+        btn.addEventListener('pointerdown',   (e) => { e.preventDefault(); startHold(); });
+        btn.addEventListener('pointerup',     () => { if (!holding) { cancelHold(); handleSkip('gloves'); } holding = false; });
+        btn.addEventListener('pointercancel', cancelHold);
+        btn.addEventListener('contextmenu',   (e) => e.preventDefault());
+    })();
+
+    // Patient button: tap = skip current, hold (600ms) = skip ALL remaining
+    (() => {
+        const btn      = document.getElementById('proofSkipPatientBtn');
+        const progress = document.getElementById('proofSkipPatientProgress');
+        const HOLD_MS  = 600;
+        let holdTimer  = null;
+        let holding    = false;
+
+        const startHold = () => {
+            holding = false;
+            progress.style.transition = `transform ${HOLD_MS}ms linear`;
+            progress.style.transform  = 'scaleX(1)';
+            holdTimer = setTimeout(() => {
+                holding = true;
+                progress.style.transition = 'none';
+                progress.style.transform  = 'scaleX(0)';
+                handleSkipAll('patient_present');
+            }, HOLD_MS);
+        };
+
+        const cancelHold = () => {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+            progress.style.transition = 'none';
+            progress.style.transform  = 'scaleX(0)';
+        };
+
+        btn.addEventListener('pointerdown',   (e) => { e.preventDefault(); startHold(); });
+        btn.addEventListener('pointerup',     () => { if (!holding) { cancelHold(); handleSkip('patient_present'); } holding = false; });
+        btn.addEventListener('pointercancel', cancelHold);
+        btn.addEventListener('contextmenu',   (e) => e.preventDefault());
+    })();
 
     // ─── Global listeners — guard against duplicate registration across wire:navigate ──────────
     // Each wire:navigate to this page re-executes this script. Without a guard, global
