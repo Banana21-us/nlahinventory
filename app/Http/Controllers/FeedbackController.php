@@ -19,15 +19,18 @@ class FeedbackController extends Controller
 
     public function submit(Request $request)
     {
-        // Simple validation
-        if (empty($request->name) || empty($request->comment) || empty($request->rating)) {
-            return response()->json(['success' => false, 'message' => 'All fields are required']);
+        // Validate input
+        if (empty($request->comment) || empty($request->rating)) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Comment and rating are required fields'
+            ]);
         }
 
         try {
-            // Insert feedback
+            // Insert feedback directly using DB facade (no model)
             DB::table('feedbacks')->insert([
-                'name' => $request->name,
+                'name' => $request->name ?? 'Guest',
                 'comment' => $request->comment,
                 'rating' => $request->rating,
                 'feedback_date' => now(),
@@ -38,7 +41,13 @@ class FeedbackController extends Controller
             return response()->json(['success' => true]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Database error']);
+            // Log the error for debugging
+            \Log::error('Feedback submission failed: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false, 
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
         }
     }
 }

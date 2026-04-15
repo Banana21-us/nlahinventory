@@ -234,25 +234,24 @@ Always recommend consulting a doctor for medical advice.";
     ]);
 })->middleware('throttle:30,1'); // 30 requests per minute per user
 
+// Route::post('/nlah/feedback/submit', function (Request $request) {
+//     $request->validate([
+//         'name'    => 'nullable|string|max:100',
+//         'comment' => 'required|string|max:2000',
+//         'rating'  => 'required|integer|min:1|max:5',
+//     ]);
 
-Route::post('/nlah/feedback/submit', function (Request $request) {
-    $request->validate([
-        'name'    => 'nullable|string|max:100',
-        'comment' => 'required|string|max:2000',
-        'rating'  => 'required|integer|min:1|max:5',
-    ]);
+//     // Save to DB — make sure you have a feedbacks table
+//     // Run: php artisan make:model Feedback -m
+//     // Migration columns: name, comment, rating (tinyint), ip_address
+//     \App\Models\Feedback::create([
+//         'name'       => $request->input('name', 'Guest'),
+//         'comment'    => $request->input('comment'),
+//         'rating'     => $request->input('rating'),
+//         'ip_address' => $request->ip(),
+//     ]);
 
-    // Save to DB — make sure you have a feedbacks table
-    // Run: php artisan make:model Feedback -m
-    // Migration columns: name, comment, rating (tinyint), ip_address
-    \App\Models\Feedback::create([
-        'name'       => $request->input('name', 'Guest'),
-        'comment'    => $request->input('comment'),
-        'rating'     => $request->input('rating'),
-        'ip_address' => $request->ip(),
-    ]);
-
-    return response()->json(['success' => true]);
-});
+//     return response()->json(['success' => true]);
+// });
 
 require __DIR__.'/settings.php';
