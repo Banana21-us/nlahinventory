@@ -1231,7 +1231,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 <div wire:loading.delay style="display:none" class="checklist-progress-bar"></div>
 
 {{--
-    Offline banner — pure Alpine.js, no server needed.
+    Offline banner — pure Alpine.js, no server needed..
     Shows automatically when the device loses connectivity.
     Hides again when connectivity returns.
     Tells staff exactly what still works (camera) vs what doesn't (navigation).
