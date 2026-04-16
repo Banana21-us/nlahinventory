@@ -1946,9 +1946,9 @@ new class extends Component
                                         @disabled($isFuture)
                                         class="relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
                                             {{ $isSelected ? 'text-white shadow-md' : '' }}
-                                            {{ $isToday && ! $isSelected ? 'ring-2 ring-sky-500 ring-offset-1' : '' }}
-                                            {{ ! $isSelected && ! $isFuture && $isCurrentMonth ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
-                                            {{ ! $isCurrentMonth && ! $isFuture ? 'text-zinc-300 hover:bg-zinc-50 dark:text-zinc-600 dark:hover:bg-zinc-800' : '' }}
+                                            {{ $isToday && ! $isSelected ? 'ring-2 ring-sky-500 ring-offset-1 dark:ring-offset-zinc-900' : '' }}
+                                            {{ ! $isSelected && ! $isFuture && ($isCurrentMonth || $isToday) ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
+                                            {{ ! $isCurrentMonth && ! $isToday && ! $isFuture ? 'text-zinc-300 hover:bg-zinc-50 dark:text-zinc-600 dark:hover:bg-zinc-800' : '' }}
                                             {{ $isFuture ? 'cursor-not-allowed opacity-30' : '' }}
                                             @if($isSelected) bg-gradient-to-br from-slate-800 to-teal-700 @endif">
                                     {{ $dayNumber }}
@@ -2022,9 +2022,9 @@ new class extends Component
                         <table class="min-w-full border-collapse text-sm">
                             <thead class="bg-zinc-100 dark:bg-zinc-800">
                                 <tr>
-                                    <th class="border border-zinc-200 px-4 py-2 text-left dark:border-zinc-700">{{ __('Area Part') }}</th>
+                                    <th class="border border-zinc-200 px-4 py-2 text-left text-zinc-700 dark:border-zinc-700 dark:text-zinc-200">{{ __('Area Part') }}</th>
                                     @foreach ($dayColumns as $dayKey => $dayName)
-                                        <th colspan="2" class="border border-zinc-200 px-3 py-2 text-center dark:border-zinc-700">
+                                        <th colspan="2" class="border border-zinc-200 px-3 py-2 text-center text-zinc-700 dark:border-zinc-700 dark:text-zinc-200">
                                             @if ($periodType === 'weekly')
                                                 <div class="font-semibold">
                                                     {{ $dayName['label'] }}
@@ -2053,7 +2053,7 @@ new class extends Component
                                             <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-orange-600 dark:border-zinc-700 dark:text-orange-400">AM</th>
                                             <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-sky-600 dark:border-zinc-700 dark:text-sky-400">PM</th>
                                         @else
-                                            <th class="border border-zinc-200 px-2 py-1 text-center dark:border-zinc-700">{{ __('Check') }}</th>
+                                            <th class="border border-zinc-200 px-2 py-1 text-center text-zinc-700 dark:border-zinc-700 dark:text-zinc-200">{{ __('Check') }}</th>
                                         @endif
                                     @endforeach
                                 </tr>
@@ -2061,7 +2061,7 @@ new class extends Component
                             <tbody>
                                 @forelse ($areaParts as $part)
                                     <tr class="odd:bg-white even:bg-zinc-50 dark:odd:bg-zinc-900 dark:even:bg-zinc-800/60">
-                                        <td class="border border-zinc-200 px-4 py-2 font-medium dark:border-zinc-700">
+                                        <td class="border border-zinc-200 px-4 py-2 font-medium text-zinc-800 dark:border-zinc-700 dark:text-zinc-200">
                                             <div class="flex items-center justify-between gap-2">
                                                 <span>{{ $part['display_name'] }}</span>
                                                 @php
@@ -2119,7 +2119,7 @@ new class extends Component
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ $totalColumns }}" class="border border-zinc-200 px-4 py-6 text-center text-zinc-500 dark:border-zinc-700">
+                                        <td colspan="{{ $totalColumns }}" class="border border-zinc-200 px-4 py-6 text-center text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                                             {{ __('No mapped checklist parts found. Add rows to location_area_parts with the selected frequency.') }}
                                         </td>
                                     </tr>
@@ -2147,10 +2147,10 @@ new class extends Component
                             <table class="min-w-full border-collapse text-sm">
                                 <thead>
                                     <tr>
-                                        <th class="border border-zinc-200 px-4 py-3 text-left font-semibold dark:border-zinc-700">{{ __('Area Part') }}</th>
-                                        <th colspan="{{ $periodType === 'nightly' ? 1 : 2 }}" class="border border-zinc-200 px-3 py-3 text-center dark:border-zinc-700">
+                                        <th class="border border-zinc-200 px-4 py-3 text-left font-semibold text-zinc-700 dark:border-zinc-700 dark:text-zinc-200">{{ __('Area Part') }}</th>
+                                        <th colspan="{{ $periodType === 'nightly' ? 1 : 2 }}" class="border border-zinc-200 px-3 py-3 text-center text-zinc-700 dark:border-zinc-700 dark:text-zinc-200">
                                             <div class="font-semibold">{{ \Carbon\Carbon::parse($selectedDate)->format('l') }}</div>
-                                            <div class="text-xs text-zinc-500">{{ \Carbon\Carbon::parse($selectedDate)->format('M d, Y') }}</div>
+                                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ \Carbon\Carbon::parse($selectedDate)->format('M d, Y') }}</div>
                                         </th>
                                     </tr>
                                     <tr>
@@ -2159,14 +2159,14 @@ new class extends Component
                                                 <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-orange-600 dark:border-zinc-700 dark:text-orange-400">AM</th>
                                                 <th class="border border-zinc-200 px-2 py-1 text-center font-semibold text-sky-600 dark:border-zinc-700 dark:text-sky-400">PM</th>
                                             @else
-                                                <th class="border border-zinc-200 px-2 py-1 text-center dark:border-zinc-700">{{ __('Check') }}</th>
+                                                <th class="border border-zinc-200 px-2 py-1 text-center text-zinc-700 dark:border-zinc-700 dark:text-zinc-200">{{ __('Check') }}</th>
                                             @endif
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @forelse ($areaParts as $part)
                                         <tr class="odd:bg-white even:bg-zinc-50 dark:odd:bg-zinc-900 dark:even:bg-zinc-800/60">
-                                            <td class="border border-zinc-200 px-4 py-3 font-medium dark:border-zinc-700">
+                                            <td class="border border-zinc-200 px-4 py-3 font-medium text-zinc-800 dark:border-zinc-700 dark:text-zinc-200">
                                                 @php
                                                     $hasAmRecord = $this->hasSlotRecord($part['id'], 'selected', 'AM');
                                                     $hasPmRecord = $this->hasSlotRecord($part['id'], 'selected', 'PM');
@@ -2255,7 +2255,7 @@ new class extends Component
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="3" class="border border-zinc-200 px-4 py-8 text-center text-zinc-500 dark:border-zinc-700">
+                                            <td colspan="3" class="border border-zinc-200 px-4 py-8 text-center text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                                                 {{ __('No mapped checklist parts found. Add rows to location_area_parts with daily frequency.') }}
                                             </td>
                                         </tr>
@@ -2478,7 +2478,7 @@ new class extends Component
                                 <button
                                     type="button"
                                     wire:click="setPhotoReviewTab('all')"
-                                    class="rounded-full px-3 py-1 text-xs font-medium transition {{ $photoReviewTab === 'all' ? 'bg-zinc-800 text-white dark:bg-white dark:text-zinc-800' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">
+                                    class="rounded-full px-3 py-1 text-xs font-medium transition {{ $photoReviewTab === 'all' ? 'bg-zinc-600 text-white dark:bg-white dark:text-zinc-800' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">
                                     {{ __('All') }} ({{ $allCount }})
                                 </button>
                                 <button

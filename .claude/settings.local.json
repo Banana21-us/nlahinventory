@@ -35,7 +35,8 @@
       "Bash(powershell -Command \"& 'C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.exe' --version\")",
       "Bash(git add:*)",
       "Bash(git config:*)",
-      "Bash(composer show:*)"
+      "Bash(composer show:*)",
+      "Bash(xargs grep *)"
     ]
   },
   "enableAllProjectMcpServers": true,

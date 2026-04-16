@@ -8,8 +8,8 @@
                 </svg>
             </div>
             <div>
-                <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400">Checklist</p>
-                <h1 class="text-xl font-bold text-gray-800 leading-tight">Manage your checklist sections</h1>
+                <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400 dark:text-zinc-500">Checklist</p>
+                <h1 class="text-xl font-bold text-gray-800 leading-tight dark:text-zinc-100">Manage your checklist sections</h1>
             </div>
         </div>
     </div>
