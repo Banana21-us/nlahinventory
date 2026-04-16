@@ -47,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('access-hr-only', $permissionGate('access-hr-only'));
         Gate::define('access-payroll', $permissionGate('access-payroll'));
         Gate::define('access-cashier-only', $permissionGate('access-cashier-only'));
+        Gate::define('access-dept-head', $permissionGate('access-dept-head'));
 
     }
 

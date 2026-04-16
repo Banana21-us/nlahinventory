@@ -3,20 +3,23 @@
 namespace App\Livewire;
 
 use App\Models\PayoffApplication;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
-class PayoffManagement extends Component
+class HrPayoffManagement extends Component
 {
-    public string $filterStatus = '';
+    public string $search = '';
 
-    public bool $showForm = false;
+    public string $filterStatus = '';
 
     public bool $isEditing = false;
 
     public bool $confirmingDeletion = false;
 
     public ?int $selectedId = null;
+
+    public $user_id;
 
     public $start_datetime;
 
@@ -25,6 +28,8 @@ class PayoffManagement extends Component
     public $hours;
 
     public $reason;
+
+    public $status = 'pending';
 
     public function updatedStartDatetime(): void
     {
@@ -48,41 +53,44 @@ class PayoffManagement extends Component
     protected function rules(): array
     {
         return [
+            'user_id' => ['required', 'integer', 'exists:users,id'],
             'start_datetime' => ['required', 'date'],
             'end_datetime' => ['required', 'date', 'after:start_datetime'],
-            'hours' => ['required', 'numeric', 'min:0.5', 'max:24'],
+            'hours' => ['required', 'numeric', 'min:0.01'],
             'reason' => ['nullable', 'string', 'max:1000'],
+            'status' => ['required', 'in:pending,approved,rejected'],
         ];
     }
 
-    public function save(): void
+    public function approve(int $id): void
     {
-        $this->validate();
-
-        PayoffApplication::create([
-            'user_id' => Auth::id(),
-            'start_datetime' => $this->start_datetime,
-            'end_datetime' => $this->end_datetime,
-            'hours' => $this->hours,
-            'reason' => $this->reason,
-            'status' => 'pending',
+        PayoffApplication::findOrFail($id)->update([
+            'status' => 'approved',
+            'approved_by' => Auth::id(),
         ]);
+        session()->flash('message', 'Application approved.');
+    }
 
-        $this->resetForm();
-        session()->flash('message', 'Pay-off application submitted successfully.');
+    public function reject(int $id): void
+    {
+        PayoffApplication::findOrFail($id)->update([
+            'status' => 'rejected',
+            'approved_by' => Auth::id(),
+        ]);
+        session()->flash('message', 'Application rejected.');
     }
 
     public function edit(int $id): void
     {
-        $app = PayoffApplication::where('user_id', Auth::id())
-            ->where('status', 'pending')
-            ->findOrFail($id);
+        $app = PayoffApplication::findOrFail($id);
 
         $this->selectedId = $app->id;
+        $this->user_id = $app->user_id;
         $this->start_datetime = $app->start_datetime->format('Y-m-d\TH:i');
         $this->end_datetime = $app->end_datetime->format('Y-m-d\TH:i');
         $this->hours = $app->hours;
         $this->reason = $app->reason;
+        $this->status = $app->status;
         $this->isEditing = true;
     }
 
@@ -90,15 +98,15 @@ class PayoffManagement extends Component
     {
         $this->validate();
 
-        PayoffApplication::where('user_id', Auth::id())
-            ->where('status', 'pending')
-            ->findOrFail($this->selectedId)
-            ->update([
-                'start_datetime' => $this->start_datetime,
-                'end_datetime' => $this->end_datetime,
-                'hours' => $this->hours,
-                'reason' => $this->reason,
-            ]);
+        PayoffApplication::findOrFail($this->selectedId)->update([
+            'user_id' => $this->user_id,
+            'start_datetime' => $this->start_datetime,
+            'end_datetime' => $this->end_datetime,
+            'hours' => $this->hours,
+            'reason' => $this->reason,
+            'status' => $this->status,
+            'approved_by' => $this->status !== 'pending' ? Auth::id() : null,
+        ]);
 
         $this->resetForm();
         session()->flash('message', 'Application updated successfully.');
@@ -112,11 +120,7 @@ class PayoffManagement extends Component
 
     public function delete(): void
     {
-        PayoffApplication::where('user_id', Auth::id())
-            ->where('status', 'pending')
-            ->findOrFail($this->selectedId)
-            ->delete();
-
+        PayoffApplication::findOrFail($this->selectedId)->delete();
         $this->resetForm();
         session()->flash('message', 'Application deleted.');
     }
@@ -124,21 +128,24 @@ class PayoffManagement extends Component
     private function resetForm(): void
     {
         $this->reset([
-            'start_datetime', 'end_datetime', 'hours', 'reason',
-            'selectedId', 'isEditing', 'showForm', 'confirmingDeletion',
+            'user_id', 'start_datetime', 'end_datetime', 'hours', 'reason',
+            'selectedId', 'isEditing', 'confirmingDeletion',
         ]);
+        $this->status = 'pending';
     }
 
     public function render()
     {
         $applications = PayoffApplication::query()
-            ->with('approver')
-            ->where('user_id', Auth::id())
+            ->with('user', 'approver')
+            ->when($this->search, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$this->search}%")))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->orderByDesc('start_datetime')
             ->get();
 
-        return view('pages.HR.payoff-management', compact('applications'))
+        $users = User::where('is_active', true)->orderBy('name')->get();
+
+        return view('pages.HR.hr-payoff-management', compact('applications', 'users'))
             ->layout('layouts.app');
     }
 }

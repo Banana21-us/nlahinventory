@@ -10,9 +10,9 @@ use Livewire\Component;
 class PayrollCompliance extends Component
 {
     // ── Shift Differential Calculator ─────────────────────────────────────
-    public string $shiftIn = '22:00'; // default 7 PM
+    public string $shiftIn = '22:00'; // default 10 PM
 
-    public string $shiftOut = '06:00'; // default 7 AM next day
+    public string $shiftOut = '06:00'; // default 6 AM next day
 
     public string $shiftDate = '';
 
@@ -50,7 +50,7 @@ class PayrollCompliance extends Component
             return;
         }
 
-        $nightStart = Carbon::parse($this->shiftDate.' 22:00:00'); // 7 PM
+        $nightStart = Carbon::parse($this->shiftDate.' 22:00:00'); // 10 PM
         $nightEnd = Carbon::parse($this->shiftDate.' 06:00:00')->addDay(); // 6 AM next day
 
         $clockIn = Carbon::parse($this->shiftDate.' '.$this->shiftIn.':00');
@@ -67,7 +67,7 @@ class PayrollCompliance extends Component
         $this->overtimeHours = max(0, round($totalHours - $regularShiftHours, 2));
         $this->regularHours = min($totalHours, $regularShiftHours);
 
-        // Night differential: overlap between worked period and 7PM–7AM window
+        // Night differential: overlap between worked period and 10PM–6AM window
         $ndStart = $clockIn->max($nightStart);
         $ndEnd = $clockOut->min($nightEnd);
         $this->nightDiffHours = $ndStart->lt($ndEnd)

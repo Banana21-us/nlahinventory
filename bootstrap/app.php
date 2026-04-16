@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnforceAccessKey;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -15,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // ADD THIS LINE BELOW
         $middleware->trustProxies(at: '*');
+
+        $middleware->appendToGroup('web', EnforceAccessKey::class);
 
         $middleware->alias([
             'role' => RoleMiddleware::class,

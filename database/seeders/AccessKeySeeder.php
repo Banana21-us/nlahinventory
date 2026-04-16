@@ -48,9 +48,9 @@ class AccessKeySeeder extends Seeder
             [
                 'name' => 'Department Head Access',
                 'description' => 'Department head leave approval view.',
-                'redirect_to' => 'users.leaveform',
+                'redirect_to' => 'users.dhead-leaveform',
                 'is_super' => false,
-                'permissions' => ['access-medical'],
+                'permissions' => ['access-dept-head'],
             ],
         ];
 

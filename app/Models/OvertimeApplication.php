@@ -12,8 +12,8 @@ class OvertimeApplication extends Model
         'type',
         'start_datetime',
         'end_datetime',
+        'hours',
         'reason',
-        'remarks',
         'status',
         'approved_by',
     ];

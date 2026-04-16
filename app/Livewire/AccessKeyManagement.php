@@ -15,6 +15,7 @@ class AccessKeyManagement extends Component
         'access-hr-only' => 'HR Management',
         'access-payroll' => 'Payroll & Compliance',
         'access-cashier-only' => 'Point of Sale (Cashier)',
+        'access-dept-head' => 'Department Head',
     ];
 
     // Named routes that are valid login redirect destinations
@@ -24,6 +25,7 @@ class AccessKeyManagement extends Component
         'Maintenance.checklist.verify' => 'Maintenance Verification',
         'pos.dashboard' => 'Point of Sale',
         'users.leaveform' => 'Staff Leave Form',
+        'users.dhead-leaveform' => 'Department Head Form',
         'users.waiting' => 'Waiting Area (no module)',
     ];
 

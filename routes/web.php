@@ -27,6 +27,7 @@ use App\Livewire\News;
 use App\Livewire\OvertimeManagement;
 use App\Livewire\PatientDetail;
 use App\Livewire\PatientManager;
+use App\Livewire\HrApplicationsManagement;
 use App\Livewire\PayoffManagement;
 use App\Livewire\PayrollCompliance;
 use App\Livewire\Transfer;
@@ -123,21 +124,32 @@ Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/access-keys', AccessKeyManagement::class)->name('HR.access-keys');
     Route::get('/HR/holidays', HolidayManagement::class)->name('HR.holidays');
     Route::get('/HR/leave-types', LeaveTypeManagement::class)->name('HR.leave-types');
+});
+
+// Overtime & Pay-off — accessible to all authenticated users
+Route::middleware('auth')->group(function () {
     Route::get('/HR/overtime', OvertimeManagement::class)->name('HR.overtime');
     Route::get('/HR/payoff', PayoffManagement::class)->name('HR.payoff');
 });
 
+// HR Applications management (Overtime + Pay-off) — HR only
+Route::middleware(['auth', 'can:access-hr-only'])->group(function () {
+    Route::get('/HR/applications-management', HrApplicationsManagement::class)->name('HR.applications-management');
+});
+
+// Shared dashboard — accessible to both maintenance and verifier roles
+Route::get('/Maintenance/dashboard', MaintenanceDashboard::class)
+    ->middleware('auth')
+    ->name('Maintenance.dashboard');
+
 // Maintenance routes
 Route::middleware(['auth', 'can:access-maintenance'])->group(function () {
     Route::post('/api/maintenance/checklist/sync', [ChecklistSyncController::class, 'sync'])->name('maintenance.checklist.sync');
-    Route::get('/Maintenance/dashboard', MaintenanceDashboard::class)->name('Maintenance.dashboard');
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');
-    Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
 // Verify routes
 Route::middleware(['auth', 'can:access-verify'])->group(function () {
-    Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
 });
 
@@ -162,12 +174,14 @@ Route::get('/', function () {
             'Maintenance_Head' => redirect()->route('Maintenance.checklist.verify'),
             'Cashier' => redirect()->route('pos.dashboard'),
             'Staff' => redirect()->route('users.leaveform'),
+            'Department Head' => redirect()->route('users.dhead-leaveform'),
             default => redirect()->route('users.waiting'),
         };
     }
 
     return redirect()->route('nlah.home');
 })->name('home');
+
 Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::view('/home', 'nlah.home')->name('home');
     Route::view('/about', 'nlah.about')->name('about');
@@ -182,14 +196,18 @@ Route::prefix('nlah')->name('nlah.')->group(function () {
     Route::get('/feedbacks', [FeedbackController::class, 'getFeedbacks'])->name('feedbacks');
     Route::post('/feedback/submit', [FeedbackController::class, 'submit'])->name('feedback.submit');
 });
+
 // Department Head leave approval/rejection via signed email link (no auth required)
 Route::get('/leave/{leave}/respond/{action}', [LeaveResponseController::class, 'respond'])
     ->name('leave.dhead.respond')
     ->middleware('signed');
 
+Route::middleware(['auth', 'can:access-dept-head'])->group(function () {
+    Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
+});
+
 // under dev
 Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
-Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
 Route::get('/waiting', fn () => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
 
 Route::get('/Assetsmanagement/assets', Assets::class)->name('Assetsmanagement.assets');

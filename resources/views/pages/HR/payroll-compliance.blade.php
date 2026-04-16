@@ -46,7 +46,7 @@
                     <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">DOLE · Night Work Act</p>
                     <h2 class="text-lg font-black text-gray-800 mt-0.5">Shift Differential Calculator</h2>
                 </div>
-                <span class="badge brand-bg-p-lt brand-primary">Night shift 7 PM – 7 AM</span>
+                <span class="badge brand-bg-p-lt brand-primary">Night shift 10 PM – 6 AM</span>
             </div>
 
             <div class="s-body">
