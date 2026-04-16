@@ -247,6 +247,8 @@ Route::post('/nlah/chat', function (Request $request) {
     • Prayer and spiritual care as a complement — never a replacement — to medical treatment
 
     HOSPITAL INFORMATION (NLAH)
+    • Full name: Northern Luzon Adventist Hospital (NLAH)
+    • Address: MacArthur Highway, Artacho, Sison, Pangasinan
     • Hospital services, departments, and specialists
     • Appointment booking, emergency contacts, hours, and location
     • Community health programs and outreach
