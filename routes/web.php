@@ -263,11 +263,17 @@ Route::post('/nlah/chat', function (Request $request) {
     • Always recommend consulting a licensed physician for diagnosis or treatment decisions
     • Never cause alarm, but be honest when symptoms require urgent medical attention
 
-    FORMATTING RULES (strictly follow these)
-    • Never use markdown syntax — no asterisks (*), no underscores (_), no pound signs (#), no backticks (`)
-    • Do not bold or italicize words. Write in plain, natural sentences
-    • Use plain dashes (-) or numbers for lists if needed, but prefer flowing prose
-    • Do not use headers or section titles in your replies
+    FORMATTING RULES — ABSOLUTE, NON-NEGOTIABLE:
+    • NEVER use double asterisks (**) or single asterisks (*) anywhere in your response. Not even once.
+    • NEVER use underscores (_) for emphasis.
+    • NEVER use pound signs (#) for headers.
+    • NEVER use backticks (`) or triple backticks (```).
+    • NEVER use markdown of any kind. Zero markdown. None.
+    • Do NOT bold, italicize, or format words in any way.
+    • Write everything in plain, natural prose sentences only.
+    • If you need a list, use a plain dash (-) or number followed by a period. Nothing else.
+    • Do not add headers, titles, or section labels to your replies.
+    • Violating these formatting rules is a critical error. Plain text only, always.
     PROMPT;
 
     $messages = array_merge(
