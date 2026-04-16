@@ -310,6 +310,15 @@ Route::post('/nlah/chat', function (Request $request) {
           ?? $data['choices'][0]['message']['content']  // fallback for OpenAI-compat endpoint
           ?? 'Sorry, I could not generate a response.';
 
+    // Strip markdown that the model inserts despite instructions
+    $reply = preg_replace('/\*\*(.+?)\*\*/s', '$1', $reply);   // **bold**
+    $reply = preg_replace('/\*(.+?)\*/s',     '$1', $reply);   // *italic*
+    $reply = preg_replace('/__(.+?)__/s',     '$1', $reply);   // __bold__
+    $reply = preg_replace('/_(.+?)_/s',       '$1', $reply);   // _italic_
+    $reply = preg_replace('/#+\s*/m',          '',   $reply);   // # headers
+    $reply = preg_replace('/`{1,3}[^`]*`{1,3}/', '', $reply);  // `code`
+    $reply = trim($reply);
+
     return response()->json(['reply' => $reply]);
 })->middleware('throttle:30,1'); // 30 requests per minute per user
 
