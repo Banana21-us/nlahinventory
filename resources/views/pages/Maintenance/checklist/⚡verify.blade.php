@@ -1,47 +1,83 @@
 <?php
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf;
 
-new class extends Component {
+new class extends Component
+{
     public array $selectedSlots = [];
+
     public array $slotProofs = [];
+
     public array $slotComments = [];
+
     public array $slotVerifierComments = [];
+
     public array $slotRecordIds = [];
+
     public bool $hasProofColumn = false;
+
     public ?int $pendingProofPartId = null;
+
     public ?string $pendingProofDayKey = null;
+
     public ?string $pendingProofShift = null;
+
     public array $areaParts = [];
+
     public array $locations = [];
+
     public string $selectedLocation = '';
+
     public ?int $selectedLocationId = null;
+
     public string $periodType = 'daily';
+
     public string $selectedDate = '';
+
     public string $calendarMonth = '';
+
     public string $weeklyMonth = '';
+
     public string $weeklyStart = '';
+
     public string $monthlyStart = '';
+
     public array $weeklyWeeks = [];
+
     public array $monthlyPeriods = [];
+
     public bool $showDailyChecklist = false;
+
     public bool $showProofPreviewModal = false;
+
     public ?string $proofPreviewUrl = null;
+
     public ?string $proofPreviewTitle = null;
+
     public ?string $proofPreviewComment = null;
+
     public ?string $proofPreviewSkipReason = null;
+
     public bool $showVerifyModal = false;
+
     public ?int $verifyRecordId = null;
+
     public ?string $verifyPreviewUrl = null;
+
     public string $verifyComment = '';
+
     public array $days = [
         'mon' => 'Monday',
         'tue' => 'Tuesday',
@@ -49,18 +85,49 @@ new class extends Component {
         'thu' => 'Thursday',
         'fri' => 'Friday',
     ];
+
     public array $shifts = ['AM', 'PM'];
+
     public array $weekDates = [];
+
+    public string $floorFilter = '';
+
+    public bool $showPhotoReview = false;
+
+    public string $photoReviewTab = 'all';
+
+    public array $photoStates = [];
+
+    public bool $photoReviewSubmitted = false;
+
+    public bool $showCheckAllConfirm = false;
+
+    public bool $showPhotoModal = false;
+
+    public ?string $photoModalSlotKey = null;
+
+    public string $photoModalComment = '';
+
+    public bool $photoModalCommentError = false;
+
+    protected function getListeners(): array
+    {
+        return [
+            'proof-cancelled', 'proof-captured', 'proof-capture-error',
+        ];
+    }
 
     public function exportToPdf()
     {
-        if (!$this->selectedLocationId) {
+        if (! $this->selectedLocationId) {
             $this->dispatch('notify', message: __('Please select a location first.'), type: 'error');
+
             return;
         }
 
-        if (in_array($this->periodType, ['daily', 'nightly'], true) && !$this->showDailyChecklist) {
+        if (in_array($this->periodType, ['daily', 'nightly'], true) && ! $this->showDailyChecklist) {
             $this->dispatch('notify', message: __('Please select a date first.'), type: 'error');
+
             return;
         }
 
@@ -69,8 +136,9 @@ new class extends Component {
             ->where('id', $this->selectedLocationId)
             ->first();
 
-        if (!$location) {
+        if (! $location) {
             $this->dispatch('notify', message: __('Location not found.'), type: 'error');
+
             return;
         }
 
@@ -85,41 +153,42 @@ new class extends Component {
 
         if ($areaParts->isEmpty()) {
             $this->dispatch('notify', message: __('No area parts found for this location.'), type: 'error');
+
             return;
         }
 
         // Get records for this period
         $partIds = $areaParts->pluck('location_area_part_id')->toArray();
         $recordsQuery = DB::table('records')
-    ->whereIn('location_area_part_id', $partIds)
-    ->where('period_type', $this->periodType)
-    ->where('status', 'YES')
-    ->select([
-        'location_area_part_id',
-        'cleaning_date',        // ← was cleaning_datetime
-        'shift',
-        'maintenance_name',
-        'verifier_name',
-        'verifier_status',
-        'maintenance_comments',
-        'verifier_comments',
-    ]);
+            ->whereIn('location_area_part_id', $partIds)
+            ->where('period_type', $this->periodType)
+            ->where('status', 'YES')
+            ->select([
+                'location_area_part_id',
+                'cleaning_date',        // ← was cleaning_datetime
+                'shift',
+                'maintenance_name',
+                'verifier_name',
+                'verifier_status',
+                'maintenance_comments',
+                'verifier_comments',
+            ]);
 
         // Replace all whereBetween/whereDate on cleaning_datetime in exportToPdf:
 
-if (in_array($this->periodType, ['daily', 'nightly'], true)) {
-    $startOfWeek = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY)->toDateString();
-    $endOfWeek   = Carbon::parse($this->selectedDate)->endOfWeek(Carbon::SUNDAY)->toDateString();
-    $recordsQuery->whereBetween('cleaning_date', [$startOfWeek, $endOfWeek]);
-} elseif ($this->periodType === 'weekly') {
-    $refDate = $this->weeklyWeeks['w1']['start_date'] ?? ($this->weeklyStart ?: $this->selectedDate);
-    $year = $refDate ? Carbon::parse($refDate)->year : now()->year;
-    $recordsQuery->whereBetween('cleaning_date', ["{$year}-01-01", "{$year}-12-31"]);
-} elseif ($this->periodType === 'monthly') {
-    $refDate = $this->monthlyPeriods['m1']['start_date'] ?? ($this->monthlyStart ?: $this->selectedDate);
-    $year = $refDate ? Carbon::parse($refDate)->year : now()->year;
-    $recordsQuery->whereBetween('cleaning_date', ["{$year}-01-01", "{$year}-12-31"]);
-}
+        if (in_array($this->periodType, ['daily', 'nightly'], true)) {
+            $startOfWeek = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY)->toDateString();
+            $endOfWeek = Carbon::parse($this->selectedDate)->endOfWeek(Carbon::SUNDAY)->toDateString();
+            $recordsQuery->whereBetween('cleaning_date', [$startOfWeek, $endOfWeek]);
+        } elseif ($this->periodType === 'weekly') {
+            $refDate = $this->weeklyWeeks['w1']['start_date'] ?? ($this->weeklyStart ?: $this->selectedDate);
+            $year = $refDate ? Carbon::parse($refDate)->year : now()->year;
+            $recordsQuery->whereBetween('cleaning_date', ["{$year}-01-01", "{$year}-12-31"]);
+        } elseif ($this->periodType === 'monthly') {
+            $refDate = $this->monthlyPeriods['m1']['start_date'] ?? ($this->monthlyStart ?: $this->selectedDate);
+            $year = $refDate ? Carbon::parse($refDate)->year : now()->year;
+            $recordsQuery->whereBetween('cleaning_date', ["{$year}-01-01", "{$year}-12-31"]);
+        }
 
         $records = $recordsQuery->get();
         $partNames = $areaParts->pluck('name', 'location_area_part_id')->toArray();
@@ -135,10 +204,10 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         // Generate PDF
         try {
             $pdf = Pdf::loadView('pdf.daily-checklist', $data);
-            
+
             // Set paper size and orientation
             $pdf->setPaper('A4', 'landscape');
-            
+
             // Generate filename
             $filename = sprintf(
                 'cleaning-checklist-%s-%s-%s.pdf',
@@ -146,34 +215,35 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                 $this->periodType,
                 now('Asia/Manila')->format('Y-m-d-His')
             );
-            
+
             // Return PDF download
             return response()->streamDownload(
-                fn () => print($pdf->output()),
+                fn () => print ($pdf->output()),
                 $filename
             );
-            
-        } catch (\Exception $e) {
-            $this->dispatch('notify', message: __('Error generating PDF: ') . $e->getMessage(), type: 'error');
+
+        } catch (Exception $e) {
+            $this->dispatch('notify', message: __('Error generating PDF: ').$e->getMessage(), type: 'error');
+
             return;
         }
     }
 
-    private function buildPdfExportData(\Illuminate\Support\Collection $records, array $partNames = []): array
-{
-    $normalizedRecords = $records->map(function ($record): array {
-        return [
-            'location_area_part_id' => (int) $record->location_area_part_id,
-            'cleaning_date'         => $record->cleaning_date,  // ← was Carbon::parse(cleaning_datetime)
-            'shift'                 => in_array($record->shift, $this->shifts, true) ? $record->shift : 'AM',
-            'maintenance_name'      => is_string($record->maintenance_name ?? null) ? trim($record->maintenance_name) : '',
-            'verifier_name'         => is_string($record->verifier_name ?? null) ? trim($record->verifier_name) : '',
-            'verifier_status'       => $record->verifier_status,
-            'maintenance_comments'  => is_string($record->maintenance_comments ?? null) ? trim($record->maintenance_comments) : '',
-            'verifier_comments'     => is_string($record->verifier_comments ?? null) ? trim($record->verifier_comments) : '',
-        ];
-    });
-    // rest of method unchanged...
+    private function buildPdfExportData(Collection $records, array $partNames = []): array
+    {
+        $normalizedRecords = $records->map(function ($record): array {
+            return [
+                'location_area_part_id' => (int) $record->location_area_part_id,
+                'cleaning_date' => $record->cleaning_date,  // ← was Carbon::parse(cleaning_datetime)
+                'shift' => in_array($record->shift, $this->shifts, true) ? $record->shift : 'AM',
+                'maintenance_name' => is_string($record->maintenance_name ?? null) ? trim($record->maintenance_name) : '',
+                'verifier_name' => is_string($record->verifier_name ?? null) ? trim($record->verifier_name) : '',
+                'verifier_status' => $record->verifier_status,
+                'maintenance_comments' => is_string($record->maintenance_comments ?? null) ? trim($record->maintenance_comments) : '',
+                'verifier_comments' => is_string($record->verifier_comments ?? null) ? trim($record->verifier_comments) : '',
+            ];
+        });
+        // rest of method unchanged...
 
         $commentsMap = [];
         foreach ($normalizedRecords as $record) {
@@ -187,10 +257,10 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                     : $record['maintenance_name'];
                 $key = $record['cleaning_date'].'|'.$person.'|'.$comment;
                 $commentsMap[$key] = [
-                    'date'      => $record['cleaning_date'],
-                    'person'    => $person,
-                    'type'      => $commentField === 'verifier_comments' ? 'Verifier' : 'Staff',
-                    'text'      => $comment,
+                    'date' => $record['cleaning_date'],
+                    'person' => $person,
+                    'type' => $commentField === 'verifier_comments' ? 'Verifier' : 'Staff',
+                    'text' => $comment,
                     'area_name' => $partNames[$record['location_area_part_id']] ?? '',
                     'frequency' => ucfirst($this->periodType),
                 ];
@@ -251,10 +321,12 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             $weeks = [];
             for ($w = 1; $w <= 52; $w++) {
                 $monday = Carbon::now()->setISODate($year, $w, 1);
-                if ($monday->year > $year) break;
+                if ($monday->year > $year) {
+                    break;
+                }
                 $weeks[$w] = [
-                    'label'       => 'W'.str_pad($w, 2, '0', STR_PAD_LEFT),
-                    'month'       => (int) $monday->format('n'),
+                    'label' => 'W'.str_pad($w, 2, '0', STR_PAD_LEFT),
+                    'month' => (int) $monday->format('n'),
                     'month_label' => $monday->format('M'),
                 ];
             }
@@ -264,11 +336,17 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             $verifierNames = [];
 
             foreach ($normalizedRecords as $record) {
-                $date    = Carbon::parse($record['cleaning_date']);
+                $date = Carbon::parse($record['cleaning_date']);
                 $weekNum = (int) $date->isoWeek();
-                if ($date->year < $year) $weekNum = 1;
-                if ($date->year > $year) $weekNum = count($weeks);
-                if (!isset($weeks[$weekNum])) continue;
+                if ($date->year < $year) {
+                    $weekNum = 1;
+                }
+                if ($date->year > $year) {
+                    $weekNum = count($weeks);
+                }
+                if (! isset($weeks[$weekNum])) {
+                    continue;
+                }
 
                 $initials = $this->formatInitials($record['maintenance_name']);
                 $existing = $recordMap[$record['location_area_part_id']][$weekNum] ?? null;
@@ -284,12 +362,12 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                 }
             }
 
-            $data['weeks']              = $weeks;
-            $data['recordMap']          = $recordMap;
-            $data['year']               = $year;
+            $data['weeks'] = $weeks;
+            $data['recordMap'] = $recordMap;
+            $data['year'] = $year;
             $data['maintenanceInitials'] = $this->formatInitialsList(array_keys($maintenanceNames));
-            $data['verifierInitials']   = $this->formatInitialsList(array_keys($verifierNames));
-            $data['periodLabel']        = 'Year '.$year;
+            $data['verifierInitials'] = $this->formatInitialsList(array_keys($verifierNames));
+            $data['periodLabel'] = 'Year '.$year;
 
             return $data;
         }
@@ -308,7 +386,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         $verifierNames = [];
 
         foreach ($normalizedRecords as $record) {
-            $month    = (int) Carbon::parse($record['cleaning_date'])->format('n');
+            $month = (int) Carbon::parse($record['cleaning_date'])->format('n');
             $initials = $this->formatInitials($record['maintenance_name']);
             $existing = $recordMap[$record['location_area_part_id']][$month] ?? null;
             $recordMap[$record['location_area_part_id']][$month] = $existing
@@ -323,12 +401,12 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             }
         }
 
-        $data['months']             = $months;
-        $data['recordMap']          = $recordMap;
-        $data['year']               = $year;
+        $data['months'] = $months;
+        $data['recordMap'] = $recordMap;
+        $data['year'] = $year;
         $data['maintenanceInitials'] = $this->formatInitialsList(array_keys($maintenanceNames));
-        $data['verifierInitials']   = $this->formatInitialsList(array_keys($verifierNames));
-        $data['periodLabel']        = 'Year '.$year;
+        $data['verifierInitials'] = $this->formatInitialsList(array_keys($verifierNames));
+        $data['periodLabel'] = 'Year '.$year;
 
         return $data;
     }
@@ -362,7 +440,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
     }
 
     public function mount(): void
-    {   
+    {
         $this->periodType = in_array(request('period'), ['daily', 'nightly', 'weekly', 'monthly'], true)
         ? request('period')
         : 'daily';
@@ -388,7 +466,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         $this->buildMonthlyPeriods();
         try {
             $this->hasProofColumn = Schema::hasColumn('records', 'proof');
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $this->hasProofColumn = false;
         }
         $this->loadLocations();
@@ -400,6 +478,10 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
     {
         $this->selectedSlots = [];
         $this->showDailyChecklist = false;
+
+        if ($this->floorFilter !== '' && ! in_array($this->floorFilter, $this->availableFloors, true)) {
+            $this->floorFilter = '';
+        }
 
         // Change this check to include nightly
         if (in_array($this->periodType, ['daily', 'nightly']) && $this->selectedDate === '') {
@@ -449,7 +531,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
     {
         try {
             $parsed = Carbon::parse($date)->toDateString();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return;
         }
 
@@ -536,6 +618,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         $this->verifyPreviewUrl = str_starts_with($proofPath, 'skip:') ? null : $this->buildProofPreviewUrl($proofPath);
         $this->verifyComment = '';
         $this->showVerifyModal = true;
+        $this->disableBodyScroll();
     }
 
     #[On('proof-cancelled')]
@@ -549,6 +632,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
     {
         if ($this->isSlotLockedForFuture($dayKey)) {
             $this->clearPendingProof();
+
             return;
         }
 
@@ -558,6 +642,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             || $this->pendingProofShift !== $shift
         ) {
             $this->clearPendingProof();
+
             return;
         }
 
@@ -565,6 +650,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         if ($proofPath === null) {
             $this->dispatch('proof-capture-error', message: __('Unable to save proof photo. Please try again.'));
             $this->clearPendingProof();
+
             return;
         }
 
@@ -611,21 +697,22 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
 
         try {
             Storage::disk('public')->put($path, $binary);
+
             return $path;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }
 
     private function resolveCleaningDate(string $dayKey): ?string
-{
-    return match ($this->periodType) {
-        'daily', 'nightly' => $this->selectedDate !== '' ? $this->selectedDate : null,
-        'weekly'           => Carbon::now('Asia/Manila')->toDateString(),
-        'monthly'          => Carbon::now('Asia/Manila')->toDateString(),
-        default            => $this->weekDates[$dayKey] ?? null,
-    };
-}
+    {
+        return match ($this->periodType) {
+            'daily', 'nightly' => $this->selectedDate !== '' ? $this->selectedDate : null,
+            'weekly' => Carbon::now('Asia/Manila')->toDateString(),
+            'monthly' => Carbon::now('Asia/Manila')->toDateString(),
+            default => $this->weekDates[$dayKey] ?? null,
+        };
+    }
 
     private function extractProofPathFromComments(?string $comments): ?string
     {
@@ -667,13 +754,15 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             $reason = substr($path, 5);
             $this->proofPreviewSkipReason = match ($reason) {
                 'patient_present' => 'Patient Present',
-                'gloves'          => 'Gloves On / Sanitary Concern',
-                default           => ucwords(str_replace('_', ' ', $reason)),
+                'gloves' => 'Gloves On / Sanitary Concern',
+                default => ucwords(str_replace('_', ' ', $reason)),
             };
-            $this->proofPreviewUrl     = null;
-            $this->proofPreviewTitle   = __('Proof Skipped');
+            $this->proofPreviewUrl = null;
+            $this->proofPreviewTitle = __('Proof Skipped');
             $this->proofPreviewComment = null;
             $this->showProofPreviewModal = true;
+            $this->disableBodyScroll();
+
             return;
         }
 
@@ -683,6 +772,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         $this->proofPreviewTitle = __('Proof Preview');
         $this->proofPreviewComment = $this->slotVerifierComments[$slotKey] ?? null;
         $this->showProofPreviewModal = true;
+        $this->disableBodyScroll();
     }
 
     public function getProofMetadata(int $locationAreaPartId, string $dayKey, string $shift): array
@@ -702,7 +792,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                 if ($locationRow) {
                     $locationLabel = trim($locationRow->location_name.($locationRow->location_floor ? ' ('.$locationRow->location_floor.')' : ''));
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // Keep empty/previous fallback.
             }
         }
@@ -726,6 +816,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         $this->proofPreviewTitle = null;
         $this->proofPreviewComment = null;
         $this->proofPreviewSkipReason = null;
+        $this->enableBodyScroll();
     }
 
     public function closeVerifyModal(): void
@@ -734,6 +825,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         $this->verifyRecordId = null;
         $this->verifyPreviewUrl = null;
         $this->verifyComment = '';
+        $this->enableBodyScroll();
     }
 
     public function confirmVerifyChecklist(): void
@@ -755,7 +847,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                     'verifier_name' => Auth::user()?->name,
                     'verifier_comments' => $verifierComment,
                 ]);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Keep verify page usable even if DB update fails.
         }
 
@@ -779,16 +871,6 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             $normalizedPath = substr($normalizedPath, 8);
         }
 
-        try {
-            if (Storage::disk('public')->exists($normalizedPath)) {
-                $raw = Storage::disk('public')->get($normalizedPath);
-                $mime = Storage::disk('public')->mimeType($normalizedPath) ?: 'image/jpeg';
-                return 'data:'.$mime.';base64,'.base64_encode($raw);
-            }
-        } catch (\Throwable) {
-            // fallback url below
-        }
-
         return asset('storage/'.$normalizedPath);
     }
 
@@ -796,15 +878,37 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
     {
         if (! in_array($this->periodType, ['daily', 'nightly', 'weekly', 'monthly'], true) || $this->selectedLocationId === null) {
             $this->areaParts = [];
+
             return;
         }
 
         try {
+            $parentLoc = DB::table('locations')
+                ->where('id', $this->selectedLocationId)
+                ->first(['name', 'floor']);
+            if (! $parentLoc) {
+                $this->areaParts = [];
+
+                return;
+            }
+
+            $parentName = str_contains($parentLoc->name, ' | ')
+                ? trim(explode(' | ', $parentLoc->name, 2)[0])
+                : $parentLoc->name;
+
+            $locationIds = DB::table('locations')
+                ->where(function ($q) use ($parentName) {
+                    $q->where('name', $parentName)
+                        ->orWhere('name', 'like', $parentName.' | %');
+                })
+                ->pluck('id');
+
             $query = DB::table('location_area_parts as lap')
                 ->join('area_parts as ap', 'ap.id', '=', 'lap.area_part_id')
                 ->join('locations as l', 'l.id', '=', 'lap.location_id')
                 ->where('lap.frequency', $this->periodType)
-                ->where('lap.location_id', $this->selectedLocationId)
+                ->whereIn('lap.location_id', $locationIds)
+                ->orderByRaw("CASE WHEN INSTR(l.name, ' | ') = 0 THEN 0 ELSE 1 END")
                 ->orderBy('l.name')
                 ->orderBy('ap.name');
 
@@ -825,7 +929,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                 'location_display' => trim($part->location_name.($part->location_floor ? ' ('.$part->location_floor.')' : '')),
                 'display_name' => $part->area_part_name,
             ])->all();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $this->areaParts = [];
         }
     }
@@ -836,43 +940,22 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             $this->locations = [];
             $this->selectedLocation = '';
             $this->selectedLocationId = null;
+
             return;
         }
 
         try {
-            $this->locations = DB::table('location_area_parts as lap')
-                ->join('locations as l', 'l.id', '=', 'lap.location_id')
-                ->where('lap.frequency', $this->periodType)
-                ->distinct()
-                ->orderBy('l.name')
-                ->get(['l.id as id', 'l.name as name', 'l.floor as floor'])
-                ->map(fn ($location) => [
-                    'id' => (int) $location->id,
-                    'name' => $location->name,
-                    'floor' => $location->floor,
-                    'display_name' => $location->name.' ('.$location->floor.')',
+            $this->locations = DB::table('locations')
+                ->orderBy('name')
+                ->get(['id', 'name', 'floor'])
+                ->map(fn ($loc) => [
+                    'id' => (int) $loc->id,
+                    'name' => $loc->name,
+                    'floor' => $loc->floor,
+                    'display_name' => $loc->name.' ('.$loc->floor.')',
                 ])
                 ->all();
-
-            $matchedById = $this->selectedLocationId !== null
-                ? collect($this->locations)->first(fn (array $location) => $location['id'] === $this->selectedLocationId)
-                : null;
-            if ($matchedById !== null) {
-                $this->selectedLocation = $matchedById['display_name'];
-                return;
-            }
-
-            $needle = trim($this->selectedLocation);
-            $matched = collect($this->locations)
-                ->first(fn (array $location) => strcasecmp($location['name'], $needle) === 0
-                    || strcasecmp($location['display_name'], $needle) === 0);
-
-            if ($needle !== '' && $matched === null) {
-                $this->selectedLocationId = null;
-            } elseif ($matched !== null) {
-                $this->selectedLocationId = $matched['id'];
-            }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $this->locations = [];
             $this->selectedLocation = '';
             $this->selectedLocationId = null;
@@ -912,13 +995,13 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                 $query->where('cleaning_date', $this->selectedDate);
             } elseif ($this->periodType === 'weekly') {
                 $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
-                $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+                $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
                 if ($weekStart && $weekEnd) {
                     $query->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
                 }
             } elseif ($this->periodType === 'monthly') {
                 $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
-                $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+                $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
                 if ($monthStart && $monthEnd) {
                     $query->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
                 }
@@ -938,9 +1021,9 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
             foreach ($records as $record) {
                 $dayKey = match ($this->periodType) {
                     'daily', 'nightly' => 'selected',
-                    'weekly'           => $this->weekKeyFromDate(Carbon::parse($record->cleaning_date)),
-                    'monthly'          => $this->monthKeyFromDate(Carbon::parse($record->cleaning_date)),
-                    default            => strtolower(Carbon::parse($record->cleaning_date)->format('D')),
+                    'weekly' => $this->weekKeyFromDate(Carbon::parse($record->cleaning_date)),
+                    'monthly' => $this->monthKeyFromDate(Carbon::parse($record->cleaning_date)),
+                    default => strtolower(Carbon::parse($record->cleaning_date)->format('D')),
                 };
 
                 if ($dayKey === null) {
@@ -976,8 +1059,8 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                     $this->slotVerifierComments[$key] = trim($record->verifier_comments);
                 }
             }
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('loadExistingSlots error: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('loadExistingSlots error: '.$e->getMessage());
         }
     }
 
@@ -988,7 +1071,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
         }
 
         try {
-            $partIds     = array_column($this->areaParts, 'id');
+            $partIds = array_column($this->areaParts, 'id');
             $deleteQuery = DB::table('records')
                 ->whereIn('location_area_part_id', $partIds)
                 ->where('period_type', $this->periodType);
@@ -997,13 +1080,13 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                 $deleteQuery->where('cleaning_date', $this->selectedDate);
             } elseif ($this->periodType === 'weekly') {
                 $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
-                $weekEnd   = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+                $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
                 if ($weekStart && $weekEnd) {
                     $deleteQuery->whereBetween('cleaning_date', [$weekStart, $weekEnd]);
                 }
             } elseif ($this->periodType === 'monthly') {
                 $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
-                $monthEnd   = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+                $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
                 if ($monthStart && $monthEnd) {
                     $deleteQuery->whereBetween('cleaning_date', [$monthStart, $monthEnd]);
                 }
@@ -1019,38 +1102,38 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                 }
 
                 $cleaningDate = match ($this->periodType) {
-        'daily'   => $this->selectedDate ?: null,
-        'weekly'  => Carbon::now('Asia/Manila')->toDateString(),
-        'monthly' => Carbon::now('Asia/Manila')->toDateString(),
-        default   => $this->weekDates[$dayKey] ?? null,
-    };
+                    'daily' => $this->selectedDate ?: null,
+                    'weekly' => Carbon::now('Asia/Manila')->toDateString(),
+                    'monthly' => Carbon::now('Asia/Manila')->toDateString(),
+                    default => $this->weekDates[$dayKey] ?? null,
+                };
 
                 if ($cleaningDate === null) {
                     continue;
                 }
 
-                $proofPath    = $this->slotProofs[$key] ?? null;
+                $proofPath = $this->slotProofs[$key] ?? null;
                 $commentValue = $this->slotComments[$key] ?? null;
 
                 DB::table('records')->insert([
                     'location_area_part_id' => (int) $partId,
-                    'cleaning_date'         => $cleaningDate,
-                    'period_type'           => $this->periodType,
-                    'shift'                 => $shift,
-                    'status'                => 'YES',
-                    'remarks'               => 'Checked',
-                    'proof'                 => $proofPath,
-                    'maintenance_name'      => Auth::user()?->name,
-                    'maintenance_comments'  => $commentValue,
-                    'verifier_name'         => null,
-                    'verifier_status'       => 'NO',
-                    'verifier_comments'     => null,
+                    'cleaning_date' => $cleaningDate,
+                    'period_type' => $this->periodType,
+                    'shift' => $shift,
+                    'status' => 'YES',
+                    'remarks' => 'Checked',
+                    'proof' => $proofPath,
+                    'maintenance_name' => Auth::user()?->name,
+                    'maintenance_comments' => $commentValue,
+                    'verifier_name' => null,
+                    'verifier_status' => 'NO',
+                    'verifier_comments' => null,
                 ]);
             }
 
             $this->loadExistingSlots();
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('saveChecklist error: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('saveChecklist error: '.$e->getMessage());
         }
     }
 
@@ -1116,6 +1199,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                 return $key;
             }
         }
+
         return null;
     }
 
@@ -1168,7 +1252,142 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                 return $key;
             }
         }
+
         return null;
+    }
+
+    #[Computed]
+    public function locationProgress(): array
+    {
+        return Cache::remember('lp_'.$this->selectedLocationId.'_'.$this->periodType.'_'.$this->selectedDate, 30, function () {
+            $locs = $this->locations;
+            if (empty($locs)) {
+                return [];
+            }
+
+            $shiftsCount = in_array($this->periodType, ['daily', 'nightly'], true) ? 2 : 1;
+            $progress = [];
+
+            try {
+                $parentNameToId = [];
+                foreach ($locs as $loc) {
+                    $parentNameToId[$loc['name']] = $loc['id'];
+                }
+
+                $allLocRows = DB::table('locations')
+                    ->where(function ($q) use ($locs) {
+                        foreach ($locs as $loc) {
+                            $q->orWhere('name', $loc['name'])
+                                ->orWhere('name', 'like', $loc['name'].' | %');
+                        }
+                    })
+                    ->pluck('id', 'name');
+
+                $childToParent = [];
+                foreach ($allLocRows as $name => $id) {
+                    $pName = str_contains($name, ' | ') ? trim(explode(' | ', $name, 2)[0]) : $name;
+                    $pId = $parentNameToId[$pName] ?? null;
+                    if ($pId !== null) {
+                        $childToParent[(int) $id] = (int) $pId;
+                    }
+                }
+
+                $allIds = array_keys($childToParent);
+                if (empty($allIds)) {
+                    foreach ($locs as $loc) {
+                        $progress[$loc['id']] = ['total' => 0, 'done' => 0, 'verified' => 0, 'pct' => 0, 'verifiedPct' => 0];
+                    }
+
+                    return $progress;
+                }
+
+                $dateCondition = null;
+                if (in_array($this->periodType, ['daily', 'nightly'], true)) {
+                    $dateCondition = ['date', $this->selectedDate];
+                } elseif ($this->periodType === 'weekly') {
+                    $weekStart = $this->weeklyWeeks[array_key_first($this->weeklyWeeks)]['start_date'] ?? null;
+                    $weekEnd = $this->weeklyWeeks[array_key_last($this->weeklyWeeks)]['end_date'] ?? null;
+                    if ($weekStart && $weekEnd) {
+                        $dateCondition = ['between', [$weekStart, $weekEnd]];
+                    }
+                } elseif ($this->periodType === 'monthly') {
+                    $monthStart = $this->monthlyPeriods[array_key_first($this->monthlyPeriods)]['start_date'] ?? null;
+                    $monthEnd = $this->monthlyPeriods[array_key_last($this->monthlyPeriods)]['end_date'] ?? null;
+                    if ($monthStart && $monthEnd) {
+                        $dateCondition = ['between', [$monthStart, $monthEnd]];
+                    }
+                }
+
+                $baseQuery = DB::table('records as r')
+                    ->join('location_area_parts as lap', 'lap.id', '=', 'r.location_area_part_id')
+                    ->whereIn('lap.location_id', $allIds)
+                    ->where('r.period_type', $this->periodType)
+                    ->where('r.status', 'YES');
+
+                if ($dateCondition) {
+                    if ($dateCondition[0] === 'date') {
+                        $baseQuery->whereDate('r.cleaning_date', $dateCondition[1]);
+                    } elseif ($dateCondition[0] === 'between') {
+                        $baseQuery->whereBetween('r.cleaning_date', $dateCondition[1]);
+                    }
+                }
+
+                $totals = DB::table('location_area_parts')
+                    ->whereIn('location_id', $allIds)
+                    ->where('frequency', $this->periodType)
+                    ->selectRaw('location_id, COUNT(*) as cnt')
+                    ->groupBy('location_id')
+                    ->pluck('cnt', 'location_id');
+
+                $done = (clone $baseQuery)
+                    ->whereNotNull('r.proof')
+                    ->where('r.proof', '!=', '')
+                    ->selectRaw('lap.location_id, COUNT(*) as cnt')
+                    ->groupBy('lap.location_id')
+                    ->pluck('cnt', 'location_id');
+
+                $verified = (clone $baseQuery)
+                    ->where('r.verifier_status', 'YES')
+                    ->selectRaw('lap.location_id, COUNT(*) as cnt')
+                    ->groupBy('lap.location_id')
+                    ->pluck('cnt', 'location_id');
+
+                foreach ($locs as $loc) {
+                    $progress[$loc['id']] = ['total' => 0, 'done' => 0, 'verified' => 0, 'pct' => 0, 'verifiedPct' => 0];
+                }
+
+                foreach ($childToParent as $childId => $parentId) {
+                    $progress[$parentId]['total'] += (int) ($totals[$childId] ?? 0) * $shiftsCount;
+                    $progress[$parentId]['done'] += (int) ($done[$childId] ?? 0);
+                    $progress[$parentId]['verified'] += (int) ($verified[$childId] ?? 0);
+                }
+
+                foreach ($progress as &$p) {
+                    $p['done'] = min($p['done'], $p['total']);
+                    $p['verified'] = min($p['verified'], $p['total']);
+                    $p['pct'] = $p['total'] > 0 ? min(100, (int) round(($p['done'] / $p['total']) * 100)) : 0;
+                    $p['verifiedPct'] = $p['total'] > 0 ? min(100, (int) round(($p['verified'] / $p['total']) * 100)) : 0;
+                }
+            } catch (Throwable) {
+                foreach ($locs as $loc) {
+                    $progress[$loc['id']] = ['total' => 0, 'done' => 0, 'verified' => 0, 'pct' => 0, 'verifiedPct' => 0];
+                }
+            }
+
+            return $progress;
+        });
+    }
+
+    #[Computed]
+    public function availableFloors(): array
+    {
+        return collect($this->locations)
+            ->pluck('floor')
+            ->filter(fn ($f) => is_string($f) && trim($f) !== '')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 
     private function biMonthStart(Carbon $date): Carbon
@@ -1178,11 +1397,244 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
 
         return $date->copy()->month($startMonth)->startOfMonth();
     }
+
+    public function openPhotoReview(): void
+    {
+        $this->photoStates = [];
+        foreach ($this->slotRecordIds as $key => $recordId) {
+            $checked = isset($this->selectedSlots[$key]) ? true : null;
+            $comment = $this->slotVerifierComments[$key] ?? '';
+            $this->photoStates[$key] = ['checked' => $checked, 'comment' => $comment];
+        }
+        $this->showPhotoReview = true;
+        $this->photoReviewSubmitted = false;
+        $this->showCheckAllConfirm = false;
+    }
+
+    public function closePhotoReview(): void
+    {
+        $this->showPhotoReview = false;
+        $this->showPhotoModal = false;
+        $this->photoModalSlotKey = null;
+        $this->showCheckAllConfirm = false;
+        $this->enableBodyScroll();
+    }
+
+    public function setPhotoReviewTab(string $tab): void
+    {
+        $this->photoReviewTab = $tab;
+    }
+
+    public function openPhotoModal(string $slotKey): void
+    {
+        $this->photoModalSlotKey = $slotKey;
+        $this->photoModalComment = $this->photoStates[$slotKey]['comment'] ?? '';
+        $this->photoModalCommentError = false;
+        $this->showPhotoModal = true;
+        $this->disableBodyScroll();
+    }
+
+    public function closePhotoModal(): void
+    {
+        $currentState = $this->photoStates[$this->photoModalSlotKey] ?? null;
+        if ($currentState && $currentState['checked'] === false && trim($this->photoModalComment) === '') {
+            $this->photoModalCommentError = true;
+
+            return;
+        }
+        $this->photoStates[$this->photoModalSlotKey]['comment'] = $this->photoModalComment;
+        $this->showPhotoModal = false;
+        $this->photoModalSlotKey = null;
+        $this->photoModalCommentError = false;
+    }
+
+    public function navigatePhotoModal(int $direction): void
+    {
+        $currentState = $this->photoStates[$this->photoModalSlotKey] ?? null;
+        if ($currentState && $currentState['checked'] === false && trim($this->photoModalComment) === '') {
+            $this->photoModalCommentError = true;
+
+            return;
+        }
+        $this->photoStates[$this->photoModalSlotKey]['comment'] = $this->photoModalComment;
+
+        $filteredKeys = $this->getFilteredPhotoSlotKeys();
+        $currentIndex = array_search($this->photoModalSlotKey, $filteredKeys, true);
+        if ($currentIndex === false) {
+            $this->closePhotoModal();
+
+            return;
+        }
+
+        $nextIndex = $currentIndex + $direction;
+        if ($nextIndex >= 0 && $nextIndex < count($filteredKeys)) {
+            $this->photoModalSlotKey = $filteredKeys[$nextIndex];
+            $this->photoModalComment = $this->photoStates[$this->photoModalSlotKey]['comment'] ?? '';
+            $this->photoModalCommentError = false;
+        } else {
+            $this->closePhotoModal();
+        }
+    }
+
+    public function togglePhotoCheck(): void
+    {
+        $this->photoStates[$this->photoModalSlotKey]['comment'] = $this->photoModalComment;
+
+        $currentChecked = $this->photoStates[$this->photoModalSlotKey]['checked'] ?? null;
+        $newChecked = ($currentChecked === true) ? null : true;
+        $this->photoStates[$this->photoModalSlotKey]['checked'] = $newChecked;
+
+        if ($newChecked === true) {
+            $filteredKeys = $this->getFilteredPhotoSlotKeys();
+            $currentIndex = array_search($this->photoModalSlotKey, $filteredKeys, true);
+            $remainingKeys = array_filter($filteredKeys, function ($key) use ($currentIndex, $filteredKeys) {
+                $idx = array_search($key, $filteredKeys, true);
+
+                return $idx > $currentIndex && ($this->photoStates[$key]['checked'] ?? null) !== true;
+            });
+
+            if (! empty($remainingKeys)) {
+                $nextKey = array_values($remainingKeys)[0];
+                $this->photoModalSlotKey = $nextKey;
+                $this->photoModalComment = $this->photoStates[$nextKey]['comment'] ?? '';
+                $this->photoModalCommentError = false;
+            } else {
+                $this->closePhotoModal();
+            }
+        } else {
+            $this->photoModalCommentError = false;
+        }
+    }
+
+    public function handleCheckAll(): void
+    {
+        $this->showCheckAllConfirm = true;
+    }
+
+    public function confirmCheckAll(): void
+    {
+        foreach ($this->photoStates as $key => $state) {
+            if ($state['checked'] === null) {
+                $this->photoStates[$key]['checked'] = true;
+            }
+        }
+        $this->showCheckAllConfirm = false;
+    }
+
+    public function cancelCheckAll(): void
+    {
+        $this->showCheckAllConfirm = false;
+    }
+
+    public function submitPhotoReview(): void
+    {
+        if (! $this->allPhotoReviewed()) {
+            return;
+        }
+        if ($this->photoMissingCommentCount() > 0) {
+            return;
+        }
+
+        foreach ($this->photoStates as $slotKey => $state) {
+            $recordId = $this->slotRecordIds[$slotKey] ?? null;
+            if ($recordId === null) {
+                continue;
+            }
+
+            DB::table('records')->where('id', $recordId)->update([
+                'verifier_status' => $state['checked'] ? 'YES' : 'NO',
+                'verifier_name' => Auth::user()?->name,
+                'verifier_comments' => trim($state['comment']) ?: null,
+            ]);
+        }
+
+        $this->loadExistingSlots();
+        $this->photoReviewSubmitted = true;
+        $this->closePhotoReview();
+    }
+
+    private function getFilteredPhotoSlotKeys(): array
+    {
+        if ($this->photoReviewTab === 'AM') {
+            return array_keys(array_filter($this->photoStates, function ($key) {
+                $parts = explode('|', $key);
+
+                return count($parts) === 3 && $parts[2] === 'AM';
+            }));
+        }
+        if ($this->photoReviewTab === 'PM') {
+            return array_keys(array_filter($this->photoStates, function ($key) {
+                $parts = explode('|', $key);
+
+                return count($parts) === 3 && $parts[2] === 'PM';
+            }));
+        }
+
+        return array_keys($this->photoStates);
+    }
+
+    private function allPhotoReviewed(): bool
+    {
+        foreach ($this->photoStates as $state) {
+            if ($state['checked'] === null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function photoMissingCommentCount(): int
+    {
+        $count = 0;
+        foreach ($this->photoStates as $state) {
+            if ($state['checked'] === false && trim($state['comment']) === '') {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    private function disableBodyScroll(): void
+    {
+        $this->dispatch('body-scroll', 'disable');
+    }
+
+    private function enableBodyScroll(): void
+    {
+        $this->dispatch('body-scroll', 'enable');
+    }
 }; ?>
 
-<div>
+<div
+    x-data="{ bodyScrollDisabled: false }"
+    x-on:body-scroll.window="
+        if ($event.detail === 'disable') {
+            document.body.style.overflow = 'hidden';
+            bodyScrollDisabled = true;
+        } else {
+            document.body.style.overflow = '';
+            bodyScrollDisabled = false;
+        }
+    "
+>
     <section class="w-full">
         @include('partials.checklist-heading')
+
+        <style>
+        .checklist-progress-bar {
+            height: 3px;
+            background: linear-gradient(90deg, #0ea5e9 0%, #22c55e 100%);
+            width: 100%;
+            animation: checklist-progress 1.4s ease-in-out infinite alternate;
+        }
+        @keyframes checklist-progress {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        </style>
+        <div wire:loading.delay style="display:none" class="checklist-progress-bar"></div>
 
         <x-pages::maintenance.checklist.layout
             :wide="true"
@@ -1240,7 +1692,33 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                     </div>
 
                     <div class="w-full overflow-hidden">
-                        @php $locationChunks = array_chunk($locations, 9); @endphp
+                        @php 
+                            $availableFloors = $this->availableFloors;
+                            $filteredLocations = $floorFilter !== ''
+                                ? array_values(array_filter($locations, fn ($l) => $l['floor'] === $floorFilter))
+                                : $locations;
+                            $locationChunks = array_chunk($filteredLocations, 9); 
+                            $locationProgress = $this->locationProgress;
+                        @endphp
+
+                        {{-- Floor filter tabs --}}
+                        @if (count($availableFloors) > 1)
+                            <div class="mb-2 flex gap-1.5">
+                                <button
+                                    type="button"
+                                    wire:click="$set('floorFilter', '')"
+                                    class="rounded-lg border px-3 py-1 text-xs font-semibold transition {{ $floorFilter === '' ? 'border-teal-600 bg-teal-600 text-white dark:bg-teal-700 dark:border-teal-500' : 'border-gray-200 bg-white text-gray-600 hover:border-teal-600 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-teal-600 dark:hover:bg-teal-900/20' }}"
+                                >{{ __('All') }}</button>
+                                @foreach ($availableFloors as $floor)
+                                    <button
+                                        type="button"
+                                        wire:click="$set('floorFilter', '{{ addslashes($floor) }}')"
+                                        class="rounded-lg border px-3 py-1 text-xs font-semibold transition {{ $floorFilter === $floor ? 'border-teal-600 bg-teal-600 text-white dark:bg-teal-700 dark:border-teal-500' : 'border-gray-200 bg-white text-gray-600 hover:border-teal-600 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-teal-600 dark:hover:bg-teal-900/20' }}"
+                                    >{{ $floor }}</button>
+                                @endforeach
+                            </div>
+                        @endif
+
                         <div
                             x-data="{
                                 page: 0,
@@ -1285,16 +1763,54 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                                     @foreach ($locationChunks as $chunk)
                                         <div class="grid w-full shrink-0 grid-cols-3 gap-2" style="min-width:100%">
                                             @foreach ($chunk as $location)
+                                                @php
+                                                    $locProg  = $locationProgress[$location['id']] ?? ['pct' => 0, 'done' => 0, 'verified' => 0, 'total' => 0, 'verifiedPct' => 0];
+                                                    $locPct   = $locProg['pct'];
+                                                    $locVerifiedPct = $locProg['verifiedPct'];
+                                                    $locDone  = $locProg['done'];
+                                                    $locVerified = $locProg['verified'];
+                                                    $locTotal = $locProg['total'];
+                                                    $isVerified = $locTotal > 0 && $locVerified >= $locTotal;
+                                                    $isActive = $selectedLocationId === ($location['id'] ?? null);
+                                                    
+                                                    // Show verified progress if available, otherwise show done progress
+                                                    $displayPct = $locVerifiedPct > 0 ? $locVerifiedPct : $locPct;
+                                                    $fillColor = $isVerified 
+                                                        ? 'rgba(37, 99, 235, 0.22)'  // Blue when verified
+                                                        : ($locPct > 0 
+                                                            ? 'rgba(9, 123, 134, 0.13)'  // Light teal for in-progress
+                                                            : 'transparent');
+                                                @endphp
                                                 <button
                                                     type="button"
                                                     wire:click="selectLocationByName('{{ addslashes($location['display_name']) }}')"
-                                                    class="flex flex-col items-center gap-1 rounded-xl border px-1 py-3 text-center text-xs font-medium transition
-                                                        {{ $selectedLocationId === ($location['id'] ?? null)
+                                                    class="group relative flex flex-col items-center gap-1 overflow-hidden rounded-xl border px-1 py-3 text-center text-xs font-medium transition
+                                                        {{ $isActive
                                                             ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-900/30 dark:text-sky-300'
                                                             : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800' }}"
                                                 >
-                                                    
-                                                    <span class="line-clamp-2 leading-tight">{{ $location['display_name'] }}</span>
+                                                    @if ($displayPct > 0)
+                                                        <span
+                                                            class="pointer-events-none absolute bottom-0 left-0 right-0 transition-all duration-500 bg-opacity-20"
+                                                            :style="'height: {{ $displayPct }}%; background: ' + @js($fillColor)"
+                                                            aria-hidden="true"
+                                                        ></span>
+                                                    @endif
+
+                                                    <span class="line-clamp-2 leading-tight relative z-10">{{ $location['display_name'] }}</span>
+
+                                                    {{-- Verified checkmark badge --}}
+                                                    @if ($isVerified && $locTotal > 0)
+                                                        <span class="absolute top-1 right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white dark:border-zinc-900" aria-hidden="true">
+                                                            <svg class="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2 6l3 3 5-5"/>
+                                                            </svg>
+                                                        </span>
+                                                    @elseif ($locTotal > 0)
+                                                        <span class="absolute top-1 right-1 text-[9px] font-medium text-zinc-400 dark:text-zinc-500">
+                                                            {{ $locVerified }}/{{ $locTotal }}
+                                                        </span>
+                                                    @endif
                                                 </button>
                                             @endforeach
                                             {{-- Fill last row to keep grid shape --}}
@@ -1335,35 +1851,33 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                             @endif
                         </div>
 
-                        <div class="flex justify-end pt-1">
+                        <div class="flex justify-end gap-2 pt-1">
                             <button
                                 type="button"
                                 wire:click="exportToPdf"
                                 @if (!$selectedLocationId || ($periodType === 'daily' && !$showDailyChecklist))
                                     disabled
                                 @endif
-                                style="
-                                    display: inline-flex;
-                                    width: 100%;
-                                    align-items: center;
-                                    justify-content: center;
-                                    gap: 0.5rem;
-                                    border-radius: 0.375rem;
-                                    padding: 0.5rem 1rem;
-                                    font-size: 0.875rem;
-                                    font-weight: 500;
-                                    {{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist)
-                                        ? 'background-color: #2563eb; color: white; border: 1px solid #1e40af;'
-                                        : 'background-color: #d1d5db; color: #374151; border: 1px solid #9ca3af; cursor: not-allowed; opacity: 0.5;'
-                                    }}
-                                "
-                                onmouseover="{{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) ? 'this.style.backgroundColor=\'#1d4ed8\'' : '' }}"
-                                onmouseout="{{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) ? 'this.style.backgroundColor=\'#2563eb\'' : '' }}"
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition {{ $selectedLocationId && ($periodType !== 'daily' || $showDailyChecklist) ? 'bg-blue-600 text-white border border-blue-700 hover:bg-blue-700 dark:bg-blue-700 dark:border-blue-600 dark:hover:bg-blue-800' : 'bg-gray-300 text-gray-600 border border-gray-400 cursor-not-allowed opacity-50 dark:bg-zinc-600 dark:text-zinc-400 dark:border-zinc-500' }}"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                                 </svg>
                                 <span>{{ __('Export PDF') }}</span>
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="openPhotoReview"
+                                @if (!$selectedLocationId)
+                                    disabled
+                                @endif
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition {{ $selectedLocationId ? 'bg-sky-500 text-white border border-sky-600 hover:bg-sky-600 dark:bg-sky-600 dark:border-sky-500 dark:hover:bg-sky-700' : 'bg-gray-300 text-gray-600 border border-gray-400 cursor-not-allowed opacity-50 dark:bg-zinc-600 dark:text-zinc-400 dark:border-zinc-500' }}"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <span>{{ __('Photo Review') }}</span>
                             </button>
                         </div>
                     </div>
@@ -1380,7 +1894,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                     <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
                         {{-- Calendar Header --}}
-                        <div class="flex items-center justify-between px-5 py-4" style="background: linear-gradient(135deg, #1e3a5f 0%, #097b86 100%);">
+                        <div class="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-slate-800 to-teal-700">
                             <button type="button" wire:click="previousCalendarMonth"
                                     class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
                                     aria-label="{{ __('Previous month') }}">
@@ -1432,14 +1946,14 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                                         @disabled($isFuture)
                                         class="relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
                                             {{ $isSelected ? 'text-white shadow-md' : '' }}
-                                            {{ $isToday && ! $isSelected ? 'ring-2 ring-offset-1' : '' }}
+                                            {{ $isToday && ! $isSelected ? 'ring-2 ring-sky-500 ring-offset-1' : '' }}
                                             {{ ! $isSelected && ! $isFuture && $isCurrentMonth ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
                                             {{ ! $isCurrentMonth && ! $isFuture ? 'text-zinc-300 hover:bg-zinc-50 dark:text-zinc-600 dark:hover:bg-zinc-800' : '' }}
-                                            {{ $isFuture ? 'cursor-not-allowed opacity-30' : '' }}"
-                                        style="{{ $isSelected ? 'background: linear-gradient(135deg, #1e3a5f, #097b86);' : '' }}">
+                                            {{ $isFuture ? 'cursor-not-allowed opacity-30' : '' }}
+                                            @if($isSelected) bg-gradient-to-br from-slate-800 to-teal-700 @endif">
                                     {{ $dayNumber }}
                                     @if ($isToday && ! $isSelected)
-                                        <span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style="background-color:#097b86;"></span>
+                                        <span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-teal-600"></span>
                                     @endif
                                 </button>
                             @endfor
@@ -1474,7 +1988,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                             : ($monthlyPeriods['m1']['start_date'] ?? now('Asia/Manila')->toDateString());
                     @endphp
                     <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900 mb-3">
-                        <div class="flex items-center justify-between px-5 py-4" style="background: linear-gradient(135deg, #1e3a5f 0%, #097b86 100%);">
+                        <div class="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-slate-800 to-teal-700">
                             <button type="button"
                                     wire:click="{{ $periodType === 'weekly' ? 'previousWeeklyPeriod' : 'previousMonthlyPeriod' }}"
                                     class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
@@ -1763,8 +2277,8 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
 
                 @if ($showProofPreviewModal)
                     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                        <div class="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-zinc-900">
-                            <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                        <div class="flex w-full max-w-lg flex-col rounded-xl bg-white shadow-2xl dark:bg-zinc-900" style="max-height:90vh;">
+                            <div class="flex flex-shrink-0 items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
                                 <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                                     {{ $proofPreviewTitle ?? __('Proof Preview') }}
                                 </h3>
@@ -1776,7 +2290,7 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                                     &times;
                                 </button>
                             </div>
-                            <div class="p-4">
+                            <div class="flex-1 overflow-y-auto p-4">
                                 @if ($proofPreviewSkipReason)
                                     <div class="flex flex-col items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-8 text-center dark:border-amber-700/40 dark:bg-amber-900/20">
                                         <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-800/40">
@@ -1806,6 +2320,14 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                                         {{ __('No proof image available for this item.') }}
                                     </div>
                                 @endif
+                            </div>
+                            <div class="flex-shrink-0 border-t border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                                <button
+                                    type="button"
+                                    wire:click="closeProofPreview"
+                                    class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                                    {{ __('Close') }}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1888,13 +2410,351 @@ if (in_array($this->periodType, ['daily', 'nightly'], true)) {
                                     <button
                                         type="button"
                                         wire:click="confirmVerifyChecklist"
-                                        class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                                        class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800">
                                         {{ __('Confirm Verification') }}
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
+                @endif
+
+                @if ($showPhotoReview)
+                    @php
+                        $filteredPhotoKeys = $this->getFilteredPhotoSlotKeys();
+                        $reviewedCount = 0;
+                        $totalCount = count($photoStates);
+                        foreach ($photoStates as $state) {
+                            if ($state['checked'] !== null) {
+                                $reviewedCount++;
+                            }
+                        }
+                        $allReviewed = $this->allPhotoReviewed();
+                        $missingCommentCount = $this->photoMissingCommentCount();
+                        $progressPercent = $totalCount > 0 ? ($reviewedCount / $totalCount) * 100 : 0;
+                        $progressColor = $allReviewed && $missingCommentCount === 0 ? 'bg-green-500' : 'bg-sky-500';
+
+                        $amCount = 0;
+                        $pmCount = 0;
+                        foreach (array_keys($photoStates) as $key) {
+                            $parts = explode('|', $key);
+                            if (count($parts) === 3) {
+                                if ($parts[2] === 'AM') {
+                                    $amCount++;
+                                } elseif ($parts[2] === 'PM') {
+                                    $pmCount++;
+                                }
+                            }
+                        }
+                        $allCount = $amCount + $pmCount;
+                    @endphp
+                    <div class="fixed inset-0 z-50 flex flex-col bg-white dark:bg-zinc-900">
+                        <div class="flex items-center justify-between px-4 py-3 text-white bg-gradient-to-r from-slate-800 to-teal-700">
+                            <button
+                                type="button"
+                                wire:click="closePhotoReview"
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white transition-colors hover:bg-white/20"
+                                aria-label="{{ __('Back') }}">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                            </button>
+                            <h2 class="text-base font-semibold">{{ __('Photo Review') }}</h2>
+                            <span class="rounded-full bg-white/20 px-2 py-1 text-xs font-medium">{{ $selectedLocation }}</span>
+                        </div>
+                        <div class="border-b border-zinc-200 px-4 py-2 dark:border-zinc-700">
+                            <div class="mb-2 flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-300">
+                                <span>{{ $reviewedCount }} / {{ $totalCount }} {{ __('reviewed') }}</span>
+                                @if ($allReviewed && $missingCommentCount === 0)
+                                    <span class="text-green-600 dark:text-green-400">{{ __('Ready to submit') }}</span>
+                                @elseif ($allReviewed)
+                                    <span class="text-amber-600 dark:text-amber-400">{{ __('Missing comments') }}</span>
+                                @endif
+                            </div>
+                            <div class="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                                <div class="{{ $progressColor }} h-full transition-all duration-300" :style="'width: ' + {{ $progressPercent }} + '%'"></div>
+                            </div>
+                            <div class="mt-2 flex gap-2">
+                                <button
+                                    type="button"
+                                    wire:click="setPhotoReviewTab('all')"
+                                    class="rounded-full px-3 py-1 text-xs font-medium transition {{ $photoReviewTab === 'all' ? 'bg-zinc-800 text-white dark:bg-white dark:text-zinc-800' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">
+                                    {{ __('All') }} ({{ $allCount }})
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="setPhotoReviewTab('AM')"
+                                    class="rounded-full px-3 py-1 text-xs font-medium transition {{ $photoReviewTab === 'AM' ? 'bg-orange-500 text-white dark:bg-orange-600' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">
+                                    {{ __('AM') }} ({{ $amCount }})
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="setPhotoReviewTab('PM')"
+                                    class="rounded-full px-3 py-1 text-xs font-medium transition {{ $photoReviewTab === 'PM' ? 'bg-sky-500 text-white dark:bg-sky-600' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">
+                                    {{ __('PM') }} ({{ $pmCount }})
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-auto p-3">
+                            <div class="grid grid-cols-3 gap-2">
+                                @foreach ($areaParts as $part)
+                                    @foreach ($shifts as $shift)
+                                        @php
+                                            $slotKey = $part['id'] . '|' . ($periodType === 'daily' || $periodType === 'nightly' ? 'selected' : (($periodType === 'weekly' ? 'w1' : 'm1'))) . '|' . $shift;
+                                            if ($periodType === 'nightly' && $shift === 'AM') {
+                                                continue;
+                                            }
+                                            if (!isset($photoStates[$slotKey])) {
+                                                continue;
+                                            }
+                                            $state = $photoStates[$slotKey] ?? null;
+                                            $shiftMatch = true;
+                                            if ($photoReviewTab === 'AM') {
+                                                $shiftMatch = $shift === 'AM';
+                                            } elseif ($photoReviewTab === 'PM') {
+                                                $shiftMatch = $shift === 'PM';
+                                            }
+                                            if (!$shiftMatch) {
+                                                continue;
+                                            }
+                                            $proofPath = $slotProofs[$slotKey] ?? null;
+                                            $isSkip = $proofPath && str_starts_with($proofPath, 'skip:');
+                                            $hasProof = $proofPath && !str_starts_with($proofPath, 'skip:');
+                                            $borderColor = $state['checked'] === true ? 'border-green-400' : ($state['checked'] === false && trim($state['comment'] ?? '') === '' ? 'border-amber-400' : 'border-zinc-300 dark:border-zinc-600');
+                                            $isDisabled = $photoReviewSubmitted;
+                                        @endphp
+                                        <button
+                                            type="button"
+                                            wire:click="openPhotoModal('{{ $slotKey }}')"
+                                            @if ($isDisabled) disabled @endif
+                                            class="relative rounded-lg border-2 {{ $borderColor }} bg-white p-2 text-left transition dark:bg-zinc-800 {{ $isDisabled ? 'pointer-events-none opacity-50' : 'hover:border-zinc-400 dark:hover:border-zinc-500' }}">
+                                            <div class="aspect-square w-full overflow-hidden rounded bg-zinc-100 dark:bg-zinc-700">
+                                                @if ($hasProof)
+                                                    <img src="{{ $this->buildProofPreviewUrl($proofPath) }}" alt="{{ $part['display_name'] }}" class="h-full w-full object-cover">
+                                                    @if ($state['checked'] === true)
+                                                        <div class="absolute inset-0 flex items-center justify-center bg-green-500/50">
+                                                            <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                            </svg>
+                                                        </div>
+                                                    @endif
+                                                @elseif ($isSkip)
+                                                    <div class="flex h-full w-full items-center justify-center bg-amber-100 dark:bg-amber-900/30">
+                                                        <svg class="h-8 w-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                        </svg>
+                                                    </div>
+                                                @else
+                                                    <div class="flex h-full w-full items-center justify-center bg-zinc-200 dark:bg-zinc-700">
+                                                        <span class="text-2xl font-bold text-zinc-400 dark:text-zinc-500">{{ strtoupper(substr($part['display_name'], 0, 1)) }}</span>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <div class="mt-1">
+                                                <div class="truncate text-xs font-medium text-zinc-700 dark:text-zinc-200">{{ $part['display_name'] }}</div>
+                                                <div class="flex items-center gap-1">
+                                                    <span class="rounded bg-zinc-100 px-1 py-0.5 text-[10px] font-semibold dark:bg-zinc-700 {{ $shift === 'AM' ? 'text-orange-600 dark:text-orange-400' : 'text-sky-600 dark:text-sky-400' }}">{{ $shift }}</span>
+                                                    @if (trim($state['comment'] ?? '') !== '')
+                                                        <svg class="h-3 w-3 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                                                        </svg>
+                                                    @endif
+                                                    @if ($state['checked'] === false && trim($state['comment'] ?? '') === '')
+                                                        <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="sticky bottom-0 border-t border-zinc-200 bg-white px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900">
+                            @if ($showCheckAllConfirm)
+                                <div class="mb-2 flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 dark:bg-amber-900/20">
+                                    <span class="text-sm font-medium text-amber-800 dark:text-amber-200">{{ __('Check all remaining items?') }}</span>
+                                    <div class="flex gap-2">
+                                        <button
+                                            type="button"
+                                            wire:click="cancelCheckAll"
+                                            class="rounded px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                                            {{ __('No') }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="confirmCheckAll"
+                                            class="rounded bg-emerald-500 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700">
+                                            {{ __('Yes') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            @endif
+                            @php
+                                $remainingCount = 0;
+                                foreach ($photoStates as $st) {
+                                    if ($st['checked'] === null) {
+                                        $remainingCount++;
+                                    }
+                                }
+                                $allChecked = $remainingCount === 0;
+                            @endphp
+                            
+                            <div class="flex gap-2">
+                                @if (!$photoReviewSubmitted)
+                                    <button
+                                        type="button"
+                                        wire:click="handleCheckAll"
+                                        @if ($allChecked) disabled @endif
+                                        class="flex-1 rounded-md border py-2 text-sm font-medium transition {{ $allChecked ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-400' : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700' }}">
+                                        @if ($allChecked)
+                                            {{ __('All items checked') }}
+                                        @else
+                                            {{ __('Check all') }} ({{ $remainingCount }} {{ __('remaining') }})
+                                        @endif
+                                    </button>
+                                @endif
+                                <button
+                                    type="button"
+                                    wire:click="submitPhotoReview"
+                                    @if (!$allReviewed || $missingCommentCount > 0 || $photoReviewSubmitted) disabled @endif
+                                    class="flex-1 rounded-md py-2 text-sm font-medium transition
+                                        {{ $photoReviewSubmitted
+                                            ? 'bg-green-500 text-white dark:bg-green-600'
+                                            : (!$allReviewed
+                                                ? 'cursor-not-allowed bg-zinc-300 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'
+                                                : ($missingCommentCount > 0
+                                                    ? 'cursor-not-allowed bg-zinc-300 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'
+                                                    : 'bg-sky-500 text-white hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-700'))
+                                        }}">
+                                    @if ($photoReviewSubmitted)
+                                        {{ __('✓ Verified — submitted') }}
+                                    @elseif (!$allReviewed)
+                                        {{ __($reviewedCount . ' items not yet reviewed') }}
+                                    @elseif ($missingCommentCount > 0)
+                                        {{ __($missingCommentCount . ' unchecked items need a comment') }}
+                                    @else
+                                        {{ __('Verified — tap to submit') }}
+                                    @endif
+                                </button>
+                            </div>
+                            <button
+                                type="button"
+                                wire:click="closePhotoReview"
+                                class="mb-1 mt-2 w-full rounded-md border border-zinc-300 bg-white py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                                {{ __('Close') }}
+                            </button>
+                        </div>
+                    </div>
+
+                    @if ($showPhotoModal)
+                        <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/60" wire:click="closePhotoModal">
+                            <div class="w-full max-w-lg rounded-t-xl bg-white pb-6 dark:bg-zinc-900" wire:click.stop>
+                                <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+                                    <button
+                                        type="button"
+                                        wire:click="navigatePhotoModal(-1)"
+                                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                                        </svg>
+                                    </button>
+                                    @php
+                                        $filteredKeys = $this->getFilteredPhotoSlotKeys();
+                                        $currentPos = array_search($photoModalSlotKey, $filteredKeys, true);
+                                        $totalFiltered = count($filteredKeys);
+                                    @endphp
+                                    <span class="text-sm font-medium text-zinc-600 dark:text-zinc-300">{{ ($currentPos !== false ? $currentPos + 1 : 0) . ' / ' . $totalFiltered }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            wire:click="closePhotoModal"
+                                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                            aria-label="{{ __('Close') }}">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="navigatePhotoModal(1)"
+                                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                @php
+                                    $modalPartId = 0;
+                                    $modalShift = 'AM';
+                                    if ($photoModalSlotKey) {
+                                        $parts = explode('|', $photoModalSlotKey);
+                                        if (count($parts) === 3) {
+                                            $modalPartId = (int) $parts[0];
+                                            $modalShift = $parts[2];
+                                        }
+                                    }
+                                    $modalPart = collect($areaParts)->first(fn ($p) => (int) ($p['id'] ?? 0) === $modalPartId);
+                                    $modalProofPath = $slotProofs[$photoModalSlotKey] ?? null;
+                                    $isModalSkip = $modalProofPath && str_starts_with($modalProofPath, 'skip:');
+                                    $hasModalProof = $modalProofPath && !str_starts_with($modalProofPath, 'skip:');
+                                    $currentState = $photoStates[$photoModalSlotKey] ?? ['checked' => null, 'comment' => ''];
+                                @endphp
+                                <div class="p-4">
+                                    @if ($isModalSkip)
+                                        <div class="flex flex-col items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-8 text-center dark:border-amber-700/40 dark:bg-amber-900/20">
+                                            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-800/40">
+                                                <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                                </svg>
+                                            </span>
+                                            <div>
+                                                <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">{{ __('Photo Skipped') }}</p>
+                                                <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">{{ substr($modalProofPath, 5) }}</p>
+                                            </div>
+                                        </div>
+                                    @elseif ($hasModalProof)
+                                        <div class="aspect-[4/3] w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                            <img src="{{ $this->buildProofPreviewUrl($modalProofPath) }}" alt="{{ $modalPart['display_name'] ?? '' }}" class="h-full w-full object-contain">
+                                        </div>
+                                    @else
+                                        <div class="aspect-[4/3] w-full overflow-hidden rounded-lg bg-zinc-200 dark:bg-zinc-700">
+                                            <div class="flex h-full w-full items-center justify-center">
+                                                <span class="text-4xl font-bold text-zinc-400 dark:text-zinc-500">{{ strtoupper(substr($modalPart['display_name'] ?? '', 0, 1)) }}</span>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <div class="mt-3 flex items-center gap-2">
+                                        <span class="font-medium text-zinc-800 dark:text-zinc-100">{{ $modalPart['display_name'] ?? '' }}</span>
+                                        <span class="rounded bg-zinc-100 px-2 py-0.5 text-xs font-semibold dark:bg-zinc-700 {{ $modalShift === 'AM' ? 'text-orange-600 dark:text-orange-400' : 'text-sky-600 dark:text-sky-400' }}">{{ $modalShift }}</span>
+                                    </div>
+                                    <div class="mt-4">
+                                        <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                                            {{ __('Verifier comment') }}
+                                        </label>
+                                        <textarea
+                                            wire:model.live="photoModalComment"
+                                            rows="2"
+                                            placeholder="{{ $currentState['checked'] === false ? __('Comment required when unchecked...') : __('Add comment (optional)...') }}"
+                                            class="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 {{ $photoModalCommentError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-zinc-300 focus:border-sky-500 focus:ring-sky-500' }}"></textarea>
+                                        @if ($photoModalCommentError)
+                                            <p class="mt-1 text-xs text-red-500">{{ __('Comment required when unchecked') }}</p>
+                                        @endif
+                                    </div>
+                                    <button
+                                        type="button"
+                                        wire:click="togglePhotoCheck"
+                                        class="mt-4 w-full rounded-md py-2 text-sm font-medium transition {{ $currentState['checked'] === true ? 'bg-green-500 text-white hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700' : 'border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700' }}">
+                                        @if ($currentState['checked'] === true)
+                                            {{ __('✓ Checked') }}
+                                        @else
+                                            {{ __('Mark as checked') }}
+                                        @endif
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 @endif
             </div>
         </x-pages::maintenance.checklist.layout>

@@ -40,16 +40,16 @@ class Leave extends Model
     ];
 
     protected $casts = [
-        'is_paid'               => 'boolean',
-        'start_date'            => 'date',
-        'end_date'              => 'date',
-        'child_birth_date'      => 'date',
-        'date_of_death'         => 'date',
-        'date_requested'        => 'date',
+        'is_paid' => 'boolean',
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'child_birth_date' => 'date',
+        'date_of_death' => 'date',
+        'date_requested' => 'date',
         'dept_head_approved_at' => 'datetime',
-        'hr_approved_at'        => 'datetime',
-        'created_at'            => 'datetime',
-        'updated_at'            => 'datetime',
+        'hr_approved_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ class Leave extends Model
 
     public static function availableVLCredits(int $userId): float
     {
-        $payroll = \App\Models\PayrollAndLeave::where('user_id', $userId)->first();
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
         if (! $payroll) {
             return 0;
         }
@@ -111,7 +111,7 @@ class Leave extends Model
 
     public static function availableSLCredits(int $userId): float
     {
-        $payroll = \App\Models\PayrollAndLeave::where('user_id', $userId)->first();
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
         if (! $payroll) {
             return 0;
         }
@@ -121,7 +121,7 @@ class Leave extends Model
 
     public static function availableBLCredits(int $userId): float
     {
-        $payroll = \App\Models\PayrollAndLeave::where('user_id', $userId)->first();
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
         if (! $payroll) {
             return 0;
         }
@@ -131,7 +131,7 @@ class Leave extends Model
 
     public static function availableSPLCredits(int $userId): float
     {
-        $payroll = \App\Models\PayrollAndLeave::where('user_id', $userId)->first();
+        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
         if (! $payroll) {
             return 0;
         }

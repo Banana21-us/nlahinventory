@@ -30,11 +30,11 @@ class HolidayManagement extends Component
     protected function rules(): array
     {
         return [
-            'name'         => ['required', 'string', 'max:255'],
-            'date'         => ['required', 'date'],
-            'type'         => ['required', 'in:regular,special_non_working,special_working'],
+            'name' => ['required', 'string', 'max:255'],
+            'date' => ['required', 'date'],
+            'type' => ['required', 'in:regular,special_non_working,special_working'],
             'is_recurring' => ['boolean'],
-            'remarks'      => ['nullable', 'string', 'max:500'],
+            'remarks' => ['nullable', 'string', 'max:500'],
         ];
     }
 
@@ -43,11 +43,11 @@ class HolidayManagement extends Component
         $this->validate();
 
         Holiday::create([
-            'name'         => $this->name,
-            'date'         => $this->date,
-            'type'         => $this->type,
+            'name' => $this->name,
+            'date' => $this->date,
+            'type' => $this->type,
             'is_recurring' => $this->is_recurring,
-            'remarks'      => $this->remarks,
+            'remarks' => $this->remarks,
         ]);
 
         $this->resetForm();
@@ -58,13 +58,13 @@ class HolidayManagement extends Component
     {
         $holiday = Holiday::findOrFail($id);
 
-        $this->selectedId    = $holiday->id;
-        $this->name          = $holiday->name;
-        $this->date          = $holiday->date->format('Y-m-d');
-        $this->type          = $holiday->type;
-        $this->is_recurring  = $holiday->is_recurring;
-        $this->remarks       = $holiday->remarks;
-        $this->isEditing     = true;
+        $this->selectedId = $holiday->id;
+        $this->name = $holiday->name;
+        $this->date = $holiday->date->format('Y-m-d');
+        $this->type = $holiday->type;
+        $this->is_recurring = $holiday->is_recurring;
+        $this->remarks = $holiday->remarks;
+        $this->isEditing = true;
     }
 
     public function update(): void
@@ -72,11 +72,11 @@ class HolidayManagement extends Component
         $this->validate();
 
         Holiday::findOrFail($this->selectedId)->update([
-            'name'         => $this->name,
-            'date'         => $this->date,
-            'type'         => $this->type,
+            'name' => $this->name,
+            'date' => $this->date,
+            'type' => $this->type,
             'is_recurring' => $this->is_recurring,
-            'remarks'      => $this->remarks,
+            'remarks' => $this->remarks,
         ]);
 
         $this->resetForm();

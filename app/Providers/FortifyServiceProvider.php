@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
@@ -85,7 +86,7 @@ class FortifyServiceProvider extends ServiceProvider
                     // Redirect based on the access key's configured route
                     $redirectTo = $user->accessKey?->redirect_to;
 
-                    if ($redirectTo && \Illuminate\Support\Facades\Route::has($redirectTo)) {
+                    if ($redirectTo && Route::has($redirectTo)) {
                         return redirect()->route($redirectTo);
                     }
 

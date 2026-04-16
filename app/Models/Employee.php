@@ -20,7 +20,7 @@ class Employee extends Model
     ];
 
     protected $casts = [
-        'birth_date'     => 'date',
+        'birth_date' => 'date',
         'is_solo_parent' => 'boolean',
     ];
 

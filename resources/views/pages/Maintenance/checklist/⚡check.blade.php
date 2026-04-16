@@ -1231,7 +1231,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 <div wire:loading.delay style="display:none" class="checklist-progress-bar"></div>
 
 {{--
-    Offline banner — pure Alpine.js, no server needed.
+    Offline banner — pure Alpine.js, no server needed..
     Shows automatically when the device loses connectivity.
     Hides again when connectivity returns.
     Tells staff exactly what still works (camera) vs what doesn't (navigation).
@@ -1292,28 +1292,23 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     'prefill_location' => $selectedLocationId ? 1 : null,
                     'date' => $periodType === 'daily' ? $selectedDate : null,
                 ], fn ($value) => $value !== null && $value !== ''));
-                $periodUrl = route('Maintenance.checklist.check', array_filter([
-                    'period' => $periodType,
-                    'location' => $selectedLocationId,
-                    'location_name' => $selectedLocation,
-                    'prefill_location' => $selectedLocationId ? 1 : null,
-                    'date' => $periodType === 'daily' ? $selectedDate : null,
-                ], fn ($value) => $value !== null && $value !== ''));
+                $periodUrl = $checklistUrl;
+                $isDailyChecklistShown = $periodType === 'daily' && $showDailyChecklist;
             @endphp
             <div class="flex flex-col gap-3">
                 <div class="min-w-0">
                     <flux:breadcrumbs>
-                        @if ($periodType === 'daily' && $showDailyChecklist)
+                        @if ($isDailyChecklistShown)
                             <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $sectionLabel }}</flux:breadcrumbs.item>
                         @else
                             <flux:breadcrumbs.item href="{{ $checklistUrl }}" wire:navigate>{{ $sectionLabel }}</flux:breadcrumbs.item>
                         @endif
-                        @if ($periodType === 'daily' && $showDailyChecklist)
+                        @if ($isDailyChecklistShown)
                             <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodLabel }}</flux:breadcrumbs.item>
                         @else
                             <flux:breadcrumbs.item href="{{ $periodUrl }}" wire:navigate>{{ $periodLabel }}</flux:breadcrumbs.item>
                         @endif
-                        @if ($periodType === 'daily' && $showDailyChecklist)
+                        @if ($isDailyChecklistShown)
                             <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodContext }}</flux:breadcrumbs.item>
                         @else
                             <flux:breadcrumbs.item>{{ $periodContext }}</flux:breadcrumbs.item>
@@ -1327,6 +1322,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                             ? array_values(array_filter($locations, fn ($l) => $l['floor'] === $floorFilter))
                             : $locations;
                         $locationChunks = array_chunk($filteredLocations, 9);
+                        $locationChunkCount = count($locationChunks);
                     @endphp
 
                     {{-- Floor filter tabs --}}
@@ -1355,8 +1351,8 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 
                     <div
                         x-data="{
-                            page: Math.min(window._locSliderPage ?? 0, Math.max(0, {{ count($locationChunks) }} - 1)),
-                            total: {{ count($locationChunks) }},
+                            page: Math.min(window._locSliderPage ?? 0, Math.max(0, {{ $locationChunkCount }} - 1)),
+                            total: {{ $locationChunkCount }},
                             touchStartX: 0,
                             prev() { if (this.page > 0) { this.page--; window._locSliderPage = this.page; } },
                             next() { if (this.page < this.total - 1) { this.page++; window._locSliderPage = this.page; } },
@@ -1489,7 +1485,18 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     $today = \Carbon\Carbon::now('Asia/Manila')->toDateString();
                     $weekdayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     $firstVisibleDate = $calendarBase->copy()->startOfWeek(\Carbon\Carbon::SUNDAY);
-                    $cellCount = 42;
+                    $calendarCells = [];
+                    for ($i = 0; $i < 42; $i++) {
+                        $d = $firstVisibleDate->copy()->addDays($i);
+                        $calendarCells[] = [
+                            'date'           => $d->toDateString(),
+                            'day'            => $d->day,
+                            'isCurrentMonth' => $d->month === $calendarBase->month,
+                            'isToday'        => $d->toDateString() === $today,
+                            'isFuture'       => $d->toDateString() > $today,
+                            'isSelected'     => $d->toDateString() === $selectedDate,
+                        ];
+                    }
                 @endphp
                 <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
@@ -1531,41 +1538,33 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 
                     {{-- Day grid --}}
                     <div class="grid gap-1 p-3" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
-                        @for ($cell = 0; $cell < $cellCount; $cell++)
-                            @php
-                                $cellDateObj = $firstVisibleDate->copy()->addDays($cell);
-                                $cellDate    = $cellDateObj->toDateString();
-                                $dayNumber   = $cellDateObj->day;
-                                $isCurrentMonth = $cellDateObj->month === $calendarBase->month;
-                                $isSelected  = $cellDate === $selectedDate;
-                                $isToday     = $cellDate === $today;
-                                $isFuture    = $cellDate > $today;
-                            @endphp
+                        @foreach ($calendarCells as $cell)
                             <button type="button"
-                                    wire:click="selectCalendarDate('{{ $cellDate }}')"
-                                    @disabled($isFuture)
-                                    class="{{ $isFuture ? '' : 'checklist-interactive' }} relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
-                                        {{ $isSelected ? 'text-white shadow-md' : '' }}
-                                        {{ $isToday && ! $isSelected ? 'ring-2 ring-offset-1' : '' }}
-                                        {{ ! $isSelected && ! $isFuture && $isCurrentMonth ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
-                                        {{ ! $isCurrentMonth && ! $isFuture ? 'text-zinc-300 hover:bg-zinc-50 dark:text-zinc-600 dark:hover:bg-zinc-800' : '' }}
-                                        {{ $isFuture ? 'cursor-not-allowed opacity-30' : '' }}"
-                                    style="{{ $isSelected ? 'background: linear-gradient(135deg, #1e3a5f, #097b86);' : '' }}
-                                           {{ $isToday && ! $isSelected ? 'ring-color: #097b86;' : '' }}">
-                                {{ $dayNumber }}
-                                @if ($isToday && ! $isSelected)
+                                    wire:click="selectCalendarDate('{{ $cell['date'] }}')"
+                                    @disabled($cell['isFuture'])
+                                    class="{{ $cell['isFuture'] ? '' : 'checklist-interactive' }} relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
+                                        {{ $cell['isSelected'] ? 'text-white shadow-md' : '' }}
+                                        {{ $cell['isToday'] && ! $cell['isSelected'] ? 'ring-2 ring-offset-1' : '' }}
+                                        {{ ! $cell['isSelected'] && ! $cell['isFuture'] && $cell['isCurrentMonth'] ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
+                                        {{ ! $cell['isCurrentMonth'] && ! $cell['isFuture'] ? 'text-zinc-300 hover:bg-zinc-50 dark:text-zinc-600 dark:hover:bg-zinc-800' : '' }}
+                                        {{ $cell['isFuture'] ? 'cursor-not-allowed opacity-30' : '' }}"
+                                    style="{{ $cell['isSelected'] ? 'background: linear-gradient(135deg, #1e3a5f, #097b86);' : '' }}
+                                           {{ $cell['isToday'] && ! $cell['isSelected'] ? 'ring-color: #097b86;' : '' }}">
+                                {{ $cell['day'] }}
+                                @if ($cell['isToday'] && ! $cell['isSelected'])
                                     <span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style="background-color:#097b86;"></span>
                                 @endif
                             </button>
-                        @endfor
+                        @endforeach
                     </div>
 
                     {{-- Selected date footer --}}
                     @if ($selectedDate)
+                        @php $selectedDateFormatted = \Carbon\Carbon::parse($selectedDate)->format('l, F d Y'); @endphp
                         <div class="border-t border-zinc-100 px-4 py-2 text-center text-[11px] font-medium text-zinc-400 dark:border-zinc-700/50 dark:text-zinc-500">
                             Selected:
                             <span class="font-semibold text-zinc-600 dark:text-zinc-300">
-                                {{ \Carbon\Carbon::parse($selectedDate)->format('l, F d Y') }}
+                                {{ $selectedDateFormatted }}
                             </span>
                         </div>
                     @endif

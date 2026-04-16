@@ -5,16 +5,14 @@ use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LeaveResponseController;
 use App\Http\Controllers\NewsEventController;
 use App\Livewire\AccessKeyManagement;
+use App\Livewire\Assets;
 use App\Livewire\AttendanceManagement;
-use App\Livewire\HolidayManagement;
-use App\Livewire\LeaveTypeManagement;
-use App\Livewire\OvertimeManagement;
-use App\Livewire\PayoffManagement;
 use App\Livewire\Dashboard;
 use App\Livewire\DepartmentManagement;
 use App\Livewire\DHead;
 use App\Livewire\DispenseMedicine;
 use App\Livewire\EmployeeManagement;
+use App\Livewire\HolidayManagement;
 use App\Livewire\AssetItemEntry;
 use App\Livewire\AssetTransactionRecords;
 use App\Livewire\Home;
@@ -22,14 +20,15 @@ use App\Livewire\HR;
 use App\Livewire\HRCorner;
 use App\Livewire\HrLeaveManagement;
 use App\Livewire\LeaveForm;
+use App\Livewire\LeaveTypeManagement;
 use App\Livewire\MaintenanceDashboard;
 use App\Livewire\Medicines;
 use App\Livewire\News;
+use App\Livewire\OvertimeManagement;
 use App\Livewire\PatientDetail;
 use App\Livewire\PatientManager;
+use App\Livewire\PayoffManagement;
 use App\Livewire\PayrollCompliance;
-use App\Livewire\PositionManagement;
-use App\Livewire\Assets;
 use App\Livewire\Transfer;
 use App\Livewire\PointOfSale\POS;
 use App\Livewire\PointOfSale\PosCustomer;
@@ -37,9 +36,12 @@ use App\Livewire\PointOfSale\Posdashboard;
 use App\Livewire\PointOfSale\PosInventory;
 use App\Livewire\PointOfSale\PosItems;
 use App\Livewire\PointOfSale\PosSales;
+use App\Livewire\PositionManagement;
+use App\Models\Feedback;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 
@@ -48,7 +50,7 @@ use Illuminate\Support\Facades\URL;
 // })->name('home');
 
 Route::get('/employee-lookup', function (Request $request) {
-    $employee = \Illuminate\Support\Facades\DB::table('employee')
+    $employee = DB::table('employee')
         ->where('employee_number', $request->query('employee_number'))
         ->select('last_name', 'first_name', 'middle_name', 'extension')
         ->first();
@@ -58,7 +60,7 @@ Route::get('/employee-lookup', function (Request $request) {
     }
 
     $name = trim(implode(' ', array_filter([
-        $employee->last_name . ',',
+        $employee->last_name.',',
         $employee->first_name,
         $employee->middle_name,
         $employee->extension,
@@ -155,12 +157,12 @@ Route::get('/', function () {
         $position = auth()->user()->employmentDetail?->position;
 
         return match ($position) {
-            'HR Manager'       => redirect()->route('HR.hrdashboard'),
-            'Housekeeping'     => redirect()->route('Maintenance.dashboard'),
+            'HR Manager' => redirect()->route('HR.hrdashboard'),
+            'Housekeeping' => redirect()->route('Maintenance.dashboard'),
             'Maintenance_Head' => redirect()->route('Maintenance.checklist.verify'),
-            'Cashier'          => redirect()->route('pos.dashboard'),
-            'Staff'            => redirect()->route('users.leaveform'),
-            default            => redirect()->route('users.waiting'),
+            'Cashier' => redirect()->route('pos.dashboard'),
+            'Staff' => redirect()->route('users.leaveform'),
+            default => redirect()->route('users.waiting'),
         };
     }
 
@@ -202,60 +204,65 @@ Route::post('/nlah/chat', function (Request $request) {
         'messages.*.content' => 'required|string|max:2000',
     ]);
 
-    $systemPrompt = "You are a friendly virtual assistant for Northern Luzon Adventist Hospital (NLAH). 
+    $systemPrompt = 'You are a friendly virtual assistant for Northern Luzon Adventist Hospital (NLAH). 
 Keep responses brief, warm, and helpful. You can help with:
 - Hospital services and departments
 - Appointment booking guidance
 - Emergency contacts
 - Hospital hours and location
 - General health inquiries
-Always recommend consulting a doctor for medical advice.";
+Always recommend consulting a doctor for medical advice.';
 
     $messages = array_merge(
         [['role' => 'system', 'content' => $systemPrompt]],
         $request->input('messages')
     );
 
-    $response = Http::withHeaders([
-        'Authorization' => 'Bearer ' . config('services.openrouter.key'),
-        'HTTP-Referer'  => config('app.url'),
-        'X-Title'       => config('app.name'),
-        'Content-Type'  => 'application/json',
-    ])->post('https://openrouter.ai/api/v1/chat/completions', [
-        'model'    => 'google/gemini-2.0-flash-exp:free', // free model, change if needed
-        'messages' => $messages,
-        'max_tokens' => 500,
-    ]);
+    try {
+        $response = Http::timeout(60)->post(
+            config('services.ollama.host').'/api/chat',
+            [
+                'model'    => config('services.ollama.model'),
+                'messages' => $messages,
+                'stream'   => false,
+            ]
+        );
+    } catch (\Illuminate\Http\Client\ConnectionException $e) {
+        return response()->json(['error' => 'AI service is offline. Please try again later.'], 503);
+    } catch (\Throwable $e) {
+        return response()->json(['error' => 'Unexpected error. Please try again.'], 500);
+    }
 
     if ($response->failed()) {
-        return response()->json([
-            'error' => 'AI service unavailable. Please try again.'
-        ], 502);
+        return response()->json(['error' => 'AI service unavailable. (HTTP '.$response->status().')'], 502);
     }
 
     $data = $response->json();
 
-    return response()->json([
-        'reply' => $data['choices'][0]['message']['content'] ?? 'Sorry, I could not generate a response.'
-    ]);
-})->middleware('throttle:30,1'); // 30 requests per minute per user
+    // Ollama: { message: { content: "..." } }
+    $reply = $data['message']['content']
+          ?? $data['choices'][0]['message']['content']  // fallback for OpenAI-compat endpoint
+          ?? 'Sorry, I could not generate a response.';
 
+    return response()->json(['reply' => $reply]);
+})->middleware('throttle:30,1'); // 30 requests per minute per user
 
 Route::post('/nlah/feedback/submit', function (Request $request) {
     $request->validate([
-        'name'    => 'nullable|string|max:100',
+        'name' => 'nullable|string|max:100',
         'comment' => 'required|string|max:2000',
-        'rating'  => 'required|integer|min:1|max:5',
+        'rating' => 'required|integer|min:1|max:5',
     ]);
 
     // Save to DB — make sure you have a feedbacks table
     // Run: php artisan make:model Feedback -m
     // Migration columns: name, comment, rating (tinyint), ip_address
-    \App\Models\Feedback::create([
-        'name'       => $request->input('name', 'Guest'),
-        'comment'    => $request->input('comment'),
-        'rating'     => $request->input('rating'),
-        'ip_address' => $request->ip(),
+    Feedback::create([
+        'name'          => $request->input('name', 'Guest'),
+        'comment'       => $request->input('comment'),
+        'rating'        => $request->input('rating'),
+        'ip_address'    => $request->ip(),
+        'feedback_date' => now(),
     ]);
 
     return response()->json(['success' => true]);

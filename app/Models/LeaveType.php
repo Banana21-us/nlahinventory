@@ -19,12 +19,12 @@ class LeaveType extends Model
     ];
 
     protected $casts = [
-        'is_paid'                 => 'boolean',
-        'requires_attachment'     => 'boolean',
-        'solo_parent_only'        => 'boolean',
+        'is_paid' => 'boolean',
+        'requires_attachment' => 'boolean',
+        'solo_parent_only' => 'boolean',
         'requires_admin_approval' => 'boolean',
-        'is_active'               => 'boolean',
-        'annual_days'             => 'float',
+        'is_active' => 'boolean',
+        'annual_days' => 'float',
     ];
 
     /**
@@ -35,12 +35,12 @@ class LeaveType extends Model
     public function getPayrollKey(): ?string
     {
         return match ($this->code) {
-            'VL'                  => 'vl',
+            'VL' => 'vl',
             'SL', 'SL_X', 'SL_M' => 'sl',
-            'BL'                  => 'bl',
-            'SPL'                 => 'spl',
-            'EL'                  => 'el',
-            default               => null,
+            'BL' => 'bl',
+            'SPL' => 'spl',
+            'EL' => 'el',
+            default => null,
         };
     }
 

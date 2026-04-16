@@ -51,27 +51,29 @@
     </div>
   </main>
 
-<!-- FEEDBACKS SECTION - TESTIMONIAL STYLE -->
+{{-- ── Feedbacks ── --}}
 <section class="max-w-7xl mx-auto px-4 sm:px-6 mb-20">
+    <div class="border-t border-dashed border-zinc-300 mb-10"></div>
+
     <div class="flex items-center justify-between mb-8">
-        <flux:heading size="xl" level="2">Feedbacks</flux:heading>
-        
+        <div>
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 leading-tight">Patient Feedback</h2>
+            <p class="text-zinc-500 text-sm mt-1">What our patients say about us</p>
+        </div>
         <div class="flex gap-2">
-            <button 
-                onclick="document.getElementById('testimonials-scroll').scrollBy({ left: -320, behavior: 'smooth' })"
-                class="p-2 rounded-3xl border border-gray-500 hover:bg-zinc-100 transition-colors cursor-pointer"
+            <button
+                onclick="document.getElementById('testimonials-scroll').scrollBy({ left: -360, behavior: 'smooth' })"
+                class="w-9 h-9 rounded-xl border border-zinc-200 flex items-center justify-center hover:bg-zinc-100 hover:border-zinc-300 transition-colors"
+                aria-label="Scroll left"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
             </button>
-            <button 
-                onclick="document.getElementById('testimonials-scroll').scrollBy({ left: 320, behavior: 'smooth' })"
-                class="p-2 rounded-3xl border border-gray-500 hover:bg-zinc-100 transition-colors cursor-pointer"
+            <button
+                onclick="document.getElementById('testimonials-scroll').scrollBy({ left: 360, behavior: 'smooth' })"
+                class="w-9 h-9 rounded-xl border border-zinc-200 flex items-center justify-center hover:bg-zinc-100 hover:border-zinc-300 transition-colors"
+                aria-label="Scroll right"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </button>
         </div>
     </div>
@@ -79,70 +81,47 @@
     @php
         use Illuminate\Support\Facades\DB;
         $feedbacks = DB::table('feedbacks')
-        ->orderBy('id', 'desc')
-        ->get()
-        ->map(function($f) {
-            $f->formatted_date = \Carbon\Carbon::parse($f->feedback_date)->format('M d, Y');
-            return $f;
-        });
+            ->orderBy('id', 'desc')
+            ->get();
     @endphp
 
     @if($feedbacks->isEmpty())
-    <div class="w-full text-center py-12 bg-zinc-50 rounded-2xl">
-        <flux:subheading>No feedbacks yet. Be the first to share your experience!</flux:subheading>
+    <div class="w-full text-center py-14 bg-zinc-50 border border-dashed border-zinc-200 rounded-2xl">
+        <p class="text-zinc-500 font-medium">No feedbacks yet.</p>
+        <p class="text-zinc-400 text-sm mt-1">Be the first to share your experience!</p>
     </div>
     @else
-    <div 
+    <div
         id="testimonials-scroll"
-        class="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-6"
+        class="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-4"
         style="scrollbar-width: none; -ms-overflow-style: none;"
     >
         @foreach($feedbacks as $feedback)
-        <div class="snap-start shrink-0 w-[320px] sm:w-[380px] bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-md transition-shadow duration-300">
-            <div class="p-6">
-                <!-- Header with name and rating -->
-                <div class="flex items-center justify-between mb-4">
+        <div class="snap-start shrink-0 w-[300px] sm:w-[340px] bg-white border border-zinc-200 rounded-xl hover:border-zinc-400 hover:shadow-md transition-all duration-200">
+            <div class="p-5">
+                {{-- Avatar + name + date --}}
+                <div class="flex items-start justify-between mb-4">
                     <div class="flex items-center gap-3">
-                        <!-- Avatar/Initials -->
-                        <div class="w-12 h-12 rounded-full bg-[#e8dec9] flex items-center justify-center text-[#5a4e3a] font-semibold text-lg">
-                            {{ strtoupper(substr($feedback->name, 0, 1)) }}
+                        <div class="w-10 h-10 rounded-full bg-[#e8dec9] flex items-center justify-center text-[#5a4e3a] font-semibold text-sm flex-shrink-0">
+                            {{ strtoupper(substr($feedback->name ?? 'G', 0, 1)) }}
                         </div>
                         <div>
-                            <h3 class="font-semibold text-lg text-zinc-800">{{ $feedback->name }}</h3>
-                            <div class="flex items-center gap-1 mt-1">
-                                @for($i = 1; $i <= 5; $i++)
-                                    @if($i <= $feedback->rating)
-                                        <svg class="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                                        </svg>
-                                    @else
-                                        <svg class="w-4 h-4 text-gray-300 fill-current" viewBox="0 0 20 20">
-                                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                                        </svg>
-                                    @endif
-                                @endfor
-                                <span class="text-sm text-zinc-500 ml-1">({{ $feedback->rating }}/5)</span>
-                            </div>
+                            <p class="font-semibold text-sm text-zinc-900 leading-tight">{{ $feedback->name ?? 'Guest' }}</p>
+                            <p class="text-xs text-zinc-400 mt-0.5">{{ \Carbon\Carbon::parse($feedback->feedback_date)->format('M d, Y') }}</p>
                         </div>
                     </div>
-                    <!-- Date -->
-                    <div class="text-xs text-zinc-400">
-                        {{ \Carbon\Carbon::parse($feedback->feedback_date)->format('M d, Y') }}
+                    {{-- Stars --}}
+                    <div class="flex gap-0.5 mt-0.5">
+                        @for($i = 1; $i <= 5; $i++)
+                        <svg class="w-3.5 h-3.5 fill-current {{ $i <= $feedback->rating ? 'text-yellow-400' : 'text-zinc-200' }}" viewBox="0 0 20 20">
+                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                        </svg>
+                        @endfor
                     </div>
                 </div>
 
-                <!-- Comment -->
-                <div class="relative">
-                    <p class="text-zinc-600 leading-relaxed pl-4 italic">
-                        "{{ $feedback->comment }}"
-                    </p>
-                </div>
-
-                <!-- Bottom decoration -->
-                <!-- <div class="mt-4 pt-4 border-t border-zinc-100 flex justify-between items-center text-xs text-zinc-400">
-                    <span>Verified Patient</span>
-                    <span>✓</span>
-                </div> -->
+                {{-- Comment --}}
+                <p class="text-sm text-zinc-600 leading-relaxed italic">"{{ $feedback->comment }}"</p>
             </div>
         </div>
         @endforeach

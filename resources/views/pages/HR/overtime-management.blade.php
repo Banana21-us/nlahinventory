@@ -54,15 +54,12 @@
         <div x-show="open" x-collapse class="p-6 border-t border-gray-100 bg-gray-50/30">
             <form wire:submit.prevent="save" class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Employee *</label>
-                    <select wire:model="user_id" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
-                        <option value="">— Select Employee —</option>
+                <div class="hidden">
+                    <select wire:model="user_id">
                         @foreach($users as $user)
                             <option value="{{ $user->id }}">{{ $user->name }}</option>
                         @endforeach
                     </select>
-                    @error('user_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
 
                 <div>
@@ -74,9 +71,8 @@
                     @error('type') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Status</label>
-                    <select wire:model="status" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
+                <div class="hidden">
+                    <select wire:model="status">
                         <option value="pending">Pending</option>
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>

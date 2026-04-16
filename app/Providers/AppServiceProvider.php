@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\AccessKey;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -42,12 +41,12 @@ class AppServiceProvider extends ServiceProvider
             return fn (User $user) => $user->accessKey?->hasPermission($slug) ?? false;
         };
 
-        Gate::define('access-medical',       $permissionGate('access-medical'));
-        Gate::define('access-maintenance',   $permissionGate('access-maintenance'));
-        Gate::define('access-verify',        $permissionGate('access-verify'));
-        Gate::define('access-hr-only',       $permissionGate('access-hr-only'));
-        Gate::define('access-payroll',       $permissionGate('access-payroll'));
-        Gate::define('access-cashier-only',  $permissionGate('access-cashier-only'));
+        Gate::define('access-medical', $permissionGate('access-medical'));
+        Gate::define('access-maintenance', $permissionGate('access-maintenance'));
+        Gate::define('access-verify', $permissionGate('access-verify'));
+        Gate::define('access-hr-only', $permissionGate('access-hr-only'));
+        Gate::define('access-payroll', $permissionGate('access-payroll'));
+        Gate::define('access-cashier-only', $permissionGate('access-cashier-only'));
 
     }
 

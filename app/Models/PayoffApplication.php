@@ -19,8 +19,8 @@ class PayoffApplication extends Model
 
     protected $casts = [
         'start_datetime' => 'datetime',
-        'end_datetime'   => 'datetime',
-        'hours'          => 'float',
+        'end_datetime' => 'datetime',
+        'hours' => 'float',
     ];
 
     public function user(): BelongsTo
