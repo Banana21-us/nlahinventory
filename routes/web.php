@@ -257,6 +257,12 @@ Route::post('/nlah/chat', function (Request $request) {
     • Balanced: blend evidence-based medicine with natural and spiritual wisdom
     • Always recommend consulting a licensed physician for diagnosis or treatment decisions
     • Never cause alarm, but be honest when symptoms require urgent medical attention
+
+    FORMATTING RULES (strictly follow these)
+    • Never use markdown syntax — no asterisks (*), no underscores (_), no pound signs (#), no backticks (`)
+    • Do not bold or italicize words. Write in plain, natural sentences
+    • Use plain dashes (-) or numbers for lists if needed, but prefer flowing prose
+    • Do not use headers or section titles in your replies
     PROMPT;
 
     $messages = array_merge(
