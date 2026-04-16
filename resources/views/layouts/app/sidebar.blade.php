@@ -10,6 +10,40 @@
             collapsible
             class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
 
+            {{-- Hospital identity + logged-in user card --}}
+            @auth
+            @php
+                $user       = auth()->user();
+                $position   = $user->employmentDetail?->position   ?? null;
+                $department = $user->employmentDetail?->department?->name ?? null;
+            @endphp
+            <div class="mb-2 border-b border-zinc-200 pb-3 dark:border-zinc-700">
+                {{-- Logo + hospital name --}}
+                <div class="flex items-center gap-2.5 px-2 pt-2 pb-2">
+                    <img
+                        src="{{ asset('image/logo.png') }}"
+                        alt="NLAH Logo"
+                        class="h-9 w-9 shrink-0 rounded-full object-contain"
+                    />
+                    <div class="min-w-0 leading-tight in-data-flux-sidebar-collapsed-desktop:hidden overflow-hidden">
+                        <p class="truncate text-[10px] font-bold uppercase tracking-widest text-teal-600 dark:text-teal-400">Northern Luzon</p>
+                        <p class="truncate text-xs font-semibold text-zinc-800 dark:text-zinc-100">Adventist Hospital</p>
+                    </div>
+                </div>
+
+                {{-- User identity --}}
+                <div class="mx-2 rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-zinc-800 in-data-flux-sidebar-collapsed-desktop:hidden overflow-hidden">
+                    <p class="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-100">{{ $user->name }}</p>
+                    @if ($position)
+                        <p class="truncate text-xs text-teal-600 dark:text-teal-400">{{ $position }}</p>
+                    @endif
+                    @if ($department)
+                        <p class="truncate text-[11px] text-zinc-400 dark:text-zinc-500">{{ $department }}</p>
+                    @endif
+                </div>
+            </div>
+            @endauth
+
             {{-- 2. MAINTENANCE --}}
             @can('access-maintenance')
             <flux:sidebar.item
@@ -38,6 +72,13 @@
 
             {{-- INSPECTOR --}}
             @can('access-verify')
+            <flux:sidebar.item
+                icon="home"
+                :href="route('Maintenance.dashboard')"
+                :current="request()->routeIs('Maintenance.dashboard')"
+                wire:navigate="wire:navigate">
+                {{ __('Dashboard') }}
+            </flux:sidebar.item>
             <flux:sidebar.item
                 icon="magnifying-glass"
                 :href="route('Maintenance.checklist.verify')"
@@ -167,11 +208,7 @@
                 </flux:sidebar.item>
 
                 {{-- Leave form --}}
-                
-            </flux:sidebar.group>
-            @endcan
-
-            {{-- ASSETS INVENTORY KUNO --}}
+                {{-- ASSETS INVENTORY KUNO --}}
             <flux:sidebar.group
                 class="grid"
                 icon="queue-list"
@@ -206,6 +243,10 @@
                     {{ __('Transaction Records') }}
                 </flux:sidebar.item>
             </flux:sidebar.group>
+            </flux:sidebar.group>
+            @endcan
+
+            
 
             {{-- 4. PAYROLL | LABOR COMPLIANCE --}}
             @can('access-payroll')

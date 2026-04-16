@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Mail\LeaveCancellationDHeadDecisionMail;
 use App\Mail\LeaveCancellationRequestMail;
 use App\Mail\LeaveDHeadDecisionMail;
 use App\Mail\LeaveHRNotificationMail;
@@ -51,6 +52,8 @@ class DHead extends Component
     public $approvedThisMonth = 0;
 
     public $onLeaveToday = 0;
+
+    public $cancellationPendingCount = 0;
 
     // ─── Validation ───────────────────────────────────────────────────────────
     protected $rules = [
@@ -274,7 +277,11 @@ class DHead extends Component
             return;
         }
 
-        $leave->update(['hr_status' => 'cancellation_requested']);
+        // DHead's own leaves bypass the dept head step — mark as already dept-head-approved
+        $leave->update([
+            'hr_status' => 'cancellation_requested',
+            'cancellation_dhead_status' => 'approved',
+        ]);
         $this->notifyHROfCancellation($leave->fresh(['user.employmentDetail.department']));
         session()->flash('message', 'Cancellation request submitted. HR will review and confirm.');
     }
@@ -291,6 +298,64 @@ class DHead extends Component
             } catch (\Exception) {
             }
         }
+    }
+
+    // ─── Cancellation Review (staff requests to cancel approved leaves) ───────
+
+    public function approveCancellationRequest(int $id): void
+    {
+        $leave = Leave::with('user.employmentDetail.department')
+            ->where('hr_status', 'cancellation_requested')
+            ->where('cancellation_dhead_status', 'pending')
+            ->findOrFail($id);
+
+        $leave->update(['cancellation_dhead_status' => 'approved']);
+
+        // Notify staff: forwarded to HR
+        if ($leave->user?->email) {
+            try {
+                Mail::to($leave->user->email)->send(new LeaveCancellationDHeadDecisionMail($leave, 'approved'));
+            } catch (\Exception $e) {
+                Log::error('LeaveCancellationDHeadDecisionMail failed', ['leave_id' => $leave->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        // Notify HR for final approval
+        $hrUsers = User::whereHas('employmentDetail', fn ($q) => $q->where('position', 'HR Manager'))
+            ->whereNotNull('email')
+            ->get();
+        foreach ($hrUsers as $hr) {
+            try {
+                Mail::to($hr->email)->send(new LeaveCancellationRequestMail($leave));
+            } catch (\Exception) {
+            }
+        }
+
+        session()->flash('message', 'Cancellation approved and forwarded to HR.');
+    }
+
+    public function rejectCancellationRequest(int $id): void
+    {
+        $leave = Leave::with('user.employmentDetail.department')
+            ->where('hr_status', 'cancellation_requested')
+            ->where('cancellation_dhead_status', 'pending')
+            ->findOrFail($id);
+
+        $leave->update([
+            'cancellation_dhead_status' => 'rejected',
+            'hr_status' => 'approved', // restore — leave is still active
+        ]);
+
+        // Notify staff: denied
+        if ($leave->user?->email) {
+            try {
+                Mail::to($leave->user->email)->send(new LeaveCancellationDHeadDecisionMail($leave, 'rejected'));
+            } catch (\Exception $e) {
+                Log::error('LeaveCancellationDHeadDecisionMail (rejected) failed', ['leave_id' => $leave->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        session()->flash('message', 'Cancellation request denied. Leave remains active.');
     }
 
     // ─── Review Staff Leaves ──────────────────────────────────────────────────
@@ -400,6 +465,11 @@ class DHead extends Component
             ->whereDate('end_date', '>=', $today)
             ->count();
 
+        $this->cancellationPendingCount = Leave::where('user_id', '!=', Auth::id())
+            ->where('hr_status', 'cancellation_requested')
+            ->where('cancellation_dhead_status', 'pending')
+            ->count();
+
         $lt = $this->resolveFormLeaveType();
         $isVL = $lt?->code === 'VL';
         $isSL = in_array($lt?->code, ['SL', 'SL_X', 'SL_M']);
@@ -423,10 +493,19 @@ class DHead extends Component
 
         $leaveTypeMap = LeaveType::pluck('label', 'code')->toArray();
 
+        $cancellationLeaves = Leave::with('user.employmentDetail.department')
+            ->where('user_id', '!=', Auth::id())
+            ->where('hr_status', 'cancellation_requested')
+            ->where('cancellation_dhead_status', 'pending')
+            ->latest()
+            ->get();
+
         return view('pages.users.dhead-leave', [
             'leaves' => $leaves,
             'myLeaves' => $myLeaves,
+            'cancellationLeaves' => $cancellationLeaves,
             'pendingCount' => $this->pendingCount,
+            'cancellationPendingCount' => $this->cancellationPendingCount,
             'approvedThisMonth' => $this->approvedThisMonth,
             'onLeaveToday' => $this->onLeaveToday,
             'availableCredits' => $this->availableCredits,

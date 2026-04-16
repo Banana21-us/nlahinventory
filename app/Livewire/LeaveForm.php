@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Mail\LeaveCancellationDHeadMail;
 use App\Mail\LeaveCancellationRequestMail;
 use App\Mail\LeaveHRNotificationMail;
 use App\Mail\LeaveRequestMail;
@@ -326,9 +327,29 @@ class LeaveForm extends Component
             return;
         }
 
-        $leave->update(['hr_status' => 'cancellation_requested']);
-        $this->notifyHROfCancellation($leave->fresh(['user.employmentDetail.department']));
-        session()->flash('message', 'Cancellation request submitted. HR will review and confirm.');
+        $fresh = $leave->fresh(['user.employmentDetail.department.deptHead']);
+        $deptHead = $fresh->user?->employmentDetail?->department?->deptHead;
+
+        if ($deptHead?->email) {
+            // Two-stage: notify dept head first
+            $leave->update([
+                'hr_status' => 'cancellation_requested',
+                'cancellation_dhead_status' => 'pending',
+            ]);
+            try {
+                Mail::to($deptHead->email)->send(new LeaveCancellationDHeadMail($fresh));
+            } catch (\Exception) {
+            }
+            session()->flash('message', 'Cancellation request submitted. Your Department Head will review it first.');
+        } else {
+            // No dept head configured — go directly to HR
+            $leave->update([
+                'hr_status' => 'cancellation_requested',
+                'cancellation_dhead_status' => 'approved',
+            ]);
+            $this->notifyHROfCancellation($fresh);
+            session()->flash('message', 'Cancellation request submitted. HR will review and confirm.');
+        }
     }
 
     private function notifyHROfCancellation(Leave $leave): void

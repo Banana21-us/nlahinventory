@@ -40,7 +40,7 @@ class LeaveCancellationResultMail extends Mailable
                 'leave' => $this->leave,
                 'recipientRole' => $this->recipientRole,
                 'portalUrl' => $this->recipientRole === 'dhead'
-                    ? route('users.dhead-leave')
+                    ? route('users.dhead-leaveform')
                     : route('users.leaveform'),
             ],
         );

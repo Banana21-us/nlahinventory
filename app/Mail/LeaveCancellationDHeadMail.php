@@ -9,7 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class LeaveHRResultMail extends Mailable
+class LeaveCancellationDHeadMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -17,18 +17,17 @@ class LeaveHRResultMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $status = ucfirst($this->leave->hr_status);
         $name = $this->leave->user?->name ?? 'Staff';
 
         return new Envelope(
-            subject: "[Leave {$status}] HR decision for {$name} · {$this->leave->leave_type}",
+            subject: "[Cancellation Review] {$name} · {$this->leave->leave_type}",
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.leave-hr-result',
+            view: 'emails.leave-cancellation-dhead',
             with: [
                 'leave' => $this->leave,
                 'portalUrl' => route('users.dhead-leaveform'),

@@ -55,7 +55,10 @@ class HrLeaveManagement extends Component
     #[Computed]
     public function cancellationCount()
     {
-        return Leave::where('hr_status', 'cancellation_requested')->count();
+        // Only show cancellations that have passed the dept head stage
+        return Leave::where('hr_status', 'cancellation_requested')
+            ->where('cancellation_dhead_status', 'approved')
+            ->count();
     }
 
     #[Computed]

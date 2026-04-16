@@ -269,6 +269,16 @@
                 📋 Incoming Requests
                 <span class="ml-1.5 bg-gray-200 text-gray-700 text-xs px-1.5 py-0.5 rounded-full">{{ $pendingCount }}</span>
             </button>
+            <button @click="activeTab = 'cancellations'"
+                    :class="activeTab === 'cancellations' ? 'tab-active' : 'tab-inactive'"
+                    class="py-3 text-sm font-semibold transition-all duration-200 focus:outline-none">
+                🔄 Cancellation Requests
+                @if($cancellationPendingCount > 0)
+                    <span class="ml-1.5 bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5 rounded-full font-bold">{{ $cancellationPendingCount }}</span>
+                @else
+                    <span class="ml-1.5 bg-gray-200 text-gray-700 text-xs px-1.5 py-0.5 rounded-full">0</span>
+                @endif
+            </button>
             <button @click="activeTab = 'myrequests'"
                     :class="activeTab === 'myrequests' ? 'tab-active' : 'tab-inactive'"
                     class="py-3 text-sm font-semibold transition-all duration-200 focus:outline-none">
@@ -369,6 +379,99 @@
                             <tr>
                                 <td colspan="5" class="px-6 py-10 text-center text-gray-400 text-sm italic">
                                     No applications found.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- ── CANCELLATION REQUESTS TABLE ── --}}
+        <div x-show="activeTab === 'cancellations'" x-cloak>
+            <div class="bg-amber-50 px-6 py-3 border-b border-amber-100 flex flex-wrap gap-3 justify-between items-center">
+                <h3 class="text-md font-bold text-amber-800">Staff Cancellation Requests</h3>
+                <p class="text-xs text-amber-600">Staff requesting to cancel a previously approved leave. Approve to forward to HR, or reject to keep the leave active.</p>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Leave Info</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Period</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Reason</th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-100">
+                        @forelse ($cancellationLeaves as $cl)
+                            <tr class="brand-row-hover transition-colors">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
+                                            {{ strtoupper(substr($cl->user->name ?? '?', 0, 1)) }}
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-bold text-gray-800">{{ $cl->user->name ?? '—' }}</div>
+                                            <div class="text-[10px] text-gray-400 font-medium">
+                                                {{ $cl->user->employmentDetail?->department?->name ?? '—' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-semibold text-gray-700">{{ $leaveTypeMap[$cl->leave_type] ?? $cl->leave_type }}</div>
+                                    <div class="text-[10px] text-amber-600 font-bold uppercase">{{ $cl->total_days }}d · {{ $cl->day_part }}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-xs font-bold text-gray-800">
+                                        {{ \Carbon\Carbon::parse($cl->start_date)->format('M d') }}
+                                        –
+                                        {{ \Carbon\Carbon::parse($cl->end_date)->format('M d, Y') }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-xs text-gray-500 italic max-w-[180px]">
+                                    {{ Str::limit($cl->reason, 50) }}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div x-data="{ confirm: null }" class="flex items-center justify-end gap-2">
+                                        <template x-if="confirm === null">
+                                            <span class="flex gap-2">
+                                                <button @click="confirm = 'approve'"
+                                                        class="px-3 py-1.5 rounded text-xs font-bold text-white bg-green-600 hover:bg-green-700 transition-colors">
+                                                    Approve
+                                                </button>
+                                                <button @click="confirm = 'reject'"
+                                                        class="px-3 py-1.5 rounded text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors">
+                                                    Reject
+                                                </button>
+                                            </span>
+                                        </template>
+                                        <template x-if="confirm === 'approve'">
+                                            <span class="flex items-center gap-1">
+                                                <span class="text-xs text-green-700 font-medium">Forward to HR?</span>
+                                                <button wire:click="approveCancellationRequest({{ $cl->id }})"
+                                                        class="text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-2 py-0.5 rounded">Yes</button>
+                                                <button @click="confirm = null" class="text-xs text-gray-400 hover:text-gray-600 px-1">No</button>
+                                            </span>
+                                        </template>
+                                        <template x-if="confirm === 'reject'">
+                                            <span class="flex items-center gap-1">
+                                                <span class="text-xs text-red-600 font-medium">Deny & keep leave?</span>
+                                                <button wire:click="rejectCancellationRequest({{ $cl->id }})"
+                                                        class="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                                                <button @click="confirm = null" class="text-xs text-gray-400 hover:text-gray-600 px-1">No</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-6 py-10 text-center text-gray-400 text-sm italic">
+                                    No pending cancellation requests.
                                 </td>
                             </tr>
                         @endforelse
