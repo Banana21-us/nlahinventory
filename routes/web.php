@@ -138,15 +138,17 @@ Route::get('/Maintenance/dashboard', MaintenanceDashboard::class)
     ->middleware('auth')
     ->name('Maintenance.dashboard');
 
-// Maintenance routes
+// Maintenance routes — accessible to maintenance users
 Route::middleware(['auth', 'can:access-maintenance'])->group(function () {
     Route::post('/api/maintenance/checklist/sync', [ChecklistSyncController::class, 'sync'])->name('maintenance.checklist.sync');
     Route::redirect('/Maintenance/checklist', '/Maintenance/checklist/check')->name('Maintenance.checklist');
     Route::livewire('/Maintenance/checklist/check', 'pages::Maintenance.checklist.check')->name('Maintenance.checklist.check');
 });
-// Verify routes
-Route::middleware(['auth', 'can:access-verify'])->group(function () {
-    Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')->name('Maintenance.checklist.verify');
+
+// Verify route — accessible to maintenance AND inspectors
+Route::middleware(['auth', 'can-maintenance-or-verify'])->group(function () {
+    Route::livewire('/Maintenance/checklist/verify', 'pages::Maintenance.checklist.verify')
+        ->name('Maintenance.checklist.verify');
 });
 
 // Cashier routes
