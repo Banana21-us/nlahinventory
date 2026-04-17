@@ -124,17 +124,13 @@ Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/access-keys', AccessKeyManagement::class)->name('HR.access-keys');
     Route::get('/HR/holidays', HolidayManagement::class)->name('HR.holidays');
     Route::get('/HR/leave-types', LeaveTypeManagement::class)->name('HR.leave-types');
+    Route::get('/HR/applications-management', HrApplicationsManagement::class)->name('HR.applications-management');
 });
 
 // Overtime & Pay-off — accessible to all authenticated users
 Route::middleware('auth')->group(function () {
     Route::get('/HR/overtime', OvertimeManagement::class)->name('HR.overtime');
     Route::get('/HR/payoff', PayoffManagement::class)->name('HR.payoff');
-});
-
-// HR Applications management (Overtime + Pay-off) — HR only
-Route::middleware(['auth', 'can:access-hr-only'])->group(function () {
-    Route::get('/HR/applications-management', HrApplicationsManagement::class)->name('HR.applications-management');
 });
 
 // Shared dashboard — accessible to both maintenance and verifier roles
