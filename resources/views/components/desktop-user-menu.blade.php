@@ -1,7 +1,14 @@
+@php
+    $avatarUrl = auth()->user()?->employee?->picture
+        ? asset('storage/' . auth()->user()->employee->picture)
+        : null;
+@endphp
+
 <flux:dropdown position="bottom" align="start">
     <flux:sidebar.profile
         :name="auth()->user()?->name ?? 'Guest'"
         :initials="auth()->user()->initials()"
+        :avatar="$avatarUrl"
         icon:trailing="chevrons-up-down"
         data-test="sidebar-menu-button"
     />
@@ -11,6 +18,7 @@
             <flux:avatar
                 :name="auth()->user()?->name ?? 'Guest'"
                 :initials="auth()->user()->initials()"
+                :src="$avatarUrl"
             />
             <div class="grid flex-1 text-start text-sm leading-tight">
                 <flux:heading class="truncate">{{ auth()->user()?->name ?? 'Guest' }}</flux:heading>

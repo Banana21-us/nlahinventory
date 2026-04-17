@@ -204,16 +204,41 @@
   #nlah-user-input::placeholder { color: #a1a1aa; }
   #nlah-user-input:focus { border-color: #71717a; background: #fff; }
 
-  #nlah-send-btn {
+  .nlah-input-btn {
     width: 36px; height: 36px; border-radius: 9px;
-    background: #18181b;
-    border: none; cursor: pointer; flex-shrink: 0;
+    background: #f4f4f5;
+    border: 1px solid #e4e4e7;
+    cursor: pointer; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     transition: transform 0.15s, opacity 0.15s;
   }
+  .nlah-input-btn:hover { background: #e4e4e8; }
+  .nlah-input-btn svg { width: 15px; height: 15px; fill: #71717a; }
+
+  #nlah-send-btn { background: #18181b; border: none; }
   #nlah-send-btn:hover { transform: scale(1.06); }
   #nlah-send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-  #nlah-send-btn svg { width: 15px; height: 15px; fill: #fff; }
+  #nlah-send-btn svg { fill: #fff; }
+
+  .nlah-paste-preview {
+    display: flex; gap: 6px; padding: 0 1rem 0.5rem;
+    flex-wrap: wrap; min-height: 66px;
+  }
+  .nlah-paste-preview > div {
+    position: relative;
+    width: 60px; height: 60px;
+  }
+  .nlah-paste-preview img {
+    width: 60px; height: 60px; object-fit: cover;
+    border-radius: 8px; border: 1px solid #e4e4e7;
+  }
+  .nlah-paste-preview .nlah-remove-img {
+    position: absolute; top: -6px; right: -6px;
+    width: 18px; height: 18px; background: #ef4444;
+    border-radius: 50%; color: #fff; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 18px; text-align: center;
+  }
 
   /* ─── FEEDBACK OVERLAY ─── */
   #nlah-feedback-container {
@@ -291,7 +316,7 @@
   <div class="nlah-messages" id="nlah-messages">
     <div class="nlah-msg ai">
       <div class="nlah-msg-avatar">N</div>
-      <div class="nlah-bubble">Hello! 👋 Welcome to Northern Luzon Adventist Hospital. How can I help you today?</div>
+      <div class="nlah-bubble">Hello! 👋 Welcome to NLAH. I can help with appointments, medical info, or analyze prescription images. How can I assist you today?</div>
     </div>
   </div>
 
@@ -323,14 +348,21 @@
     <span class="nlah-chip">Emergency contact</span>
     <span class="nlah-chip">Hospital hours</span>
     <span class="nlah-chip">Leave feedback</span>
+    <span class="nlah-chip">Analyze prescription</span>
+    <span class="nlah-chip">Medical info</span>
   </div>
 
   <div class="nlah-input-area" id="nlah-input-area">
-    <textarea id="nlah-user-input" rows="1" placeholder="Type your message..." maxlength="1000"></textarea>
+    <input type="file" id="nlah-image-input" accept="image/*" multiple style="display:none;">
+    <textarea id="nlah-user-input" rows="1" placeholder="Type or paste image..." maxlength="1000"></textarea>
+    <button type="button" class="nlah-input-btn" id="nlah-attach-btn" aria-label="Attach image">
+      <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5H4v12h12.5z"/></svg>
+    </button>
     <button id="nlah-send-btn" aria-label="Send">
       <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
     </button>
   </div>
+  <div class="nlah-paste-preview" id="nlah-paste-preview"></div>
 </div>
 
 <script>
@@ -348,6 +380,50 @@
   let isOpen         = false;
   let selectedRating = 0;
   let history        = [];
+  let attachedImages = [];
+
+  const imageInput   = document.getElementById('nlah-image-input');
+  const attachBtn  = document.getElementById('nlah-attach-btn');
+  const pastePrev  = document.getElementById('nlah-paste-preview');
+
+  attachBtn.addEventListener('click', () => imageInput.click());
+  imageInput.addEventListener('change', () => handleFiles(imageInput.files));
+
+  input.addEventListener('paste', e => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files = [];
+    for (let item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    if (files.length) { e.preventDefault(); handleFiles(files); }
+  });
+
+  function handleFiles(files) {
+    for (let file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      if (attachedImages.length >= 4) { alert('Max 4 images allowed.'); break; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const imgObj = { file: file, src: e.target.result };
+        attachedImages.push(imgObj);
+        const wrap = document.createElement('div');
+        wrap.style.position = 'relative';
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        const rm = document.createElement('span');
+        rm.className = 'nlah-remove-img';
+        rm.innerHTML = '×';
+        rm.onclick = () => { const i = attachedImages.indexOf(imgObj); if (i>-1) attachedImages.splice(i,1); wrap.remove(); };
+        wrap.appendChild(img); wrap.appendChild(rm); pastePrev.appendChild(wrap);
+      };
+      reader.readAsDataURL(file);
+    }
+    imageInput.value = '';
+  }
 
   trigger.addEventListener('click', () => {
     isOpen = !isOpen;
@@ -413,17 +489,34 @@
 
   async function sendMessage() {
     const text = input.value.trim();
-    if (!text || sendBtn.disabled) return;
-    appendMsg('user', text);
-    history.push({ role: 'user', content: text });
+    if ((!text && attachedImages.length === 0) || sendBtn.disabled) return;
+
+    const imagesToSend = [...attachedImages];
+    const textToSend = text || (imagesToSend.length ? '[Image attached]' : '');
+
+    if (imagesToSend.length) {
+      appendMsgWithImages('user', textToSend, imagesToSend.map(f => f.src));
+    } else {
+      appendMsg('user', text);
+    }
+    history.push({ role: 'user', content: textToSend });
     input.value = ''; input.style.height = 'auto';
+    pastePrev.innerHTML = ''; attachedImages = [];
     sendBtn.disabled = true; showTyping();
+
     try {
       const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      const res  = await fetch('/nlah/chat', {
+      const formData = new FormData();
+      formData.append('messages', JSON.stringify(history));
+      imagesToSend.forEach(f => {
+        const blob = dataURLtoBlob(f.src);
+        formData.append('images[]', blob, 'image.png');
+      });
+
+      const res = await fetch('/nlah/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf ?? '' },
-        body: JSON.stringify({ messages: history })
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf ?? '' },
+        body: formData
       });
       removeTyping();
       let data = {};
@@ -440,6 +533,40 @@
       appendMsg('ai', 'Could not reach the server. Please check your connection.');
     }
     sendBtn.disabled = false; input.focus();
+  }
+
+  function dataURLtoBlob(dataurl) {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  }
+
+  function appendMsgWithImages(role, text, imageSrcs) {
+    const wrap = document.createElement('div');
+    wrap.className = `nlah-msg ${role}`;
+    const avatar = document.createElement('div');
+    avatar.className = 'nlah-msg-avatar';
+    avatar.textContent = role === 'ai' ? 'N' : '👤';
+    const bubble = document.createElement('div');
+    bubble.className = 'nlah-bubble';
+    if (text) bubble.textContent = text;
+    const imgRow = document.createElement('div');
+    imgRow.style.cssText = 'display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;';
+    imageSrcs.forEach(src => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.style.cssText = 'width:100px; max-width:100%; border-radius:8px; border:1px solid #e4e4e7;';
+      imgRow.appendChild(img);
+    });
+    bubble.appendChild(imgRow);
+    if (role === 'user') { wrap.appendChild(bubble); wrap.appendChild(avatar); }
+    else                 { wrap.appendChild(avatar); wrap.appendChild(bubble); }
+    messagesEl.appendChild(wrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
   // ── Feedback ──

@@ -38,4 +38,9 @@ class Employee extends Model
     {
         return $this->hasOne(EmploymentDetail::class, 'employee_id', 'id');
     }
+
+    public function payrollLeave()
+    {
+        return $this->hasOne(PayrollAndLeave::class, 'employee_id', 'id');
+    }
 }

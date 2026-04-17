@@ -5,7 +5,9 @@ use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LeaveResponseController;
 use App\Http\Controllers\NewsEventController;
 use App\Livewire\AccessKeyManagement;
+use App\Livewire\AssetItemEntry;
 use App\Livewire\Assets;
+use App\Livewire\AssetTransactionRecords;
 use App\Livewire\AttendanceManagement;
 use App\Livewire\Dashboard;
 use App\Livewire\DepartmentManagement;
@@ -13,10 +15,9 @@ use App\Livewire\DHead;
 use App\Livewire\DispenseMedicine;
 use App\Livewire\EmployeeManagement;
 use App\Livewire\HolidayManagement;
-use App\Livewire\AssetItemEntry;
-use App\Livewire\AssetTransactionRecords;
 use App\Livewire\Home;
 use App\Livewire\HR;
+use App\Livewire\HrApplicationsManagement;
 use App\Livewire\HRCorner;
 use App\Livewire\HrLeaveManagement;
 use App\Livewire\LeaveForm;
@@ -27,10 +28,8 @@ use App\Livewire\News;
 use App\Livewire\OvertimeManagement;
 use App\Livewire\PatientDetail;
 use App\Livewire\PatientManager;
-use App\Livewire\HrApplicationsManagement;
 use App\Livewire\PayoffManagement;
 use App\Livewire\PayrollCompliance;
-use App\Livewire\Transfer;
 use App\Livewire\PointOfSale\POS;
 use App\Livewire\PointOfSale\PosCustomer;
 use App\Livewire\PointOfSale\Posdashboard;
@@ -38,8 +37,10 @@ use App\Livewire\PointOfSale\PosInventory;
 use App\Livewire\PointOfSale\PosItems;
 use App\Livewire\PointOfSale\PosSales;
 use App\Livewire\PositionManagement;
+use App\Livewire\Transfer;
 use App\Models\Feedback;
 use App\Models\User;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -112,6 +113,11 @@ Route::post('/email/resend', function (Request $request) {
 
 // HR Routes
 Route::middleware('can:access-hr-only')->group(function () {
+    Route::get('/HR/employees/{employee}/salary-slip', function (\App\Models\Employee $employee) {
+        $employee->load(['employmentDetail.department', 'payrollLeave']);
+        return view('pdf.salary-slip', compact('employee'));
+    })->name('HR.employees.salary-slip');
+
     Route::get('/HR/news', News::class)->name('NewsPage.newshr');
     Route::get('/HR/userlist', HR::class)->name('HR.userlist');
     Route::get('/HR/hr-leave-management', HrLeaveManagement::class)->name('HR.hr-leave-management');
@@ -212,10 +218,14 @@ Route::get('/Assetsmanagement/item-entry', AssetItemEntry::class)->name('Assetsm
 Route::get('/Assetsmanagement/transaction-records', AssetTransactionRecords::class)->name('Assetsmanagement.transaction-records');
 
 Route::post('/nlah/chat', function (Request $request) {
+    $messagesInput = $request->input('messages');
+    $messages = is_string($messagesInput) ? json_decode($messagesInput, true) : $messagesInput;
+
+    $request->merge(['messages' => $messages]);
     $request->validate([
         'messages' => 'required|array|max:50',
-        'messages.*.role' => 'required|in:user,assistant',
-        'messages.*.content' => 'required|string|max:2000',
+        'messages.*.role' => 'required|in:user,assistant,system',
+        'messages.*.content' => 'nullable|string|max:5000',
     ]);
 
     $systemPrompt = <<<'PROMPT'
@@ -223,6 +233,12 @@ Route::post('/nlah/chat', function (Request $request) {
     Your name is NLAH Wellness Companion. You are NOT Isabella, Kimi, or any other AI assistant. You are NLAH Wellness Companion, created exclusively for Northern Luzon Adventist Hospital. If anyone asks your name, you say: "I am NLAH Wellness Companion, your health assistant for Northern Luzon Adventist Hospital." Never refer to yourself by any other name.
 
     You are NLAH Wellness Companion — a warm, knowledgeable, and holistic health assistant for Northern Luzon Adventist Hospital (NLAH). You draw from a rich foundation of:
+
+    IMAGE ANALYSIS
+    • You can analyze images sent by users, including prescriptions, medical documents, lab results, or doctor handwriting
+    • When analyzing prescriptions: identify medications, dosages, and instructions if legible; note if handwriting is unclear
+    • Provide general guidance about any medical image, but always recommend consulting a physician for definitive interpretation
+    • Be honest when an image is blurry or illegible
 
     MEDICAL KNOWLEDGE
     • Evidence-based medicine: symptoms, conditions, medications, diagnostics, preventive care, first aid
@@ -295,21 +311,46 @@ Route::post('/nlah/chat', function (Request $request) {
             ['role' => 'system',    'content' => $systemPrompt],
             ['role' => 'assistant', 'content' => 'Hello! I am NLAH Wellness Companion, your health assistant for Northern Luzon Adventist Hospital. How can I help you today?'],
         ],
-        $request->input('messages')
+        $messages
     );
+
+    // Handle image analysis if images are attached
+    $images = $request->file('images');
+    $hasImages = $images && count($images) > 0;
+
+    if ($hasImages) {
+        $model = config('services.ollama.model');
+        $supportsVision = in_array($model, ['llava', 'llava-llama3', 'moondream', 'llava:latest', 'bakllava', 'qwen2-vl', 'qwen-vl-max']);
+
+        if (! $supportsVision) {
+            return response()->json([
+                'reply' => 'Image analysis requires a vision-capable AI model. Please contact the administrator to enable vision support (e.g., llava, moondream, or qwen2-vl).',
+            ]);
+        }
+
+        $lastUserMsgIndex = count($messages) - 1;
+        $base64Images = [];
+        foreach ($images as $image) {
+            $base64 = base64_encode(file_get_contents($image->getRealPath()));
+            $mime = $image->getMimeType();
+            $messages[$lastUserMsgIndex]['content'] = ($messages[$lastUserMsgIndex]['content'] ?? '')."\n\n[Image attached for analysis]";
+            $base64Images[] = $base64;
+        }
+        $messages[$lastUserMsgIndex]['images'] = $base64Images;
+    }
 
     try {
         $response = Http::timeout(60)->post(
             config('services.ollama.host').'/api/chat',
             [
-                'model'    => config('services.ollama.model'),
+                'model' => config('services.ollama.model'),
                 'messages' => $messages,
-                'stream'   => false,
+                'stream' => false,
             ]
         );
-    } catch (\Illuminate\Http\Client\ConnectionException $e) {
+    } catch (ConnectionException $e) {
         return response()->json(['error' => 'AI service is offline. Please try again later.'], 503);
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         return response()->json(['error' => 'Unexpected error. Please try again.'], 500);
     }
 
@@ -326,10 +367,10 @@ Route::post('/nlah/chat', function (Request $request) {
 
     // Strip markdown that the model inserts despite instructions
     $reply = preg_replace('/\*\*(.+?)\*\*/s', '$1', $reply);   // **bold**
-    $reply = preg_replace('/\*(.+?)\*/s',     '$1', $reply);   // *italic*
-    $reply = preg_replace('/__(.+?)__/s',     '$1', $reply);   // __bold__
-    $reply = preg_replace('/_(.+?)_/s',       '$1', $reply);   // _italic_
-    $reply = preg_replace('/#+\s*/m',          '',   $reply);   // # headers
+    $reply = preg_replace('/\*(.+?)\*/s', '$1', $reply);   // *italic*
+    $reply = preg_replace('/__(.+?)__/s', '$1', $reply);   // __bold__
+    $reply = preg_replace('/_(.+?)_/s', '$1', $reply);   // _italic_
+    $reply = preg_replace('/#+\s*/m', '', $reply);   // # headers
     $reply = preg_replace('/`{1,3}[^`]*`{1,3}/', '', $reply);  // `code`
     $reply = trim($reply);
 
@@ -347,10 +388,10 @@ Route::post('/nlah/feedback/submit', function (Request $request) {
     // Run: php artisan make:model Feedback -m
     // Migration columns: name, comment, rating (tinyint), ip_address
     Feedback::create([
-        'name'          => $request->input('name', 'Guest'),
-        'comment'       => $request->input('comment'),
-        'rating'        => $request->input('rating'),
-        'ip_address'    => $request->ip(),
+        'name' => $request->input('name', 'Guest'),
+        'comment' => $request->input('comment'),
+        'rating' => $request->input('rating'),
+        'ip_address' => $request->ip(),
         'feedback_date' => now(),
     ]);
 
