@@ -12,9 +12,12 @@ use App\Models\Position;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class EmployeeManagement extends Component
 {
+    use WithFileUploads;
+
     public string $search = '';
 
     public bool $showForm = false;
@@ -174,7 +177,27 @@ class EmployeeManagement extends Component
     {
         $this->validate();
 
-        DB::transaction(function () {
+        \Illuminate\Support\Facades\Log::info('EM save() before transaction', [
+            'picture_class' => $this->picture ? get_class($this->picture) : 'null',
+            'picture_is_string' => is_string($this->picture),
+            'picture_raw' => $this->picture,
+            'signature_class' => $this->signature ? get_class($this->signature) : 'null',
+        ]);
+
+        $picturePath = $this->picture instanceof \Illuminate\Http\UploadedFile
+            ? $this->picture->store('employees/pictures', 'public')
+            : null;
+        $signaturePath = $this->signature instanceof \Illuminate\Http\UploadedFile
+            ? $this->signature->store('employees/signatures', 'public')
+            : null;
+
+        \Illuminate\Support\Facades\Log::info('EM paths after store', [
+            'picturePath' => $picturePath,
+            'signaturePath' => $signaturePath,
+        ]);
+
+        DB::transaction(function () use ($picturePath, $signaturePath) {
+
             $emp = Employee::create([
                 'employee_number' => $this->employee_number,
                 'user_id' => $this->user_id ?: null,
@@ -201,6 +224,8 @@ class EmployeeManagement extends Component
                 'contact_number' => $this->contact_number,
                 'contact_relationship' => $this->contact_relationship ?? null,
                 'is_solo_parent' => $this->is_solo_parent,
+                'picture' => $picturePath,
+                'signature' => $signaturePath,
             ]);
 
             EmploymentDetail::updateOrCreate(
@@ -315,6 +340,27 @@ class EmployeeManagement extends Component
         $this->isEditing = true;
     }
 
+    public function updatedWageFactor(): void
+    {
+        $this->computeRates();
+    }
+
+    public function updatedSalaryRate(): void
+    {
+        $this->computeRates();
+    }
+
+    private function computeRates(): void
+    {
+        $pct = (float) ($this->salary_rate ?? 0);   // e.g. 47 for 47%
+        $wf  = (float) ($this->wage_factor ?? 0);   // e.g. 30000
+
+        if ($pct > 0 && $wf > 0) {
+            $this->monthly_rate = round(($pct / 100) * $wf, 2);          // 47% × 30,000 = 14,100
+            $this->daily_rate   = round($this->monthly_rate * 12 / 262, 2); // 14,100 × 12 / 262 = 645.80
+        }
+    }
+
     public function addDependent(): void
     {
         if (! empty($this->new_dependent['lastname']) && ! empty($this->new_dependent['firstname'])) {
@@ -393,7 +439,7 @@ class EmployeeManagement extends Component
         $employee = Employee::findOrFail($this->selectedId);
 
         DB::transaction(function () use ($employee) {
-            $employee->update([
+            $data = [
                 'employee_number' => $this->employee_number,
                 'user_id' => $this->user_id ?: null,
                 'biometric_id' => $this->biometric_id ?: null,
@@ -419,7 +465,17 @@ class EmployeeManagement extends Component
                 'contact_number' => $this->contact_number,
                 'contact_relationship' => $this->contact_relationship ?? null,
                 'is_solo_parent' => $this->is_solo_parent,
-            ]);
+            ];
+
+            if ($this->picture instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                $data['picture'] = $this->picture->store('employees/pictures', 'public');
+            }
+
+            if ($this->signature instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                $data['signature'] = $this->signature->store('employees/signatures', 'public');
+            }
+
+            $employee->update($data);
 
             EmploymentDetail::updateOrCreate(
                 ['employee_id' => $employee->id],

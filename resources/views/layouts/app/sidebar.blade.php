@@ -11,9 +11,12 @@
             class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
 
             {{-- Hospital identity + logged-in user card --}}
-            @auth @php $user = auth()->user(); $position =
-            $user->employmentDetail?->position ?? null; $department =
-            $user->employmentDetail?->department?->name ?? null; @endphp
+            @auth @php
+                $user = auth()->user();
+                $position = $user->employmentDetail?->position ?? null;
+                $department = $user->employmentDetail?->department?->name ?? null;
+                $avatarUrl = $user->employee?->picture ? asset('storage/' . $user->employee->picture) : null;
+            @endphp
             <div class="mb-2 border-b border-zinc-200 pb-3 dark:border-zinc-700">
                 {{-- Logo + hospital name --}}
                 <div class="flex items-center gap-2.5 px-2 pt-2 pb-2">
@@ -475,6 +478,7 @@
             <flux:dropdown position="top" align="end" class="lg:hidden">
                 <flux:profile
                     :initials="auth()->user()->initials()"
+                    :avatar="$avatarUrl"
                     icon-trailing="chevron-down"/>
 
                 <flux:menu>
@@ -483,7 +487,8 @@
                             <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
                                 <flux:avatar
                                     :name="auth()->user()->name"
-                                    :initials="auth()->user()->initials()"/>
+                                    :initials="auth()->user()->initials()"
+                                    :src="$avatarUrl"/>
                                 <div class="grid flex-1 text-start text-sm leading-tight">
                                     <flux:heading class="truncate">{{ auth()->user()->name }}</flux:heading>
                                     <flux:text class="truncate">{{ auth()->user()->email }}</flux:text>

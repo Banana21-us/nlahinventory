@@ -448,69 +448,86 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Salary Rate</label>
-                        <input type="number" step="0.01" wire:model="salary_rate"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Wage Factor (₱)</label>
+                        <input type="number" step="0.01" wire:model.live="wage_factor"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                            placeholder="e.g. 30000"/>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Daily Rate</label>
-                        <input type="number" step="0.01" wire:model="daily_rate"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                            Active Percentage Rate (%) <span class="text-gray-400 font-normal normal-case">e.g. 47</span>
+                        </label>
+                        <input type="number" step="0.01" min="0" max="100" wire:model.live="salary_rate"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                            placeholder="e.g. 47"/>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Monthly Rate</label>
-                        <input type="number" step="0.01" wire:model="monthly_rate"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div>
-                    
-                    <div>
-                                <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Probi Rate</label>
-                                <input type="number" step="0.01" wire:model="probi_rate"
-                                    class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                            Monthly Rate <span class="text-teal-500 font-normal normal-case">(% × Wage Factor)</span>
+                        </label>
+                        <input type="number" step="0.01" wire:model="monthly_rate" disabled
+                            class="block w-full rounded-md border border-gray-200 bg-gray-50 shadow-sm sm:text-sm p-2 text-gray-500 cursor-not-allowed"/>
                     </div>
 
-                    
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                            Daily Rate <span class="text-teal-500 font-normal normal-case">(monthly × 12 / 262)</span>
+                        </label>
+                        <input type="number" step="0.01" wire:model="daily_rate" disabled
+                            class="block w-full rounded-md border border-gray-200 bg-gray-50 shadow-sm sm:text-sm p-2 text-gray-500 cursor-not-allowed"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Probi Rate</label>
+                        <input type="number" step="0.01" wire:model="probi_rate"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
 
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Grocery Allowance</label>
-                        <input type="number" step="0.01" wire:model="grocery_allowance"
+                        <input type="number" step="0.01" wire:model.live="grocery_allowance"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">COLA</label>
+                        <input type="number" step="0.01" wire:model.live="cola"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                            Total Compensation <span class="text-teal-500 font-normal normal-case">(auto)</span>
+                        </label>
+                        <input type="number" step="0.01" disabled
+                            :value="((parseFloat($wire.monthly_rate) || 0) + (parseFloat($wire.grocery_allowance) || 0) + (parseFloat($wire.cola) || 0)).toFixed(2)"
+                            class="block w-full rounded-md border border-gray-200 bg-gray-50 shadow-sm sm:text-sm p-2 text-gray-500 cursor-not-allowed"/>
+                    </div>
+
+                    <div class="md:col-span-3 mt-4 mb-2">
+                        <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Percentage Rate Scale</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Min Rate (%)</label>
+                        <input type="number" step="0.01" min="0" max="100" wire:model="min_scale"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                            placeholder="e.g. 47"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Max Rate (%)</label>
+                        <input type="number" step="0.01" min="0" max="100" wire:model="max_scale"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                            placeholder="e.g. 82"/>
                     </div>
 
                     
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Night Diff Factor</label>
                         <input type="number" step="0.01" wire:model="night_diff_factor"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">COLA</label>
-                        <input type="number" step="0.01" wire:model="cola"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div>
-
-                    <div class="md:col-span-3 mt-4 mb-2">
-                        <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Salary Scale</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Min Scale</label>
-                        <input type="number" step="0.01" wire:model="min_scale"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Max Scale</label>
-                        <input type="number" step="0.01" wire:model="max_scale"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Wage Factor</label>
-                        <input type="number" step="0.01" wire:model="wage_factor"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
 
@@ -603,7 +620,17 @@
                 <div x-show="tab === 'dependents'">
                     <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                         <p class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Add New Dependent</p>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3"
+                            x-data="{
+                                calcAge(bday) {
+                                    if (!bday) return null;
+                                    const today = new Date();
+                                    const b = new Date(bday);
+                                    let age = today.getFullYear() - b.getFullYear();
+                                    if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
+                                    return age >= 0 ? age : null;
+                                }
+                            }">
                             <input type="text" wire:model="new_dependent.lastname" placeholder="Last Name"
                                 class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                             <input type="text" wire:model="new_dependent.firstname" placeholder="First Name"
@@ -620,9 +647,11 @@
                                 <option value="Female">Female</option>
                             </select>
                             <input type="date" wire:model="new_dependent.birthday"
+                                x-on:change="$wire.set('new_dependent.age', calcAge($event.target.value))"
                                 class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                            <input type="number" wire:model="new_dependent.age" placeholder="Age"
-                                class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                            <input type="number" wire:model="new_dependent.age" placeholder="Age (auto)"
+                                disabled
+                                class="block w-full rounded-md border border-gray-200 bg-gray-50 shadow-sm sm:text-sm p-2 text-gray-500 cursor-not-allowed"/>
                         </div>
                         <button type="button" wire:click="addDependent"
                             class="mt-3 brand-btn-primary text-sm font-bold py-1.5 px-4 rounded shadow-sm active:scale-95">
@@ -856,11 +885,21 @@
                                     @endif
                                 </div>
                             </div>
-                            <button wire:click="$set('isViewing', false)" class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
-                                </svg>
-                            </button>
+                            <div class="flex items-center gap-1">
+                                <a href="{{ route('HR.employees.salary-slip', $viewEmployee->id) }}"
+                                   target="_blank"
+                                   title="Print Salary Slip"
+                                   class="text-gray-400 hover:text-teal-600 transition-colors p-1 rounded">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.75 19.817m.001-5.988.72-.096M6.75 19.817l-1.5-5.656M16.5 13.829c.24.03.48.062.72.096m0 0L18.75 19.817M17.22 13.829l-1.5 5.988M3 8.625c0-1.036.84-1.875 1.875-1.875h13.25C19.16 6.75 20 7.589 20 8.625v2.25c0 1.036-.84 1.875-1.875 1.875H4.875A1.875 1.875 0 0 1 3 10.875v-2.25Z"/>
+                                    </svg>
+                                </a>
+                                <button wire:click="$set('isViewing', false)" class="text-gray-400 hover:text-gray-600 p-1 rounded">
+                                    <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -1327,21 +1366,28 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Salary Rate</label>
-                                    <input type="number" step="0.01" wire:model="salary_rate"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                                        Active Percentage Rate (%) <span class="text-gray-400 font-normal normal-case">e.g. 47</span>
+                                    </label>
+                                    <input type="number" step="0.01" min="0" max="100" wire:model.live="salary_rate"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                                        placeholder="e.g. 47"/>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Daily Rate</label>
-                                    <input type="number" step="0.01" wire:model="daily_rate"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                                        Monthly Rate <span class="text-teal-500 font-normal normal-case">(% × Wage Factor)</span>
+                                    </label>
+                                    <input type="number" step="0.01" wire:model="monthly_rate" disabled
+                                        class="block w-full rounded-md border border-gray-200 bg-gray-50 shadow-sm sm:text-sm p-2 text-gray-500 cursor-not-allowed"/>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Monthly Rate</label>
-                                    <input type="number" step="0.01" wire:model="monthly_rate"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                                        Daily Rate <span class="text-teal-500 font-normal normal-case">(monthly × 12 / 262)</span>
+                                    </label>
+                                    <input type="number" step="0.01" wire:model="daily_rate" disabled
+                                        class="block w-full rounded-md border border-gray-200 bg-gray-50 shadow-sm sm:text-sm p-2 text-gray-500 cursor-not-allowed"/>
                                 </div>
 
                                 <div>
@@ -1350,48 +1396,56 @@
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
 
-                                
-
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Grocery Allowance</label>
-                                    <input type="number" step="0.01" wire:model="grocery_allowance"
+                                    <input type="number" step="0.01" wire:model.live="grocery_allowance"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
 
-                                
-                    
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Night Diff Factor</label>
                                     <input type="number" step="0.01" wire:model="night_diff_factor"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
-<div>
+
+                                <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">COLA</label>
-                                    <input type="number" step="0.01" wire:model="cola"
+                                    <input type="number" step="0.01" wire:model.live="cola"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
-                                
-                                
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                                        Total Compensation <span class="text-teal-500 font-normal normal-case">(auto)</span>
+                                    </label>
+                                    <input type="number" step="0.01" disabled
+                                        :value="((parseFloat($wire.monthly_rate) || 0) + (parseFloat($wire.grocery_allowance) || 0) + (parseFloat($wire.cola) || 0)).toFixed(2)"
+                                        class="block w-full rounded-md border border-gray-200 bg-gray-50 shadow-sm sm:text-sm p-2 text-gray-500 cursor-not-allowed"/>
+                                </div>
+
                                 <div class="md:col-span-3 mt-4 mb-2">
-                                    <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Salary Scale</p>
+                                    <p class="text-xs font-bold uppercase tracking-wide text-gray-400">Percentage Rate Scale</p>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Min Scale</label>
-                                    <input type="number" step="0.01" wire:model="min_scale"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Min Rate (%)</label>
+                                    <input type="number" step="0.01" min="0" max="100" wire:model="min_scale"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                                        placeholder="e.g. 47"/>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Max Scale</label>
-                                    <input type="number" step="0.01" wire:model="max_scale"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Max Rate (%)</label>
+                                    <input type="number" step="0.01" min="0" max="100" wire:model="max_scale"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                                        placeholder="e.g. 82"/>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Wage Factor</label>
-                                    <input type="number" step="0.01" wire:model="wage_factor"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Wage Factor (₱)</label>
+                                    <input type="number" step="0.01" wire:model.live="wage_factor"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                                        placeholder="e.g. 30000"/>
                                 </div>
 
                                 {{-- Leave Balances --}}
@@ -1480,7 +1534,17 @@
                             <div x-show="tab === 'dependents'">
                                 <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                                     <p class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Add New Dependent</p>
-                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3"
+                                        x-data="{
+                                            calcAge(bday) {
+                                                if (!bday) return null;
+                                                const today = new Date();
+                                                const b = new Date(bday);
+                                                let age = today.getFullYear() - b.getFullYear();
+                                                if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) age--;
+                                                return age >= 0 ? age : null;
+                                            }
+                                        }">
                                         <input type="text" wire:model="new_dependent.lastname" placeholder="Last Name"
                                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                         <input type="text" wire:model="new_dependent.firstname" placeholder="First Name"
@@ -1497,9 +1561,11 @@
                                             <option value="Female">Female</option>
                                         </select>
                                         <input type="date" wire:model="new_dependent.birthday"
+                                            x-on:change="$wire.set('new_dependent.age', calcAge($event.target.value))"
                                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                        <input type="number" wire:model="new_dependent.age" placeholder="Age"
-                                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                        <input type="number" wire:model="new_dependent.age" placeholder="Age (auto)"
+                                            disabled
+                                            class="block w-full rounded-md border border-gray-200 bg-gray-50 shadow-sm sm:text-sm p-2 text-gray-500 cursor-not-allowed"/>
                                     </div>
                                     <button type="button" wire:click="addDependent"
                                         class="mt-3 brand-btn-primary text-sm font-bold py-1.5 px-4 rounded shadow-sm active:scale-95">
