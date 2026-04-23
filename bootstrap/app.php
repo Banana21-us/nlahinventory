@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CanAccessMaintenanceOrVerify;
 use App\Http\Middleware\EnforceAccessKey;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Console\Scheduling\Schedule;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => RoleMiddleware::class,
+            'can-maintenance-or-verify' => CanAccessMaintenanceOrVerify::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
