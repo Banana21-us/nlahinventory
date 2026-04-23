@@ -51,4 +51,18 @@
 @stack('chart-scripts')
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
+@livewireStyles
 @fluxAppearance
+
+<script>
+    window.NurseScheduleState = {
+        modalOpen: false,
+        modalSection: '',
+        modalSlot: '',
+        modalPeriod: '',
+        modalSearch: '',
+        customName: '',
+        toastShow: false,
+        toastMessage: ''
+    };
+</script>

@@ -25,6 +25,7 @@ use App\Livewire\LeaveTypeManagement;
 use App\Livewire\MaintenanceDashboard;
 use App\Livewire\Medicines;
 use App\Livewire\News;
+use App\Livewire\NurseSchedule;
 use App\Livewire\OvertimeManagement;
 use App\Livewire\PatientDetail;
 use App\Livewire\PatientManager;
@@ -135,6 +136,7 @@ Route::middleware('can:access-hr-only')->group(function () {
 
 // Overtime & Pay-off — accessible to all authenticated users
 Route::middleware('auth')->group(function () {
+    Route::get('/nursing/schedule', NurseSchedule::class)->name('nursing.schedule');
     Route::get('/HR/overtime', OvertimeManagement::class)->name('HR.overtime');
     Route::get('/HR/payoff', PayoffManagement::class)->name('HR.payoff');
 });

@@ -16,6 +16,9 @@
                 $position = $user->employmentDetail?->position ?? null;
                 $department = $user->employmentDetail?->department?->name ?? null;
                 $avatarUrl = $user->employee?->picture ? asset('storage/' . $user->employee->picture) : null;
+                $canAccessNursing = $user->can('access-hr-only')
+                    || str_contains(strtolower((string) $position), 'nurse')
+                    || str_contains(strtolower((string) $department), 'nursing');
             @endphp
             <div class="mb-2 border-b border-zinc-200 pb-3 dark:border-zinc-700">
                 {{-- Logo + hospital name --}}
@@ -426,6 +429,16 @@
             </flux:sidebar.item>
             @endcan @endcan
 
+            @if(($canAccessNursing ?? false))
+            <flux:sidebar.item
+                icon="calendar-days"
+                :href="route('nursing.schedule')"
+                :current="request()->routeIs('nursing.schedule')"
+                wire:navigate="wire:navigate">
+                {{ __('Nursing') }}
+            </flux:sidebar.item>
+            @endif
+
             {{-- Overtime & Pay-off — visible to all staff except HR (HR uses management pages) --}}
             @cannot('access-hr-only')
             @auth
@@ -532,6 +545,7 @@
 
         {{ $slot }}
 
+        @livewireScripts
         @fluxScripts
         <script>
             // Close Flux mobile sidebar when a link inside it is clicked.
