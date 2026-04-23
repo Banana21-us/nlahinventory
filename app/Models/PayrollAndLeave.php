@@ -35,6 +35,18 @@ class PayrollAndLeave extends Model
         'el_consumed',
         'bl_total',
         'bl_consumed',
+        'ml_total',
+        'ml_consumed',
+        'pl_total',
+        'pl_consumed',
+        'syl_total',
+        'syl_consumed',
+        'cal_total',
+        'cal_consumed',
+        'stl_total',
+        'stl_consumed',
+        'mwl_total',
+        'mwl_consumed',
     ];
 
     protected $casts = [
@@ -60,6 +72,18 @@ class PayrollAndLeave extends Model
         'el_consumed' => 'decimal:2',
         'bl_total' => 'decimal:1',
         'bl_consumed' => 'decimal:1',
+        'ml_total' => 'decimal:2',
+        'ml_consumed' => 'decimal:2',
+        'pl_total' => 'decimal:2',
+        'pl_consumed' => 'decimal:2',
+        'syl_total' => 'decimal:2',
+        'syl_consumed' => 'decimal:2',
+        'cal_total' => 'decimal:2',
+        'cal_consumed' => 'decimal:2',
+        'stl_total' => 'decimal:2',
+        'stl_consumed' => 'decimal:2',
+        'mwl_total' => 'decimal:2',
+        'mwl_consumed' => 'decimal:2',
     ];
 
     public function employee(): BelongsTo

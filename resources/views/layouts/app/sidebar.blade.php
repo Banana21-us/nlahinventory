@@ -429,6 +429,15 @@
             {{-- Overtime & Pay-off — visible to all staff except HR (HR uses management pages) --}}
             @cannot('access-hr-only')
             @auth
+            @cannot('access-dept-head')
+            <flux:sidebar.item
+                icon="calendar-days"
+                :href="route('users.leaveform')"
+                :current="request()->routeIs('users.leaveform')"
+                wire:navigate="wire:navigate">
+                {{ __('Leave') }}
+            </flux:sidebar.item>
+            @endcannot
             <flux:sidebar.item
                 icon="clock"
                 :href="route('HR.overtime')"

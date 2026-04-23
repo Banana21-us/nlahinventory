@@ -138,6 +138,11 @@
                             placeholder="Select Type…"
                             :error="$errors->first('form.leave_type')"
                         />
+                        @if($blWindow)
+                            <p class="text-[10px] text-pink-600 font-medium mt-1.5">
+                                Valid window: {{ $blWindow['start']->format('M d') }} – {{ $blWindow['end']->format('M d, Y') }}
+                            </p>
+                        @endif
                     </div>
                     <div class="md:col-span-2 brand-bg-primary-light rounded-md border border-blue-100 px-4 py-3 flex items-center justify-between"
                          wire:key="credits-panel-{{ $form['leave_type'] }}">
@@ -176,7 +181,14 @@
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">End Date *</label>
                         <input type="date" wire:model.live="form.end_date" required
-                               class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                               class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                               @if($vlMaxEndDate) max="{{ $vlMaxEndDate }}" @endif
+                               @if(!empty($form['start_date'])) min="{{ $form['start_date'] }}" @endif/>
+                        @if($vlRemainingThisYear !== null)
+                            <span class="text-xs mt-1 block {{ $vlRemainingThisYear <= 5 ? 'text-amber-600' : 'text-gray-400' }}">
+                                {{ $vlRemainingThisYear }} VL day(s) left for {{ \Carbon\Carbon::parse($form['start_date'])->year }} (max 20/year)
+                            </span>
+                        @endif
                         @error('form.end_date') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
                     <div>
@@ -206,14 +218,6 @@
                                   placeholder="Briefly explain the purpose of your leave..."
                                   class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 resize-none"></textarea>
                         @error('form.reason') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Designated Reliever</label>
-                        <input type="text" wire:model="form.reliever" placeholder="e.g. Juan dela Cruz"
-                               class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                        <p class="text-[10px] text-gray-400 mt-1.5 italic font-medium leading-tight">
-                            Reliever will be notified to cover your duties during your absence.
-                        </p>
                     </div>
                 </div>
 

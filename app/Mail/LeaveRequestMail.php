@@ -29,13 +29,13 @@ class LeaveRequestMail extends Mailable
         $approveUrl = URL::signedRoute('leave.dhead.respond', [
             'leave' => $this->leave->id,
             'action' => 'approved',
-            'dhead' => $this->leave->user->department?->dept_head_id,
+            'dhead' => $this->leave->user->employmentDetail?->department?->dept_head_id,
         ]);
 
         $rejectUrl = URL::signedRoute('leave.dhead.respond', [
             'leave' => $this->leave->id,
             'action' => 'rejected',
-            'dhead' => $this->leave->user->department?->dept_head_id,
+            'dhead' => $this->leave->user->employmentDetail?->department?->dept_head_id,
         ]);
 
         return new Content(

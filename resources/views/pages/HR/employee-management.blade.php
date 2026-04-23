@@ -540,44 +540,81 @@
 
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Vacation Leave Total</label>
-                        <input type="number" step="0.01" wire:model="vl_total"
+                        <input type="number" step="0.01" min="0" wire:model="vl_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Vacation Leave Consumed</label>
-                        <input type="number" step="0.01" wire:model="vl_consumed"
+                        <input type="number" step="0.01" min="0" wire:model="vl_consumed"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
+                    <div></div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Sick Leave Total</label>
-                        <input type="number" step="0.01" wire:model="sl_total"
+                        <input type="number" step="0.01" min="0" wire:model="sl_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Sick Leave Consumed</label>
-                        <input type="number" step="0.01" wire:model="sl_consumed"
+                        <input type="number" step="0.01" min="0" wire:model="sl_consumed"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div></div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Birthday Leave Total</label>
+                        <input type="number" step="0.01" min="0" wire:model="bl_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Special Leave Total</label>
-                        <input type="number" step="0.01" wire:model="spl_total"
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Birthday Leave Consumed</label>
+                        <input type="number" step="0.01" min="0" wire:model="bl_consumed"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div></div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Solo Parent Leave Total</label>
+                        <input type="number" step="0.01" min="0" wire:model="spl_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Emergency Leave Total</label>
-                        <input type="number" step="0.01" wire:model="el_total"
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Solo Parent Leave Consumed</label>
+                        <input type="number" step="0.01" min="0" wire:model="spl_consumed"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                     </div>
-                    <!-- <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Total</label>
-                        <input type="number" step="0.01" wire:model="po_total"
+                    <div></div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Bereavement Leave Total</label>
+                        <input type="number" step="0.01" min="0" wire:model="syl_total"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div> -->
-                    <!-- <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Consumed</label>
-                        <input type="number" step="0.01" wire:model="po_consumed"
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Bereavement Leave Consumed</label>
+                        <input type="number" step="0.01" min="0" wire:model="syl_consumed"
                             class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    </div> -->
+                    </div>
+                    <div></div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Maternity Leave Total <span class="text-gray-400 font-normal normal-case">(Female)</span></label>
+                        <input type="number" step="0.01" min="0" wire:model="ml_total"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Maternity Leave Consumed <span class="text-gray-400 font-normal normal-case">(Female)</span></label>
+                        <input type="number" step="0.01" min="0" wire:model="ml_consumed"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div></div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Paternity Leave Total <span class="text-gray-400 font-normal normal-case">(Male)</span></label>
+                        <input type="number" step="0.01" min="0" wire:model="pl_total"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Paternity Leave Consumed <span class="text-gray-400 font-normal normal-case">(Male)</span></label>
+                        <input type="number" step="0.01" min="0" wire:model="pl_consumed"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    </div>
+                    <div></div>
 
                     {{-- Picture & Signature --}}
                     <div class="md:col-span-3 mt-4 mb-2">
@@ -1454,44 +1491,81 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Vacation Leave Total</label>
-                                    <input type="number" step="0.01" wire:model="vl_total"
+                                    <input type="number" step="0.01" min="0" wire:model="vl_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Vacation Leave Consumed</label>
-                                    <input type="number" step="0.01" wire:model="vl_consumed"
+                                    <input type="number" step="0.01" min="0" wire:model="vl_consumed"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
+                                <div></div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Sick Leave Total</label>
-                                    <input type="number" step="0.01" wire:model="sl_total"
+                                    <input type="number" step="0.01" min="0" wire:model="sl_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Sick Leave Consumed</label>
-                                    <input type="number" step="0.01" wire:model="sl_consumed"
+                                    <input type="number" step="0.01" min="0" wire:model="sl_consumed"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div></div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Birthday Leave Total</label>
+                                    <input type="number" step="0.01" min="0" wire:model="bl_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Special Leave Total</label>
-                                    <input type="number" step="0.01" wire:model="spl_total"
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Birthday Leave Consumed</label>
+                                    <input type="number" step="0.01" min="0" wire:model="bl_consumed"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div></div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Solo Parent Leave Total</label>
+                                    <input type="number" step="0.01" min="0" wire:model="spl_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Emergency Leave Total</label>
-                                    <input type="number" step="0.01" wire:model="el_total"
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Solo Parent Leave Consumed</label>
+                                    <input type="number" step="0.01" min="0" wire:model="spl_consumed"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
-                                <!-- <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Total</label>
-                                    <input type="number" step="0.01" wire:model="po_total"
+                                <div></div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Bereavement Leave Total</label>
+                                    <input type="number" step="0.01" min="0" wire:model="syl_total"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">PO Consumed</label>
-                                    <input type="number" step="0.01" wire:model="po_consumed"
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Bereavement Leave Consumed</label>
+                                    <input type="number" step="0.01" min="0" wire:model="syl_consumed"
                                         class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                </div> -->
+                                </div>
+                                <div></div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Maternity Leave Total <span class="text-gray-400 font-normal normal-case">(Female)</span></label>
+                                    <input type="number" step="0.01" min="0" wire:model="ml_total"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Maternity Leave Consumed <span class="text-gray-400 font-normal normal-case">(Female)</span></label>
+                                    <input type="number" step="0.01" min="0" wire:model="ml_consumed"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div></div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Paternity Leave Total <span class="text-gray-400 font-normal normal-case">(Male)</span></label>
+                                    <input type="number" step="0.01" min="0" wire:model="pl_total"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Paternity Leave Consumed <span class="text-gray-400 font-normal normal-case">(Male)</span></label>
+                                    <input type="number" step="0.01" min="0" wire:model="pl_consumed"
+                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                </div>
+                                <div></div>
 
                                 {{-- Picture & Signature --}}
                                 <div class="md:col-span-3 mt-4 mb-2">

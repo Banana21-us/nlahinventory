@@ -7,8 +7,8 @@ use App\Mail\LeaveCancellationRequestMail;
 use App\Mail\LeaveDHeadDecisionMail;
 use App\Mail\LeaveHRNotificationMail;
 use App\Models\Leave;
+use App\Models\LeaveBalance;
 use App\Models\LeaveType;
-use App\Models\PayrollAndLeave;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -28,7 +28,6 @@ class DHead extends Component
         'day_part' => 'Full',
         'total_days' => 0,
         'reason' => '',
-        'reliever' => '',
     ];
 
     public $attachment = null;
@@ -61,7 +60,6 @@ class DHead extends Component
         'form.start_date' => 'required|date',
         'form.end_date' => 'required|date|after_or_equal:form.start_date',
         'form.reason' => 'required|string|min:5',
-        'form.reliever' => 'nullable|string|max:255',
         'attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
     ];
 
@@ -94,6 +92,25 @@ class DHead extends Component
         return $code ? LeaveType::resolve($code) : null;
     }
 
+    private function birthdayLeaveWindow(): ?array
+    {
+        $birthDate = Auth::user()->employee?->birth_date;
+
+        if (! $birthDate) {
+            return null;
+        }
+
+        $birth = Carbon::parse($birthDate);
+        $ref   = $this->form['start_date'] ? Carbon::parse($this->form['start_date']) : now();
+
+        $windowStart = Carbon::createSafe($ref->year, $birth->month, $birth->day)
+            ?: Carbon::create($ref->year, 3, 1);
+
+        $windowEnd = $windowStart->copy()->addMonths(2);
+
+        return ['start' => $windowStart, 'end' => $windowEnd];
+    }
+
     private function isSoloParent(): bool
     {
         return (bool) DB::table('employee')
@@ -101,13 +118,24 @@ class DHead extends Component
             ->value('is_solo_parent');
     }
 
+    private function employeeRow(): ?object
+    {
+        return DB::table('employee')->where('user_id', Auth::id())->first();
+    }
+
     private function getAvailableLeaveTypes(): Collection
     {
-        $isSoloParent = $this->isSoloParent();
+        $isSoloParent  = $this->isSoloParent();
+        $emp           = $this->employeeRow();
+        $gender        = $emp?->gender ?? '';
+        $isFemale      = $gender === 'Female';
+        $isMarriedMale = $gender === 'Male' && strtolower($emp?->civil_status ?? '') === 'married';
 
         // DHead is always regular — no probation filter needed
         return LeaveType::where('is_active', true)
-            ->when(! $isSoloParent, fn ($q) => $q->where('solo_parent_only', false))
+            ->when(! $isSoloParent,  fn ($q) => $q->where('solo_parent_only', false))
+            ->when(! $isFemale,      fn ($q) => $q->where('code', '!=', 'ML'))
+            ->when(! $isMarriedMale, fn ($q) => $q->where('code', '!=', 'PL'))
             ->orderBy('label')
             ->get();
     }
@@ -124,19 +152,21 @@ class DHead extends Component
             return -1;
         }
 
-        $key = $lt->getPayrollKey();
-
-        if (! $key) {
+        if (! $lt->getPayrollKey()) {
             return 0;
         }
 
-        $payroll = PayrollAndLeave::where('user_id', Auth::id())->first();
+        $canonical = $lt->getCanonicalLeaveType();
 
-        if (! $payroll) {
+        if (! $canonical) {
             return 0;
         }
 
-        return max(0, ($payroll->{$key.'_total'} ?? 0) - ($payroll->{$key.'_consumed'} ?? 0));
+        $balance = LeaveBalance::where('user_id', Auth::id())
+            ->where('leave_type_id', $canonical->id)
+            ->first();
+
+        return max(0, ((float) ($balance?->total ?? 0)) - ((float) ($balance?->consumed ?? 0)));
     }
 
     protected function calculateTotalDays(): void
@@ -158,26 +188,25 @@ class DHead extends Component
 
     private function adjustConsumed(int $userId, ?LeaveType $lt, float $days, string $direction): void
     {
-        if (! $lt || $days <= 0) {
+        if (! $lt || $days <= 0 || ! $lt->getPayrollKey()) {
             return;
         }
 
-        $key = $lt->getPayrollKey();
+        $canonical = $lt->getCanonicalLeaveType();
 
-        if (! $key) {
+        if (! $canonical) {
             return;
         }
 
-        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
-
-        if (! $payroll) {
-            return;
-        }
+        $balance = LeaveBalance::firstOrCreate(
+            ['user_id' => $userId, 'leave_type_id' => $canonical->id],
+            ['total' => 0, 'consumed' => 0],
+        );
 
         if ($direction === 'increment') {
-            $payroll->increment("{$key}_consumed", $days);
+            $balance->increment('consumed', $days);
         } else {
-            $payroll->decrement("{$key}_consumed", $days);
+            $balance->update(['consumed' => max(0, (float) $balance->consumed - $days)]);
         }
     }
 
@@ -186,6 +215,22 @@ class DHead extends Component
     {
         $this->validate();
 
+        // Gender / marital status guards for ML and PL
+        $emp    = $this->employeeRow();
+        $gender = $emp?->gender ?? '';
+
+        if ($this->form['leave_type'] === 'ML' && $gender !== 'Female') {
+            $this->addError('form.leave_type', 'Maternity Leave is only available to female employees.');
+
+            return;
+        }
+
+        if ($this->form['leave_type'] === 'PL' && ! ($gender === 'Male' && strtolower($emp?->civil_status ?? '') === 'married')) {
+            $this->addError('form.leave_type', 'Paternity Leave is only available to married male employees.');
+
+            return;
+        }
+
         $lt = $this->resolveFormLeaveType();
         $hasCreditCap = $lt && $lt->getPayrollKey() !== null;
 
@@ -193,6 +238,36 @@ class DHead extends Component
             $this->addError('form.total_days', "You only have {$this->availableCredits} day(s) remaining for this leave type.");
 
             return;
+        }
+
+        if ($lt?->code === 'VL') {
+            $startYear  = Carbon::parse($this->form['start_date'])->year;
+            $usedInYear = $this->getVlUsedInYear($startYear);
+            $remaining  = max(0, 20 - $usedInYear);
+
+            if ($this->form['total_days'] > $remaining) {
+                $this->addError('form.end_date', "You can only take {$remaining} more VL day(s) in {$startYear}. Unused days carry over to next year.");
+
+                return;
+            }
+        }
+
+        if ($lt?->code === 'BL') {
+            $window = $this->birthdayLeaveWindow();
+
+            if (! $window) {
+                $this->addError('form.leave_type', 'Your birth date is not on record. Please contact HR.');
+
+                return;
+            }
+
+            $start = Carbon::parse($this->form['start_date']);
+
+            if ($start->lt($window['start']) || $start->gt($window['end'])) {
+                $this->addError('form.start_date', "Birthday Leave can only be used on your birthday or within 2 months after. Valid window: {$window['start']->format('M d')} – {$window['end']->format('M d, Y')}.");
+
+                return;
+            }
         }
 
         try {
@@ -212,7 +287,6 @@ class DHead extends Component
                     'total_days' => $this->form['total_days'],
                     'day_part' => $this->form['day_part'],
                     'reason' => $this->form['reason'],
-                    'reliever' => $this->form['reliever'] ?: null,
                     'attachment' => $attachmentPath,
                     'date_requested' => now()->toDateString(),
                     'dept_head_status' => 'approved',
@@ -235,7 +309,6 @@ class DHead extends Component
                 'day_part' => 'Full',
                 'total_days' => 0,
                 'reason' => '',
-                'reliever' => '',
             ];
             $this->attachment = null;
             $this->availableCredits = 0;
@@ -284,6 +357,16 @@ class DHead extends Component
         ]);
         $this->notifyHROfCancellation($leave->fresh(['user.employmentDetail.department']));
         session()->flash('message', 'Cancellation request submitted. HR will review and confirm.');
+    }
+
+    private function getVlUsedInYear(int $year): float
+    {
+        return (float) Leave::where('user_id', Auth::id())
+            ->where('leave_type', 'VL')
+            ->whereYear('start_date', $year)
+            ->whereNotIn('hr_status', ['rejected', 'cancelled'])
+            ->whereNotIn('dept_head_status', ['rejected'])
+            ->sum('total_days');
     }
 
     private function notifyHROfCancellation(Leave $leave): void
@@ -471,19 +554,13 @@ class DHead extends Component
             ->count();
 
         $lt = $this->resolveFormLeaveType();
-        $isVL = $lt?->code === 'VL';
-        $isSL = in_array($lt?->code, ['SL', 'SL_X', 'SL_M']);
-        $isBL = $lt?->code === 'BL';
-        $isSPL = $lt?->code === 'SPL';
+        $payrollKey = $lt?->getPayrollKey();
         $isLWOP = $lt?->isLWOP() ?? false;
 
         $creditLabel = match (true) {
-            $isVL => 'Available VL Credits',
-            $isSL => 'Available SL Credits',
-            $isBL => 'Available BL Credits',
-            $isSPL => 'Available SPL Credits',
-            $isLWOP => 'Leave Without Pay',
-            default => 'No Credit Cap',
+            $isLWOP          => 'Leave Without Pay',
+            $payrollKey !== null => 'Available '.strtoupper($payrollKey).' Credits',
+            default          => 'No Credit Cap',
         };
 
         $leaveTypeOptions = $this->getAvailableLeaveTypes()
@@ -500,19 +577,38 @@ class DHead extends Component
             ->latest()
             ->get();
 
+        // VL per-year cap
+        $vlMaxEndDate        = null;
+        $vlRemainingThisYear = null;
+
+        if ($lt?->code === 'VL' && ! empty($this->form['start_date'])) {
+            $startYear           = Carbon::parse($this->form['start_date'])->year;
+            $usedInYear          = $this->getVlUsedInYear($startYear);
+            $vlRemainingThisYear = max(0, 20 - $usedInYear);
+
+            if ($vlRemainingThisYear > 0) {
+                $vlMaxEndDate = Carbon::parse($this->form['start_date'])
+                    ->addDays($vlRemainingThisYear - 1)
+                    ->toDateString();
+            }
+        }
+
         return view('pages.users.dhead-leave', [
-            'leaves' => $leaves,
-            'myLeaves' => $myLeaves,
-            'cancellationLeaves' => $cancellationLeaves,
-            'pendingCount' => $this->pendingCount,
+            'leaves'              => $leaves,
+            'myLeaves'            => $myLeaves,
+            'cancellationLeaves'  => $cancellationLeaves,
+            'pendingCount'        => $this->pendingCount,
             'cancellationPendingCount' => $this->cancellationPendingCount,
-            'approvedThisMonth' => $this->approvedThisMonth,
-            'onLeaveToday' => $this->onLeaveToday,
-            'availableCredits' => $this->availableCredits,
-            'creditLabel' => $creditLabel,
-            'showCredits' => $isVL || $isSL || $isBL || $isSPL,
-            'leaveTypeOptions' => $leaveTypeOptions,
-            'leaveTypeMap' => $leaveTypeMap,
+            'approvedThisMonth'   => $this->approvedThisMonth,
+            'onLeaveToday'        => $this->onLeaveToday,
+            'availableCredits'    => $this->availableCredits,
+            'creditLabel'         => $creditLabel,
+            'showCredits'         => $payrollKey !== null,
+            'blWindow'            => ($lt?->code === 'BL') ? $this->birthdayLeaveWindow() : null,
+            'leaveTypeOptions'    => $leaveTypeOptions,
+            'leaveTypeMap'        => $leaveTypeMap,
+            'vlMaxEndDate'        => $vlMaxEndDate,
+            'vlRemainingThisYear' => $vlRemainingThisYear,
         ])->layout('layouts.app');
     }
 }

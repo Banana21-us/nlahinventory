@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\LeaveBalance;
+use App\Models\LeaveType;
 use App\Models\PayrollAndLeave;
 use App\Models\User;
 use Carbon\Carbon;
@@ -11,48 +13,24 @@ use Illuminate\Support\Facades\Log;
 class LeaveAccrualService
 {
     /**
-     * Compute the initial VL transition grant based on the month of regularization.
-     * Month-based, leap-year safe.
-     *
-     * Jan–Mar → 5 days
-     * Apr–May → 4 days
-     * Jun–Aug → 3 days
-     * Sep–Oct → 2 days
-     * Nov–Dec → 1 day
-     */
-    public function computeTransitionGrant(Carbon $regularizationDate): int
-    {
-        $month = (int) $regularizationDate->month;
-
-        return match (true) {
-            $month <= 3 => 5,
-            $month <= 5 => 4,
-            $month <= 8 => 3,
-            $month <= 10 => 2,
-            default => 1,
-        };
-    }
-
-    /**
      * Compute the expected regularization date based on hiring date.
-     * Philippine probationary period = 6 months (≈ 180 calendar days).
-     * Hospital policy shortens this to 73 working days; we approximate as
-     * 73 × 7/5 ≈ 102 calendar days for scheduling purposes.
-     * The exact gate is tracked via employment_details.regularization_date.
+     * Philippine Labor Code: probationary period is 6 months.
      */
     public function computeExpectedRegularizationDate(Carbon $hiringDate): Carbon
     {
-        // Philippine Labor Code: probationary period is 6 months from hiring date
         return $hiringDate->copy()->addMonths(6);
     }
 
     /**
-     * Grant the transition VL when an employee is regularized.
+     * Called when HR sets regularization_date on an employee.
+     * No VL is granted immediately — the first VL grant happens on the next Jan 1
+     * via processAnnualReset(). This method only ensures the payroll metadata
+     * record and the VL balance row exist.
      */
     public function onRegularization(User $user): void
     {
         $employeeId = DB::table('employee')->where('user_id', $user->id)->value('id');
-        $detail = $employeeId
+        $detail     = $employeeId
             ? DB::table('employment_details')->where('employee_id', $employeeId)->first()
             : null;
 
@@ -64,9 +42,8 @@ class LeaveAccrualService
             return;
         }
 
-        $grant = $this->computeTransitionGrant(Carbon::parse($detail->regularization_date));
-
-        DB::transaction(function () use ($user, $employeeId, $grant) {
+        DB::transaction(function () use ($user, $employeeId) {
+            // Ensure the payroll metadata record exists for accrual tracking.
             $payroll = $employeeId
                 ? PayrollAndLeave::where('employee_id', $employeeId)->first()
                 : null;
@@ -75,135 +52,154 @@ class LeaveAccrualService
 
             if (! $payroll) {
                 $payroll = PayrollAndLeave::create([
-                    'employee_id' => $employeeId,
-                    'user_id' => $user->id,
+                    'employee_id'              => $employeeId,
+                    'user_id'                  => $user->id,
                     'initial_transition_grant' => 0,
-                    'vl_total' => 0,
-                    'years_accrued_count' => 0,
+                    'years_accrued_count'      => 0,
                 ]);
+            } else {
+                $payroll->initial_transition_grant = 0;
+                $payroll->years_accrued_count      = 0;
+                $payroll->save();
             }
 
-            $payroll->initial_transition_grant = $grant;
-            $payroll->vl_total += $grant;
-            $payroll->years_accrued_count = 0;
-            $payroll->save();
+            // Ensure VL balance row exists with 0 balance.
+            // VL will be granted on the next Jan 1 by processAnnualReset().
+            $vlType = LeaveType::where('code', 'VL')->first();
+
+            if ($vlType) {
+                LeaveBalance::firstOrCreate(
+                    ['user_id' => $user->id, 'leave_type_id' => $vlType->id],
+                    ['total' => 0, 'consumed' => 0],
+                );
+            }
         });
 
-        Log::info('LeaveAccrualService::onRegularization — grant applied', [
+        Log::info('LeaveAccrualService::onRegularization — record initialized, VL granted on next Jan 1', [
             'user_id' => $user->id,
-            'grant' => $grant,
         ]);
     }
 
     /**
-     * Process annual VL anniversary increment for an employee.
-     *
-     * years_accrued_count = 0 (Year 1):  skip — no increment yet
-     * count 1–5  (Years 2–6):  +10 VL/yr, increment count
-     * count 6–14 (Years 7–15): +15 VL/yr, increment count
-     * count >= 15 (Year 15+):  cap at 20, reset consumed, mark date
+     * VL increments are now calendar-year based (processed every Jan 1 by
+     * processAnnualReset). This method is kept for backwards compatibility
+     * but does nothing.
      */
     public function processAnniversary(User $user): void
     {
-        $employeeId = DB::table('employee')->where('user_id', $user->id)->value('id');
-
-        $payroll = $employeeId
-            ? PayrollAndLeave::where('employee_id', $employeeId)->first()
-            : null;
-
-        $payroll ??= PayrollAndLeave::where('user_id', $user->id)->first();
-
-        if (! $payroll) {
-            Log::warning('LeaveAccrualService::processAnniversary — no payroll record', [
-                'user_id' => $user->id,
-            ]);
-
-            return;
-        }
-
-        DB::transaction(function () use ($user, $payroll) {
-            $count = (int) $payroll->years_accrued_count;
-
-            if ($count === 0) {
-                // Year 1: no increment, but track the anniversary
-                Log::info('LeaveAccrualService::processAnniversary — Year 1, no increment', [
-                    'user_id' => $user->id,
-                ]);
-
-                return;
-            }
-
-            if ($count >= 15) {
-                // Year 15+: cap at 20/yr, reset consumed, record date
-                $payroll->vl_total = 20;
-                $payroll->vl_consumed = 0;
-                $payroll->vl_last_reset_at = now()->toDateString();
-                $action = 'capped at 20, consumed reset';
-            } elseif ($count >= 6) {
-                // Years 7–15: +15/yr
-                $payroll->vl_total += 15;
-                $payroll->years_accrued_count = $count + 1;
-                $action = '+15 VL';
-            } else {
-                // Years 2–6: +10/yr
-                $payroll->vl_total += 10;
-                $payroll->years_accrued_count = $count + 1;
-                $action = '+10 VL';
-            }
-
-            $payroll->save();
-
-            Log::info('LeaveAccrualService::processAnniversary — processed', [
-                'user_id' => $user->id,
-                'name' => $user->name,
-                'action' => $action,
-            ]);
-        });
+        Log::info('LeaveAccrualService::processAnniversary — skipped, VL is now calendar-year based', [
+            'user_id' => $user->id,
+        ]);
     }
 
     /**
-     * Reset annual leave balances on January 1.
-     * Resets SL, BL, and SPL (if solo parent). Does NOT touch VL.
+     * Run every January 1. Handles two things:
+     *
+     * 1. VL annual grant (calendar-year based):
+     *    - First Jan 1 after regularization:
+     *        floor(completed_full_months_as_regular_in_reg_year × 10 / 12)
+     *    - Subsequent Jan 1s:
+     *        +10 VL if < 8 completed years since regularization
+     *        +15 VL if >= 8 completed years since regularization
+     *    Unused VL carries over automatically (we increment total, never reset it).
+     *
+     * 2. Annual reset for SL, BL, and SPL (reset to standard allocation).
      */
     public function processAnnualReset(User $user): void
     {
         $employeeId = DB::table('employee')->where('user_id', $user->id)->value('id');
 
-        $payroll = $employeeId
-            ? PayrollAndLeave::where('employee_id', $employeeId)->first()
+        $detail = $employeeId
+            ? DB::table('employment_details')->where('employee_id', $employeeId)->first()
+            : DB::table('employment_details')
+                ->whereIn('employee_id', DB::table('employee')->where('user_id', $user->id)->pluck('id'))
+                ->first();
+
+        $regDate = $detail?->regularization_date
+            ? Carbon::parse($detail->regularization_date)
             : null;
 
-        $payroll ??= PayrollAndLeave::where('user_id', $user->id)->first();
+        DB::transaction(function () use ($user, $employeeId, $regDate) {
+            // ── VL grant ──────────────────────────────────────────────────────
+            if ($regDate) {
+                $currentYear = now()->year;
+                $yearDiff    = $currentYear - $regDate->year;
+                $vlGrant     = 0;
 
-        if (! $payroll) {
-            Log::warning('LeaveAccrualService::processAnnualReset — no payroll record', [
-                'user_id' => $user->id,
-            ]);
+                if ($yearDiff === 1) {
+                    // First Jan 1 after regularization — prorate for the months
+                    // the employee was already regular last year.
+                    // Only full calendar months count: if regularized on the 1st,
+                    // that month counts; otherwise the first full month is the next.
+                    $firstFullMonth = ($regDate->day === 1)
+                        ? $regDate->month
+                        : $regDate->month + 1;
 
-            return;
-        }
+                    $fullMonths = max(0, 12 - $firstFullMonth + 1);
+                    $vlGrant    = (int) floor($fullMonths * 10 / 12);
+                } elseif ($yearDiff >= 2) {
+                    // Completed full years of regular service as of Jan 1.
+                    $completedYears = (int) $regDate->diffInYears(Carbon::create($currentYear, 1, 1));
 
-        DB::transaction(function () use ($employeeId, $payroll) {
-            $payroll->sl_total = 10;
-            $payroll->sl_consumed = 0;
-            $payroll->bl_total = 1;
-            $payroll->bl_consumed = 0;
+                    $vlGrant = match (true) {
+                        $completedYears >= 15 => 20, // 15+ years
+                        $completedYears >= 7  => 15, // 7–14 years
+                        default               => 10, // 1–6 years
+                    };
+                }
+                // yearDiff === 0: regularized this year — no Jan 1 VL yet.
 
+                if ($vlGrant > 0) {
+                    $vlType = LeaveType::where('code', 'VL')->first();
+
+                    if ($vlType) {
+                        LeaveBalance::firstOrCreate(
+                            ['user_id' => $user->id, 'leave_type_id' => $vlType->id],
+                            ['total' => 0, 'consumed' => 0],
+                        )->increment('total', $vlGrant);
+
+                        Log::info('LeaveAccrualService::processAnnualReset — VL granted', [
+                            'user_id'        => $user->id,
+                            'year'           => $currentYear,
+                            'grant'          => $vlGrant,
+                            'year_diff'      => $yearDiff,
+                            'completed_years' => $yearDiff >= 2
+                                ? (int) $regDate->diffInYears(Carbon::create($currentYear, 1, 1))
+                                : 0,
+                        ]);
+                    }
+                }
+            }
+
+            // ── SL / BL / SPL reset ───────────────────────────────────────────
             $isSoloParent = $employeeId
                 ? (bool) DB::table('employee')->where('id', $employeeId)->value('is_solo_parent')
                 : false;
 
+            $resets = [
+                'SL' => ['total' => 10, 'consumed' => 0],
+                'BL' => ['total' => 1,  'consumed' => 0],
+            ];
+
             if ($isSoloParent) {
-                $payroll->spl_total = 7;
-                $payroll->spl_consumed = 0;
+                $resets['SPL'] = ['total' => 7, 'consumed' => 0];
             }
 
-            $payroll->save();
+            foreach ($resets as $code => $values) {
+                $lt = LeaveType::where('code', $code)->first();
+
+                if ($lt) {
+                    LeaveBalance::updateOrCreate(
+                        ['user_id' => $user->id, 'leave_type_id' => $lt->id],
+                        $values,
+                    );
+                }
+            }
         });
 
-        Log::info('LeaveAccrualService::processAnnualReset — reset applied', [
+        Log::info('LeaveAccrualService::processAnnualReset — completed', [
             'user_id' => $user->id,
-            'name' => $user->name,
+            'name'    => $user->name,
         ]);
     }
 
@@ -211,9 +207,6 @@ class LeaveAccrualService
      * DOLE holiday pay multiplier.
      *
      * @param  string  $holidayType  'regular' | 'special_non_working' | 'special_working'
-     * @param  bool  $didWork  Whether the employee worked on the holiday
-     * @param  bool  $isOvertime  Whether it is an overtime/rest-day scenario
-     * @param  bool  $isRestDay  Whether the holiday falls on a rest day
      */
     public function getHolidayMultiplier(
         string $holidayType,
@@ -223,14 +216,14 @@ class LeaveAccrualService
     ): float {
         return match (true) {
             $holidayType === 'regular' && $didWork && ($isOvertime || $isRestDay) => 2.60,
-            $holidayType === 'regular' && $didWork => 2.00,
-            $holidayType === 'regular' && ! $didWork => 1.00,
-            $holidayType === 'special_non_working' && $didWork && $isOvertime => 1.69,
-            $holidayType === 'special_non_working' && $didWork => 1.30,
-            $holidayType === 'special_non_working' && ! $didWork => 0.00,
-            $holidayType === 'special_working' && $didWork => 1.30,
-            $holidayType === 'special_working' && ! $didWork => 1.00,
-            default => 1.00,
+            $holidayType === 'regular' && $didWork                                => 2.00,
+            $holidayType === 'regular' && ! $didWork                              => 1.00,
+            $holidayType === 'special_non_working' && $didWork && $isOvertime     => 1.69,
+            $holidayType === 'special_non_working' && $didWork                    => 1.30,
+            $holidayType === 'special_non_working' && ! $didWork                  => 0.00,
+            $holidayType === 'special_working' && $didWork                        => 1.30,
+            $holidayType === 'special_working' && ! $didWork                      => 1.00,
+            default                                                               => 1.00,
         };
     }
 }

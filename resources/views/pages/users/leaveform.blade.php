@@ -52,15 +52,15 @@
 
     {{-- PROBATIONARY NOTICE --}}
     @if($isProbationary)
-        <div class="mb-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-            <svg class="mt-0.5 w-5 h-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
+            <svg class="mt-0.5 w-5 h-5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
             </svg>
             <div>
-                <p class="text-sm font-bold text-amber-800">Probationary Period — VL, SL &amp; BL Not Yet Available</p>
-                <p class="text-xs text-amber-700 mt-0.5">
-                    Vacation Leave, Sick Leave, and Birthday Leave credits are granted upon regularization.
+                <p class="text-sm font-bold text-red-800">Leave Filing Unavailable — Probationary Period</p>
+                <p class="text-xs text-red-700 mt-0.5">
+                    Leave filing is only available to regularized employees.
                     @if($expectedRegDate)
                         Expected regularization date:
                         <strong>{{ $expectedRegDate->format('M d, Y') }}</strong>
@@ -80,6 +80,18 @@
          x-data="{ open: @entangle('showForm') }">
 
         {{-- Toggle Button --}}
+        @if($isProbationary)
+        <div class="w-full flex items-center p-5 bg-gray-50 cursor-not-allowed">
+            <div class="p-2 rounded-lg mr-4 bg-gray-100">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-gray-400">Leave Entry</h2>
+            <span class="ml-auto text-xs font-medium text-gray-400 italic">Not available during probation</span>
+        </div>
+        @else
         <button
             @click="open = !open"
             class="w-full flex items-center justify-between p-5 bg-white hover:bg-gray-50 transition-colors focus:outline-none"
@@ -95,6 +107,7 @@
             </div>
             <span class="text-sm font-medium brand-text-primary" x-text="open ? 'Minimize' : 'File a Leave'"></span>
         </button>
+        @endif
 
         {{-- Collapsible Body --}}
         <div
@@ -118,13 +131,18 @@
                             placeholder="Select Type…"
                             :error="$errors->first('leave_type')"
                         />
+                        @if($blWindow)
+                            <p class="text-[10px] text-pink-600 font-medium mt-1.5">
+                                Valid window: {{ $blWindow['start']->format('M d') }} – {{ $blWindow['end']->format('M d, Y') }}
+                            </p>
+                        @endif
                     </div>
 
                     <div class="md:col-span-2 brand-bg-primary-light rounded-md border border-blue-100 px-4 py-3 flex items-center justify-between"
                          wire:key="credits-panel-{{ $leave_type }}">
                         <div>
                             <p class="text-[10px] font-bold brand-text-primary uppercase tracking-wide">
-                                {{ $creditLabel }}
+                                {{ $creditLabel }} | Note: Maximum Vacation Leave per year is 20 days depending on your leave credits.
                             </p>
                             <p class="text-xl font-bold text-gray-800 mt-0.5">
                                 @if($showCredits)
@@ -161,7 +179,14 @@
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">End Date *</label>
                         <input type="date" wire:model.live="end_date"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"
+                            @if($vlMaxEndDate) max="{{ $vlMaxEndDate }}" @endif
+                            @if($start_date) min="{{ $start_date }}" @endif/>
+                        @if($vlRemainingThisYear !== null)
+                            <span class="text-xs mt-1 block {{ $vlRemainingThisYear <= 5 ? 'text-amber-600' : 'text-gray-400' }}">
+                                {{ $vlRemainingThisYear }} VL day(s) left for {{ \Carbon\Carbon::parse($start_date)->year }} (max 20/year)
+                            </span>
+                        @endif
                         @error('end_date') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
                     <div>
@@ -192,16 +217,6 @@
                                   placeholder="Briefly explain the purpose of your leave..."
                                   class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 resize-none"></textarea>
                         @error('reason') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Designated Reliever</label>
-                        <input type="text" wire:model="reliever"
-                            placeholder="e.g. Juan dela Cruz"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                        <p class="text-[10px] text-gray-400 mt-1.5 italic font-medium leading-tight">
-                            Person who will cover your duties during your absence.
-                        </p>
-                        @error('reliever') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
                 </div>
 
