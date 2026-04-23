@@ -65,6 +65,7 @@
     .xl-shift-label { background:#e6f0f7;font-weight:700;color:#015581; }
     .xl-period-header { background:#f0f9ff;font-weight:700;color:#027c8b;text-align:center; }
     .xl-table tbody tr:hover td { background:#fef9ee; }
+    .xl-period-row td { background:#dbeafe;color:#1e40af;font-weight:800;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px; }
 
     @keyframes shrink { from { width:100% } to { width:0% } }
     @keyframes fadeIn { from { opacity:0;transform:translateY(6px) } to { opacity:1;transform:translateY(0) } }
@@ -121,7 +122,7 @@
 
     <div class="flex items-center gap-2">
         {{-- Preview (Excel) --}}
-        <button @click="previewOpen = true"
+        <button @click="openPreview()"
             class="group relative text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 border border-green-600 text-green-700 bg-green-50 transition-all duration-200 hover:bg-green-100 hover:shadow-md active:scale-95">
 
 
@@ -484,7 +485,7 @@
 
 
 {{-- ═══════════════════════════════════════════
-     EXCEL PREVIEW MODAL (pure Alpine — no Livewire re-render)
+     SCHEDULE RANGE PREVIEW MODAL
 ═══════════════════════════════════════════ --}}
 <div x-show="previewOpen"
      x-cloak
@@ -494,13 +495,13 @@
 
     <div class="fixed inset-0 bg-gray-900/80" @click="previewOpen = false"></div>
 
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl fade-in overflow-hidden"
+    <div class="flex min-h-full items-center justify-center p-2 sm:p-4">
+        <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl fade-in overflow-hidden"
              style="border-top:4px solid #166534;"
              @click.stop>
 
-            {{-- Preview header --}}
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50 flex-wrap gap-3">
                 <div class="flex items-center gap-3">
                     <div class="p-2 rounded-lg bg-green-100">
                         <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -508,84 +509,140 @@
                                   d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="text-base font-bold text-gray-900">Schedule Preview</h3>
-                        <p class="text-xs text-gray-400 mt-0.5" x-text="'Excel-style · ' + formattedSelectedDate()"></p>
-                    </div>
+                    <h3 class="text-base font-bold text-gray-900">Schedule Preview</h3>
                 </div>
-                <button @click="previewOpen = false" class="text-gray-400 hover:text-gray-600">
+                <button @click="previewOpen = false" class="text-gray-400 hover:text-gray-600 ml-auto">
                     <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
                     </svg>
                 </button>
             </div>
 
-            {{-- Table --}}
-            <div class="overflow-auto max-h-[68vh] p-5 bg-white">
+            {{-- Date range controls --}}
+            <div class="px-4 sm:px-6 py-3 border-b border-gray-100 bg-white flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2 text-sm">
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">From</label>
+                    <input type="date" x-model="previewFrom"
+                           class="brand-focus border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white">
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">To</label>
+                    <input type="date" x-model="previewTo"
+                           class="brand-focus border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white">
+                </div>
+                <button @click="loadPreview()"
+                        class="brand-btn-primary text-xs font-bold px-4 py-2 rounded-lg shadow flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Load Schedule
+                </button>
+            </div>
 
-                {{-- Excel title cells --}}
-                <div class="mb-3 text-center">
-                    <p class="text-base font-extrabold tracking-widest uppercase" style="color:#015581;">NURSES SCHEDULE</p>
-                    <p class="text-xs font-semibold text-gray-500 mt-0.5" x-text="formattedSelectedDate()"></p>
+            {{-- Table area --}}
+            <div class="overflow-auto max-h-[62vh] bg-white" id="preview-scroll-area">
+                @if(!empty($previewDates))
+                @php
+                    $colCount = count($previewDates) + 1;
+                @endphp
+
+                {{-- Title --}}
+                <div class="text-center pt-4 pb-2">
+                    <p class="text-sm font-extrabold tracking-widest uppercase" style="color:#015581;">NURSES SCHEDULE</p>
+                    @if($previewFrom && $previewTo)
+                    <p class="text-xs font-semibold text-gray-500 mt-0.5">
+                        {{ \Carbon\Carbon::parse($previewFrom)->format('F j') }} –
+                        {{ \Carbon\Carbon::parse($previewTo)->format('j, Y') }}
+                    </p>
+                    @endif
                 </div>
 
-                <table class="xl-table">
-                    <colgroup>
-                        <col style="width:90px;">
-                        <col style="width:55px;">
-                        <col>
-                        <col>
-                    </colgroup>
+                <div class="px-3 pb-4">
+                <table class="xl-table" style="table-layout:auto;">
                     <thead>
                         <tr>
-                            <th colspan="2">Shift</th>
-                            <th>AM</th>
-                            <th>PM</th>
+                            <th style="min-width:60px;position:sticky;left:0;z-index:2;background:#d1fae5;">Shift</th>
+                            @foreach($previewDates as $d)
+                            @php $dt = \Carbon\Carbon::parse($d); @endphp
+                            <th style="min-width:68px;text-align:center;">
+                                {{ $dt->format('D') }}<br>
+                                <span style="font-size:.9em;font-weight:900;">{{ $dt->format('j') }}</span>
+                            </th>
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody>
-                        {{-- WARD --}}
-                        <tr class="xl-section-row"><td colspan="4">WARD</td></tr>
-                        @foreach(['1st','2nd','3rd','4th','5th'] as $slot)
-                        <tr>
-                            <td class="xl-shift-label">{{ $slot }}</td>
-                            <td class="xl-period-header">—</td>
-                            <td>{{ collect($schedule['ward'][$slot]['am'] ?? [])->pluck('name')->join(', ') ?: '—' }}</td>
-                            <td>{{ collect($schedule['ward'][$slot]['pm'] ?? [])->pluck('name')->join(', ') ?: '—' }}</td>
-                        </tr>
+
+                    {{-- ── WARD ── --}}
+                    <tr class="xl-section-row"><td colspan="{{ $colCount }}">WARD</td></tr>
+                    @foreach(['am' => 'AM', 'pm' => 'PM'] as $period => $periodLabel)
+                    <tr class="xl-period-row"><td colspan="{{ $colCount }}">{{ $periodLabel }}</td></tr>
+                    @foreach(['1st','2nd','3rd','4th','5th'] as $slot)
+                    <tr>
+                        <td class="xl-shift-label" style="position:sticky;left:0;z-index:1;">{{ $slot }}</td>
+                        @foreach($previewDates as $d)
+                        <td style="text-align:center;">
+                            {{ collect($previewData['ward'][$slot][$period][$d] ?? [])->join(', ') ?: '' }}
+                        </td>
                         @endforeach
+                    </tr>
+                    @endforeach
+                    @endforeach
 
-                        <tr><td colspan="4" style="background:#f9fafb;border-left:none;border-right:none;padding:3px;"></td></tr>
+                    {{-- spacer --}}
+                    <tr><td colspan="{{ $colCount }}" style="padding:2px;background:#f9fafb;border:none;"></td></tr>
 
-                        {{-- DR/OR --}}
-                        <tr class="xl-section-row"><td colspan="4">DR/OR ONCALL / RELIEVER / AMBULANCE NURSE</td></tr>
-                        @foreach(['1st','2nd','3rd','4th','5th','OPD'] as $slot)
-                        <tr>
-                            <td class="xl-shift-label">{{ $slot }}</td>
-                            <td class="xl-period-header">—</td>
-                            <td>{{ collect($schedule['or'][$slot]['am'] ?? [])->pluck('name')->join(', ') ?: '—' }}</td>
-                            <td>{{ collect($schedule['or'][$slot]['pm'] ?? [])->pluck('name')->join(', ') ?: '—' }}</td>
-                        </tr>
+                    {{-- ── DR/OR ── --}}
+                    <tr class="xl-section-row"><td colspan="{{ $colCount }}">DR/OR ONCALL / RELIEVER / AMBULANCE NURSE</td></tr>
+                    @foreach(['am' => 'AM', 'pm' => 'PM'] as $period => $periodLabel)
+                    <tr class="xl-period-row"><td colspan="{{ $colCount }}">{{ $periodLabel }}</td></tr>
+                    @foreach(['1st','2nd','3rd','4th','5th','OPD'] as $slot)
+                    <tr>
+                        <td class="xl-shift-label" style="position:sticky;left:0;z-index:1;">{{ $slot }}</td>
+                        @foreach($previewDates as $d)
+                        <td style="text-align:center;">
+                            {{ collect($previewData['or'][$slot][$period][$d] ?? [])->join(', ') ?: '' }}
+                        </td>
                         @endforeach
+                    </tr>
+                    @endforeach
+                    @endforeach
 
-                        <tr><td colspan="4" style="background:#f9fafb;border-left:none;border-right:none;padding:3px;"></td></tr>
+                    {{-- spacer --}}
+                    <tr><td colspan="{{ $colCount }}" style="padding:2px;background:#f9fafb;border:none;"></td></tr>
 
-                        {{-- HEAD NURSE --}}
-                        <tr class="xl-section-row"><td colspan="4">HEAD NURSE</td></tr>
-                        @foreach(['8-3','3-11','IPCN'] as $slot)
-                        <tr>
-                            <td class="xl-shift-label">{{ $slot }}</td>
-                            <td class="xl-period-header">—</td>
-                            <td>{{ collect($schedule['hn'][$slot]['am'] ?? [])->pluck('name')->join(', ') ?: '—' }}</td>
-                            <td>{{ collect($schedule['hn'][$slot]['pm'] ?? [])->pluck('name')->join(', ') ?: '—' }}</td>
-                        </tr>
+                    {{-- ── HEAD NURSE ── --}}
+                    <tr class="xl-section-row"><td colspan="{{ $colCount }}">HEAD NURSE</td></tr>
+                    @foreach(['am' => 'AM', 'pm' => 'PM'] as $period => $periodLabel)
+                    <tr class="xl-period-row"><td colspan="{{ $colCount }}">{{ $periodLabel }}</td></tr>
+                    @foreach(['8-3','3-11','IPCN'] as $slot)
+                    <tr>
+                        <td class="xl-shift-label" style="position:sticky;left:0;z-index:1;">{{ $slot }}</td>
+                        @foreach($previewDates as $d)
+                        <td style="text-align:center;">
+                            {{ collect($previewData['hn'][$slot][$period][$d] ?? [])->join(', ') ?: '' }}
+                        </td>
                         @endforeach
+                    </tr>
+                    @endforeach
+                    @endforeach
+
                     </tbody>
                 </table>
+                </div>
+
+                @else
+                <div class="flex flex-col items-center justify-center py-16 text-center">
+                    <svg class="w-10 h-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <p class="text-sm font-semibold text-gray-400">Select a date range and click <strong>Load Schedule</strong></p>
+                </div>
+                @endif
             </div>
 
             {{-- Footer --}}
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+            <div class="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
                 <button onclick="window.print()"
                     class="brand-btn-teal text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -703,6 +760,8 @@ function nurseSchedule(initialDate) {
 
         /* ── Preview modal ── */
         previewOpen: false,
+        previewFrom: '',
+        previewTo:   '',
 
         init() {
             const now = new Date();
@@ -787,6 +846,24 @@ function nurseSchedule(initialDate) {
             return dt.toLocaleDateString('en-US', {
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
             });
+        },
+
+        openPreview() {
+            const d = this.selectedDate
+                ? new Date(this.selectedDate + 'T00:00:00')
+                : new Date();
+            const y = d.getFullYear(), m = d.getMonth();
+            const pad = n => String(n).padStart(2, '0');
+            this.previewFrom = `${y}-${pad(m + 1)}-01`;
+            this.previewTo   = `${y}-${pad(m + 1)}-${pad(new Date(y, m + 1, 0).getDate())}`;
+            this.previewOpen = true;
+            this.$wire.loadPreviewRange(this.previewFrom, this.previewTo);
+        },
+
+        loadPreview() {
+            if (this.previewFrom && this.previewTo) {
+                this.$wire.loadPreviewRange(this.previewFrom, this.previewTo);
+            }
         },
 
         // Single delegated handler for all dynamic schedule buttons.
