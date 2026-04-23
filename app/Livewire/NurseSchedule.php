@@ -9,7 +9,6 @@ use Livewire\Component;
 class NurseSchedule extends Component
 {
     public string $selectedDate = '';
-    public string $modalSearch = '';
     public bool   $toastShow    = false;
     public string $toastMessage = '';
     public array $schedule = [];
@@ -109,20 +108,13 @@ class NurseSchedule extends Component
     public function render()
     {
         $nurses = Employee::with('employmentDetail')
-            ->when($this->modalSearch, fn ($q) =>
-                $q->where(fn ($inner) =>
-                    $inner->where('first_name', 'like', "%{$this->modalSearch}%")
-                          ->orWhere('last_name',  'like', "%{$this->modalSearch}%")
-                          ->orWhere('employee_number', 'like', "%{$this->modalSearch}%")
-                )
-            )
             ->orderBy('last_name')
             ->get()
             ->map(fn ($e) => [
                 'id'       => $e->id,
                 'name'     => trim($e->first_name . ' ' . $e->last_name),
                 'position' => $e->employmentDetail?->position ?? 'Nurse',
-                'emp_no'   => $e->employee_number,
+                'emp_no'   => $e->employee_number ?? '',
             ]);
 
         return view('pages.nursing.nurse-schedule', [

@@ -248,7 +248,7 @@
             <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
             <div class="shift-cell-header text-center border-r border-gray-200">AM</div>
             <div class="shift-cell-header text-center">PM</div>
-            @foreach(['1st','2nd','3rd'] as $slot)
+            @foreach(['1st','2nd','3rd','4th','5th'] as $slot)
                 <div class="shift-label">{{ $slot }}</div>
                 @foreach(['am','pm'] as $period)
                     <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
@@ -260,7 +260,7 @@
                             </span>
                         @endforeach
                         @if(empty($schedule['ward'][$slot][$period] ?? []))
-                            <button class="add-nurse-btn" @click="openNurseModal('ward', '{{ $slot }}', '{{ $period }}')">
+                            <button class="add-nurse-btn" @click="$store.nurseModal.openFor('ward', '{{ $slot }}', '{{ $period }}')">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                                 </svg>
@@ -287,7 +287,7 @@
             <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
             <div class="shift-cell-header text-center border-r border-gray-200">AM</div>
             <div class="shift-cell-header text-center">PM</div>
-            @foreach(['1st','2nd','3rd','OPD'] as $slot)
+            @foreach(['1st','2nd','3rd','4th','5th','OPD'] as $slot)
                 <div class="shift-label">{{ $slot }}</div>
                 @foreach(['am','pm'] as $period)
                     <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
@@ -301,7 +301,7 @@
                         @endforeach
                         @if(empty($schedule['or'][$slot][$period] ?? []))
                             <button class="add-nurse-btn" style="border-color:#6ee7b7;color:#027c8b;"
-                                @click="openNurseModal('or', '{{ $slot }}', '{{ $period }}')">
+                                @click="$store.nurseModal.openFor('or', '{{ $slot }}', '{{ $period }}')">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                                 </svg>
@@ -343,7 +343,7 @@
                         @endforeach
                         @if(empty($schedule['hn'][$slot][$period] ?? []))
                             <button class="add-nurse-btn" style="border-color:#fcd34d;color:#b45309;"
-                                @click="openNurseModal('hn', '{{ $slot }}', '{{ $period }}')">
+                                @click="$store.nurseModal.openFor('hn', '{{ $slot }}', '{{ $period }}')">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                                 </svg>
@@ -360,18 +360,20 @@
 
 
 {{-- ═══════════════════════════════════════════
-     ASSIGN NURSE MODAL - uses local Alpine state
-     This modal is inside the main x-data, so it uses the component's local state.
+     ASSIGN NURSE MODAL — state lives in Alpine.store('nurseModal')
+     so it survives every Livewire re-render (morphdom never touches
+     Alpine stores). wire:ignore.self also guards the modal shell.
  ═══════════════════════════════════════════ --}}
-<div x-show="modalOpen"
+<div wire:ignore.self
+     x-show="$store.nurseModal.isOpen"
      x-cloak
      class="fixed inset-0 z-50 overflow-y-auto"
      role="dialog" aria-modal="true"
-     @keydown.escape.window="closeAssignModal()">
+     @keydown.escape.window="$store.nurseModal.close()">
 
     {{-- Backdrop --}}
     <div class="fixed inset-0 bg-gray-500/75 transition-opacity"
-         @click="closeAssignModal()"></div>
+         @click="$store.nurseModal.close()"></div>
 
     <div class="flex min-h-full items-center justify-center p-4" @click.stop>
         <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl w-full max-w-md fade-in"
@@ -391,21 +393,21 @@
                         <div>
                             <h3 class="text-base font-bold text-gray-900">Assign Nurse</h3>
                             <p class="text-xs text-gray-400 mt-0.5">
-                                <span x-text="modalSection.toUpperCase()"></span> ·
-                                <span x-text="modalSlot"></span> ·
-                                <span x-text="modalPeriod.toUpperCase()"></span> ·
+                                <span x-text="$store.nurseModal.section.toUpperCase()"></span> ·
+                                <span x-text="$store.nurseModal.slot"></span> ·
+                                <span x-text="$store.nurseModal.period.toUpperCase()"></span> ·
                                 <span x-text="formattedSelectedDate()"></span>
                             </p>
                         </div>
                     </div>
-                    <button @click="closeAssignModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <button @click="$store.nurseModal.close()" class="text-gray-400 hover:text-gray-600 transition-colors">
                         <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
                         </svg>
                     </button>
                 </div>
 
-                {{-- Search --}}
+                {{-- Search (pure client-side) --}}
                 <div class="relative mb-3">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -413,27 +415,26 @@
                         </svg>
                     </div>
                     <input type="text"
-                        x-model="modalSearch"
+                        x-model="$store.nurseModal.search"
                         placeholder="Search by name or employee #…"
-                        @input="$wire.set('modalSearch', modalSearch)"
                         class="brand-focus w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white"/>
                 </div>
 
-                {{-- Nurse list --}}
+                {{-- Nurse list — filtered client-side; no Livewire calls on search --}}
                 <div class="max-h-56 overflow-y-auto rounded-lg border border-gray-100">
-                    @forelse($nurses as $nurse)
-                        <div class="nurse-option" @click="closeAssignModal(); $wire.assignEmployee({{ $nurse['id'] }}, modalSection, modalSlot, modalPeriod)">
-                            <div class="w-8 h-8 rounded-full brand-bg-primary flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                                {{ strtoupper(substr($nurse['name'],0,1)) }}
-                            </div>
+                    <template x-for="nurse in $store.nurseModal.filteredNurses" :key="nurse.id">
+                        <div class="nurse-option"
+                             @click="$wire.assignEmployee(nurse.id, $store.nurseModal.section, $store.nurseModal.slot, $store.nurseModal.period); $store.nurseModal.close()">
+                            <div class="w-8 h-8 rounded-full brand-bg-primary flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                                 x-text="nurse.name.charAt(0).toUpperCase()"></div>
                             <div>
-                                <p class="font-semibold text-gray-800 text-sm">{{ $nurse['name'] }}</p>
-                                <p class="text-xs text-gray-400">{{ $nurse['position'] }} · {{ $nurse['emp_no'] }}</p>
+                                <p class="font-semibold text-gray-800 text-sm" x-text="nurse.name"></p>
+                                <p class="text-xs text-gray-400" x-text="nurse.position + ' · ' + nurse.emp_no"></p>
                             </div>
                         </div>
-                    @empty
-                        <div class="px-4 py-8 text-center text-sm text-gray-400">No nurses found.</div>
-                    @endforelse
+                    </template>
+                    <div x-show="$store.nurseModal.filteredNurses.length === 0"
+                         class="px-4 py-8 text-center text-sm text-gray-400">No nurses found.</div>
                 </div>
 
                 {{-- Manual entry --}}
@@ -441,11 +442,11 @@
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Or type a name manually</label>
                     <div class="flex gap-2">
                         <input type="text"
-                            x-model="customName"
+                            x-model="$store.nurseModal.customName"
                             placeholder="Enter name…"
-                            @keydown.enter="if(customName.trim()) { closeAssignModal(); $wire.assignCustom(modalSection, modalSlot, modalPeriod, customName) }"
+                            @keydown.enter="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.slot, $store.nurseModal.period, $store.nurseModal.customName); $store.nurseModal.close() }"
                             class="brand-focus flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm"/>
-                        <button @click="if(customName.trim()) { closeAssignModal(); $wire.assignCustom(modalSection, modalSlot, modalPeriod, customName) }"
+                        <button @click="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.slot, $store.nurseModal.period, $store.nurseModal.customName); $store.nurseModal.close() }"
                             class="brand-btn-primary text-xs font-bold px-4 py-1.5 rounded-md shadow">
                             Add
                         </button>
@@ -454,7 +455,7 @@
             </div>
 
             <div class="bg-gray-50 px-6 py-3 flex justify-end rounded-b-xl">
-                <button @click="closeAssignModal()"
+                <button @click="$store.nurseModal.close()"
                     class="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
                     Close
                 </button>
@@ -527,7 +528,7 @@
                     <tbody>
                         {{-- WARD --}}
                         <tr class="xl-section-row"><td colspan="4">WARD</td></tr>
-                        @foreach(['1st','2nd','3rd'] as $slot)
+                        @foreach(['1st','2nd','3rd','4th','5th'] as $slot)
                         <tr>
                             <td class="xl-shift-label">{{ $slot }}</td>
                             <td class="xl-period-header">—</td>
@@ -540,7 +541,7 @@
 
                         {{-- DR/OR --}}
                         <tr class="xl-section-row"><td colspan="4">DR/OR ONCALL / RELIEVER / AMBULANCE NURSE</td></tr>
-                        @foreach(['1st','2nd','3rd','OPD'] as $slot)
+                        @foreach(['1st','2nd','3rd','4th','5th','OPD'] as $slot)
                         <tr>
                             <td class="xl-shift-label">{{ $slot }}</td>
                             <td class="xl-period-header">—</td>
@@ -628,6 +629,48 @@
      ALPINE.JS
 ═══════════════════════════════════════════ --}}
 <script>
+/*
+ * Alpine store — holds assign-modal state globally so it survives every
+ * Livewire re-render (morphdom never touches Alpine.store). This is the
+ * key to "add another nurse without refreshing the page".
+ */
+document.addEventListener('alpine:init', () => {
+    if (window.Alpine && window.Alpine.store('nurseModal')) return;
+    window.Alpine.store('nurseModal', {
+        isOpen: false,
+        section: '',
+        slot: '',
+        period: '',
+        search: '',
+        customName: '',
+        allNurses: @json($nurses),
+
+        get filteredNurses() {
+            if (!this.search) return this.allNurses;
+            const q = this.search.toLowerCase();
+            return this.allNurses.filter(n =>
+                n.name.toLowerCase().includes(q) ||
+                (n.emp_no && String(n.emp_no).toLowerCase().includes(q))
+            );
+        },
+
+        openFor(section, slot, period) {
+            this.section = section;
+            this.slot = slot;
+            this.period = period;
+            this.search = '';
+            this.customName = '';
+            this.isOpen = true;
+        },
+
+        close() {
+            this.isOpen = false;
+            this.search = '';
+            this.customName = '';
+        },
+    });
+});
+
 function nurseSchedule(initialDate) {
     return {
         /* ── Date picker ── */
@@ -640,97 +683,14 @@ function nurseSchedule(initialDate) {
                      'July','August','September','October','November','December'],
         dayNames:   ['SUN','MON','TUE','WED','THU','FRI','SAT'],
 
-        /* ── Preview modal (local) ── */
+        /* ── Preview modal ── */
         previewOpen: false,
-
-        /* ── Local state that Alpine tracks reactively ── */
-        modalOpen: false,
-        modalSection: '',
-        modalSlot: '',
-        modalPeriod: '',
-        modalSearch: '',
-        customName: '',
-        toastShow: false,
-        toastMessage: '',
 
         init() {
             const now = new Date();
             const base = now.getFullYear();
             for (let y = base - 3; y <= base + 3; y++) this.yearRange.push(y);
             this.buildDays();
-
-            // Sync local state with global state on init
-            if (window.NurseScheduleState) {
-                this.modalOpen = window.NurseScheduleState.modalOpen;
-                this.modalSection = window.NurseScheduleState.modalSection;
-                this.modalSlot = window.NurseScheduleState.modalSlot;
-                this.modalPeriod = window.NurseScheduleState.modalPeriod;
-                this.modalSearch = window.NurseScheduleState.modalSearch;
-                this.customName = window.NurseScheduleState.customName;
-            }
-
-            // Sync TO local state whenever global state changes (for Livewire re-renders)
-            this.$watch('$el', () => {
-                if (window.NurseScheduleState) {
-                    this.modalOpen = window.NurseScheduleState.modalOpen;
-                    this.modalSection = window.NurseScheduleState.modalSection;
-                    this.modalSlot = window.NurseScheduleState.modalSlot;
-                    this.modalPeriod = window.NurseScheduleState.modalPeriod;
-                }
-            });
-
-            // Listen for toast events - dispatch to Livewire component
-            window.addEventListener('show-toast', (e) => {
-                this.toastShow = true;
-                this.toastMessage = e.detail.message;
-                window.NurseScheduleState.toastShow = true;
-                window.NurseScheduleState.toastMessage = e.detail.message;
-            });
-            window.addEventListener('hide-toast', () => {
-                this.toastShow = false;
-                this.toastMessage = '';
-                window.NurseScheduleState.toastShow = false;
-                window.NurseScheduleState.toastMessage = '';
-            });
-
-            // Livewire events - close modal after any action completes
-            Livewire.on('hydrate', () => this.syncFromGlobal());
-            Livewire.on('refresh', () => this.syncFromGlobal());
-        },
-
-        syncFromGlobal() {
-            if (window.NurseScheduleState) {
-                this.modalOpen = window.NurseScheduleState.modalOpen;
-                this.modalSection = window.NurseScheduleState.modalSection;
-                this.modalSlot = window.NurseScheduleState.modalSlot;
-                this.modalPeriod = window.NurseScheduleState.modalPeriod;
-                this.modalSearch = window.NurseScheduleState.modalSearch;
-                this.customName = window.NurseScheduleState.customName;
-            }
-        },
-
-        syncToGlobal() {
-            window.NurseScheduleState.modalOpen = this.modalOpen;
-            window.NurseScheduleState.modalSection = this.modalSection;
-            window.NurseScheduleState.modalSlot = this.modalSlot;
-            window.NurseScheduleState.modalPeriod = this.modalPeriod;
-            window.NurseScheduleState.modalSearch = this.modalSearch;
-            window.NurseScheduleState.customName = this.customName;
-        },
-
-        closeAssignModal() {
-            this.modalOpen = false;
-            this.modalSearch = '';
-            this.customName = '';
-            this.syncToGlobal();
-        },
-
-        openNurseModal(section, slot, period) {
-            this.modalSection = section;
-            this.modalSlot = slot;
-            this.modalPeriod = period;
-            this.modalOpen = true;
-            this.syncToGlobal();
         },
 
         buildDays() {
