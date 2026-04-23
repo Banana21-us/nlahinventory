@@ -1,6 +1,7 @@
 <div class="max-w-7xl mx-auto py-8 px-4 nlah-page-text-primary"
      x-data="nurseSchedule(@js($selectedDate))"
-     x-init="init()">
+     x-init="init()"
+     @click="handleScheduleClick($event)">
 <style>
     .brand-bg-primary        { background-color: #015581; }
     .brand-bg-primary-light  { background-color: #e6f0f7; }
@@ -81,6 +82,23 @@
     .dp-day.dp-active.dp-today .dp-num,
     .dp-day.dp-active.dp-today .dp-dayname {
         color: #fff !important;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 639px) {
+        .shift-grid { grid-template-columns: 48px 1fr 1fr; }
+        .shift-label { font-size:.6rem;padding:8px 6px;letter-spacing:0; }
+        .shift-cell  { padding:5px 6px;min-height:40px; }
+        .shift-cell-header { font-size:.6rem;padding:5px 6px; }
+        .section-header { padding:8px 10px; }
+        .section-title { font-size:.6rem; }
+        .nurse-pill { font-size:.65rem;padding:2px 5px 2px 3px;gap:3px; }
+        .nurse-pill .np-avatar { width:15px;height:15px;font-size:.55rem; }
+        .nurse-pill .np-remove { width:13px;height:13px; }
+        .add-nurse-btn { font-size:.62rem;padding:2px 6px;gap:3px; }
+        .add-nurse-btn svg { width:10px;height:10px; }
+        .dp-day { min-width:44px;padding:5px 3px; }
+        .dp-num { font-size:1.1rem; }
     }
 </style>
 
@@ -253,20 +271,20 @@
                 @foreach(['am','pm'] as $period)
                     <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
                         @foreach($schedule['ward'][$slot][$period] ?? [] as $entry)
-                            <span class="nurse-pill">
+                            <span class="nurse-pill" wire:key="pill-ward-{{ $slot }}-{{ $period }}-{{ $entry['id'] }}">
                                 <span class="np-avatar">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
                                 <span>{{ $entry['name'] }}</span>
-                                <button class="np-remove" wire:click="removeEntry({{ $entry['id'] }})" title="Remove">✕</button>
+                                <button class="np-remove" data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
                             </span>
                         @endforeach
-                        @if(empty($schedule['ward'][$slot][$period] ?? []))
-                            <button class="add-nurse-btn" @click="$store.nurseModal.openFor('ward', '{{ $slot }}', '{{ $period }}')">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Add
-                            </button>
-                        @endif
+                        <button class="add-nurse-btn"
+                            style="{{ !empty($schedule['ward'][$slot][$period] ?? []) ? 'display:none;' : '' }}"
+                            data-section="ward" data-slot="{{ $slot }}" data-period="{{ $period }}">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
                     </div>
                 @endforeach
             @endforeach
@@ -292,22 +310,22 @@
                 @foreach(['am','pm'] as $period)
                     <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
                         @foreach($schedule['or'][$slot][$period] ?? [] as $entry)
-                            <span class="nurse-pill" style="background:#e6f4f5;color:#027c8b;border-color:#a7d9dd;">
+                            <span class="nurse-pill" wire:key="pill-or-{{ $slot }}-{{ $period }}-{{ $entry['id'] }}"
+                                style="background:#e6f4f5;color:#027c8b;border-color:#a7d9dd;">
                                 <span class="np-avatar" style="background:#027c8b;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
                                 <span>{{ $entry['name'] }}</span>
                                 <button class="np-remove" style="background:#a7d9dd;color:#027c8b;"
-                                    wire:click="removeEntry({{ $entry['id'] }})" title="Remove">✕</button>
+                                    data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
                             </span>
                         @endforeach
-                        @if(empty($schedule['or'][$slot][$period] ?? []))
-                            <button class="add-nurse-btn" style="border-color:#6ee7b7;color:#027c8b;"
-                                @click="$store.nurseModal.openFor('or', '{{ $slot }}', '{{ $period }}')">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Add
-                            </button>
-                        @endif
+                        <button class="add-nurse-btn"
+                            style="{{ !empty($schedule['or'][$slot][$period] ?? []) ? 'display:none;' : '' }}border-color:#6ee7b7;color:#027c8b;"
+                            data-section="or" data-slot="{{ $slot }}" data-period="{{ $period }}">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
                     </div>
                 @endforeach
             @endforeach
@@ -334,22 +352,22 @@
                 @foreach(['am','pm'] as $period)
                     <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
                         @foreach($schedule['hn'][$slot][$period] ?? [] as $entry)
-                            <span class="nurse-pill" style="background:#fef8e7;color:#b45309;border-color:#fde68a;">
+                            <span class="nurse-pill" wire:key="pill-hn-{{ $slot }}-{{ $period }}-{{ $entry['id'] }}"
+                                style="background:#fef8e7;color:#b45309;border-color:#fde68a;">
                                 <span class="np-avatar" style="background:#f0b626;color:#fff;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
                                 <span>{{ $entry['name'] }}</span>
                                 <button class="np-remove" style="background:#fde68a;color:#b45309;"
-                                    wire:click="removeEntry({{ $entry['id'] }})" title="Remove">✕</button>
+                                    data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
                             </span>
                         @endforeach
-                        @if(empty($schedule['hn'][$slot][$period] ?? []))
-                            <button class="add-nurse-btn" style="border-color:#fcd34d;color:#b45309;"
-                                @click="$store.nurseModal.openFor('hn', '{{ $slot }}', '{{ $period }}')">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Add
-                            </button>
-                        @endif
+                        <button class="add-nurse-btn"
+                            style="{{ !empty($schedule['hn'][$slot][$period] ?? []) ? 'display:none;' : '' }}border-color:#fcd34d;color:#b45309;"
+                            data-section="hn" data-slot="{{ $slot }}" data-period="{{ $period }}">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
                     </div>
                 @endforeach
             @endforeach
@@ -364,7 +382,7 @@
      so it survives every Livewire re-render (morphdom never touches
      Alpine stores). wire:ignore.self also guards the modal shell.
  ═══════════════════════════════════════════ --}}
-<div wire:ignore.self
+<div wire:ignore
      x-show="$store.nurseModal.isOpen"
      x-cloak
      class="fixed inset-0 z-50 overflow-y-auto"
@@ -769,6 +787,24 @@ function nurseSchedule(initialDate) {
             return dt.toLocaleDateString('en-US', {
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
             });
+        },
+
+        // Single delegated handler for all dynamic schedule buttons.
+        // Avoids relying on Alpine/wire re-initialization after morphdom patches.
+        handleScheduleClick(event) {
+            const removeBtn = event.target.closest('.np-remove[data-remove-id]');
+            if (removeBtn) {
+                this.$wire.removeEntry(parseInt(removeBtn.dataset.removeId));
+                return;
+            }
+            const addBtn = event.target.closest('.add-nurse-btn[data-section]');
+            if (addBtn) {
+                window.Alpine.store('nurseModal').openFor(
+                    addBtn.dataset.section,
+                    addBtn.dataset.slot,
+                    addBtn.dataset.period
+                );
+            }
         },
     };
 }
