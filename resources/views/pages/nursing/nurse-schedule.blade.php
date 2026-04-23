@@ -58,14 +58,14 @@
     .nurse-option:hover { background:#e6f0f7; }
 
     /* ── Excel Preview ── */
-    .xl-table { border-collapse:collapse;width:100%;font-size:.75rem;font-family:'Courier New',monospace; }
-    .xl-table th,.xl-table td { border:1px solid #9ca3af;padding:4px 8px;text-align:left;white-space:nowrap; }
+    .xl-table { border-collapse:collapse;width:100%;font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;table-layout:auto; }
+    .xl-table th,.xl-table td { border:1px solid #9ca3af;padding:8px 12px;text-align:left;word-wrap:break-word;word-break:break-word;font-size:.75rem; }
     .xl-table th { background:#d1fae5;font-weight:700;text-align:center; }
-    .xl-section-row td { background:#015581;color:#fff;font-weight:800;letter-spacing:.06em;text-transform:uppercase;text-align:center; }
-    .xl-shift-label { background:#e6f0f7;font-weight:700;color:#015581; }
+    .xl-section-row td { background:#015581;color:#fff;font-weight:800;letter-spacing:.06em;text-transform:uppercase;text-align:center;font-size:.7rem; }
+    .xl-shift-label { background:#e6f0f7;font-weight:700;color:#015581;font-size:.7rem;white-space:nowrap; }
     .xl-period-header { background:#f0f9ff;font-weight:700;color:#027c8b;text-align:center; }
     .xl-table tbody tr:hover td { background:#fef9ee; }
-    .xl-period-row td { background:#dbeafe;color:#1e40af;font-weight:800;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px; }
+    .xl-period-row td { background:#dbeafe;color:#1e40af;font-weight:800;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px; }
 
     @keyframes shrink { from { width:100% } to { width:0% } }
     @keyframes fadeIn { from { opacity:0;transform:translateY(6px) } to { opacity:1;transform:translateY(0) } }
@@ -122,7 +122,7 @@
 
     <div class="flex items-center gap-2">
         {{-- Preview (Excel) --}}
-        <button @click="openPreview()"
+        <button type="button" @click="openPreview()"
             class="group relative text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 border border-green-600 text-green-700 bg-green-50 transition-all duration-200 hover:bg-green-100 hover:shadow-md active:scale-95">
 
 
@@ -135,15 +135,6 @@
 
         </button>
 
-        {{-- Print --}}
-        <button onclick="window.print()"
-            class="brand-btn-teal text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-            </svg>
-            Print Schedule
-        </button>
     </div>
 </div>
 
@@ -487,13 +478,14 @@
 {{-- ═══════════════════════════════════════════
      SCHEDULE RANGE PREVIEW MODAL
 ═══════════════════════════════════════════ --}}
-<div x-show="previewOpen"
+<div wire:ignore
+     x-show="$store.nursePreview.isOpen"
      x-cloak
      class="fixed inset-0 z-50 overflow-y-auto"
      role="dialog" aria-modal="true"
-     @keydown.escape.window="previewOpen = false">
+     @keydown.escape.window="$store.nursePreview.close()">
 
-    <div class="fixed inset-0 bg-gray-900/80" @click="previewOpen = false"></div>
+    <div class="fixed inset-0 bg-gray-900/80" @click="$store.nursePreview.close()"></div>
 
     <div class="flex min-h-full items-center justify-center p-2 sm:p-4">
         <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl fade-in overflow-hidden"
@@ -511,7 +503,7 @@
                     </div>
                     <h3 class="text-base font-bold text-gray-900">Schedule Preview</h3>
                 </div>
-                <button @click="previewOpen = false" class="text-gray-400 hover:text-gray-600 ml-auto">
+                <button type="button" @click="$store.nursePreview.close()" class="text-gray-400 hover:text-gray-600 ml-auto">
                     <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
                     </svg>
@@ -522,15 +514,15 @@
             <div class="px-4 sm:px-6 py-3 border-b border-gray-100 bg-white flex flex-wrap items-center gap-3">
                 <div class="flex items-center gap-2 text-sm">
                     <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">From</label>
-                    <input type="date" x-model="previewFrom"
+                    <input type="date" x-model="$store.nursePreview.from"
                            class="brand-focus border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white">
                 </div>
                 <div class="flex items-center gap-2 text-sm">
                     <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">To</label>
-                    <input type="date" x-model="previewTo"
+                    <input type="date" x-model="$store.nursePreview.to"
                            class="brand-focus border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white">
                 </div>
-                <button @click="loadPreview()"
+                <button type="button" @click="loadPreview()"
                         class="brand-btn-primary text-xs font-bold px-4 py-2 rounded-lg shadow flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -539,106 +531,20 @@
                 </button>
             </div>
 
-            {{-- Table area --}}
+            {{-- Table area (reactive via Livewire component ref) --}}
             <div class="overflow-auto max-h-[62vh] bg-white" id="preview-scroll-area">
-                @if(!empty($previewDates))
-                @php
-                    $colCount = count($previewDates) + 1;
-                @endphp
-
-                {{-- Title --}}
-                <div class="text-center pt-4 pb-2">
-                    <p class="text-sm font-extrabold tracking-widest uppercase" style="color:#015581;">NURSES SCHEDULE</p>
-                    @if($previewFrom && $previewTo)
-                    <p class="text-xs font-semibold text-gray-500 mt-0.5">
-                        {{ \Carbon\Carbon::parse($previewFrom)->format('F j') }} –
-                        {{ \Carbon\Carbon::parse($previewTo)->format('j, Y') }}
-                    </p>
-                    @endif
+                <div id="preview-table-container" wire:ignore>
+                    <div class="flex flex-col items-center justify-center py-16 text-center">
+                        <svg class="w-10 h-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <p class="text-sm font-semibold text-gray-400">Select a date range and click <strong>Load Schedule</strong></p>
+                    </div>
                 </div>
+            </div>
 
-                <div class="px-3 pb-4">
-                <table class="xl-table" style="table-layout:auto;">
-                    <thead>
-                        <tr>
-                            <th style="min-width:60px;position:sticky;left:0;z-index:2;background:#d1fae5;">Shift</th>
-                            @foreach($previewDates as $d)
-                            @php $dt = \Carbon\Carbon::parse($d); @endphp
-                            <th style="min-width:68px;text-align:center;">
-                                {{ $dt->format('D') }}<br>
-                                <span style="font-size:.9em;font-weight:900;">{{ $dt->format('j') }}</span>
-                            </th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-
-                    {{-- ── WARD ── --}}
-                    <tr class="xl-section-row"><td colspan="{{ $colCount }}">WARD</td></tr>
-                    @foreach(['am' => 'AM', 'pm' => 'PM'] as $period => $periodLabel)
-                    <tr class="xl-period-row"><td colspan="{{ $colCount }}">{{ $periodLabel }}</td></tr>
-                    @foreach(['1st','2nd','3rd','4th','5th'] as $slot)
-                    <tr>
-                        <td class="xl-shift-label" style="position:sticky;left:0;z-index:1;">{{ $slot }}</td>
-                        @foreach($previewDates as $d)
-                        <td style="text-align:center;">
-                            {{ collect($previewData['ward'][$slot][$period][$d] ?? [])->join(', ') ?: '' }}
-                        </td>
-                        @endforeach
-                    </tr>
-                    @endforeach
-                    @endforeach
-
-                    {{-- spacer --}}
-                    <tr><td colspan="{{ $colCount }}" style="padding:2px;background:#f9fafb;border:none;"></td></tr>
-
-                    {{-- ── DR/OR ── --}}
-                    <tr class="xl-section-row"><td colspan="{{ $colCount }}">DR/OR ONCALL / RELIEVER / AMBULANCE NURSE</td></tr>
-                    @foreach(['am' => 'AM', 'pm' => 'PM'] as $period => $periodLabel)
-                    <tr class="xl-period-row"><td colspan="{{ $colCount }}">{{ $periodLabel }}</td></tr>
-                    @foreach(['1st','2nd','3rd','4th','5th','OPD'] as $slot)
-                    <tr>
-                        <td class="xl-shift-label" style="position:sticky;left:0;z-index:1;">{{ $slot }}</td>
-                        @foreach($previewDates as $d)
-                        <td style="text-align:center;">
-                            {{ collect($previewData['or'][$slot][$period][$d] ?? [])->join(', ') ?: '' }}
-                        </td>
-                        @endforeach
-                    </tr>
-                    @endforeach
-                    @endforeach
-
-                    {{-- spacer --}}
-                    <tr><td colspan="{{ $colCount }}" style="padding:2px;background:#f9fafb;border:none;"></td></tr>
-
-                    {{-- ── HEAD NURSE ── --}}
-                    <tr class="xl-section-row"><td colspan="{{ $colCount }}">HEAD NURSE</td></tr>
-                    @foreach(['am' => 'AM', 'pm' => 'PM'] as $period => $periodLabel)
-                    <tr class="xl-period-row"><td colspan="{{ $colCount }}">{{ $periodLabel }}</td></tr>
-                    @foreach(['8-3','3-11','IPCN'] as $slot)
-                    <tr>
-                        <td class="xl-shift-label" style="position:sticky;left:0;z-index:1;">{{ $slot }}</td>
-                        @foreach($previewDates as $d)
-                        <td style="text-align:center;">
-                            {{ collect($previewData['hn'][$slot][$period][$d] ?? [])->join(', ') ?: '' }}
-                        </td>
-                        @endforeach
-                    </tr>
-                    @endforeach
-                    @endforeach
-
-                    </tbody>
-                </table>
-                </div>
-
-                @else
-                <div class="flex flex-col items-center justify-center py-16 text-center">
-                    <svg class="w-10 h-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    <p class="text-sm font-semibold text-gray-400">Select a date range and click <strong>Load Schedule</strong></p>
-                </div>
-                @endif
+            <div id="preview-data-store" class="hidden" x-data="{}" wire:ignore
+                 x-init="$watch('$wire.previewData', value => { document.getElementById('preview-data-store').dataset.previewData = JSON.stringify(value); window.dispatchEvent(new CustomEvent('preview-data-updated', { detail: value })); })">
             </div>
 
             {{-- Footer --}}
@@ -651,7 +557,7 @@
                     </svg>
                     Print
                 </button>
-                <button @click="previewOpen = false"
+                <button type="button" @click="$store.nursePreview.close()"
                     class="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
                     Close
                 </button>
@@ -710,40 +616,59 @@
  * key to "add another nurse without refreshing the page".
  */
 document.addEventListener('alpine:init', () => {
-    if (window.Alpine && window.Alpine.store('nurseModal')) return;
-    window.Alpine.store('nurseModal', {
-        isOpen: false,
-        section: '',
-        slot: '',
-        period: '',
-        search: '',
-        customName: '',
-        allNurses: @json($nurses),
+    if (!window.Alpine.store('nurseModal')) {
+        window.Alpine.store('nurseModal', {
+            isOpen: false,
+            section: '',
+            slot: '',
+            period: '',
+            search: '',
+            customName: '',
+            allNurses: @json($nurses),
 
-        get filteredNurses() {
-            if (!this.search) return this.allNurses;
-            const q = this.search.toLowerCase();
-            return this.allNurses.filter(n =>
-                n.name.toLowerCase().includes(q) ||
-                (n.emp_no && String(n.emp_no).toLowerCase().includes(q))
-            );
-        },
+            get filteredNurses() {
+                if (!this.search) return this.allNurses;
+                const q = this.search.toLowerCase();
+                return this.allNurses.filter(n =>
+                    n.name.toLowerCase().includes(q) ||
+                    (n.emp_no && String(n.emp_no).toLowerCase().includes(q))
+                );
+            },
 
-        openFor(section, slot, period) {
-            this.section = section;
-            this.slot = slot;
-            this.period = period;
-            this.search = '';
-            this.customName = '';
-            this.isOpen = true;
-        },
+            openFor(section, slot, period) {
+                this.section = section;
+                this.slot = slot;
+                this.period = period;
+                this.search = '';
+                this.customName = '';
+                this.isOpen = true;
+            },
 
-        close() {
-            this.isOpen = false;
-            this.search = '';
-            this.customName = '';
-        },
-    });
+            close() {
+                this.isOpen = false;
+                this.search = '';
+                this.customName = '';
+            },
+        });
+    }
+
+    if (!window.Alpine.store('nursePreview')) {
+        window.Alpine.store('nursePreview', {
+            isOpen: false,
+            from: @js($previewFrom),
+            to: @js($previewTo),
+
+            open(from, to) {
+                this.from = from;
+                this.to = to;
+                this.isOpen = true;
+            },
+
+            close() {
+                this.isOpen = false;
+            },
+        });
+    }
 });
 
 function nurseSchedule(initialDate) {
@@ -759,15 +684,18 @@ function nurseSchedule(initialDate) {
         dayNames:   ['SUN','MON','TUE','WED','THU','FRI','SAT'],
 
         /* ── Preview modal ── */
-        previewOpen: false,
-        previewFrom: '',
-        previewTo:   '',
-
         init() {
             const now = new Date();
             const base = now.getFullYear();
             for (let y = base - 3; y <= base + 3; y++) this.yearRange.push(y);
             this.buildDays();
+
+            window.addEventListener('preview-data-updated', (e) => {
+                const preview = window.Alpine.store('nursePreview');
+                if (preview.isOpen && preview.from && preview.to) {
+                    this.renderPreviewTable(preview.from, preview.to, e.detail);
+                }
+            });
         },
 
         buildDays() {
@@ -854,16 +782,107 @@ function nurseSchedule(initialDate) {
                 : new Date();
             const y = d.getFullYear(), m = d.getMonth();
             const pad = n => String(n).padStart(2, '0');
-            this.previewFrom = `${y}-${pad(m + 1)}-01`;
-            this.previewTo   = `${y}-${pad(m + 1)}-${pad(new Date(y, m + 1, 0).getDate())}`;
-            this.previewOpen = true;
-            this.$wire.loadPreviewRange(this.previewFrom, this.previewTo);
+            const previewFrom = `${y}-${pad(m + 1)}-01`;
+            const previewTo = `${y}-${pad(m + 1)}-${pad(new Date(y, m + 1, 0).getDate())}`;
+
+            window.Alpine.store('nursePreview').open(previewFrom, previewTo);
+            this.loadPreview();
         },
 
         loadPreview() {
-            if (this.previewFrom && this.previewTo) {
-                this.$wire.loadPreviewRange(this.previewFrom, this.previewTo);
+            const preview = window.Alpine.store('nursePreview');
+            if (preview.from && preview.to) {
+                this.$wire.loadPreviewRange(preview.from, preview.to);
             }
+        },
+
+        renderPreviewTable(previewFrom, previewTo, previewData) {
+            const container = document.getElementById('preview-table-container');
+            if (!container) return;
+
+            if (!previewData || Object.keys(previewData).length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-16 text-center">
+                        <svg class="w-10 h-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <p class="text-sm font-semibold text-gray-400">No schedule data found for the selected range.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const fromDt = new Date(previewFrom + 'T00:00:00');
+            const toDt = new Date(previewTo + 'T00:00:00');
+
+            const dates = [];
+            const cur = new Date(fromDt);
+            while (cur <= toDt) {
+                dates.push(new Date(cur));
+                cur.setDate(cur.getDate() + 1);
+            }
+
+            const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+            const sections = [
+                { key: 'ward', label: 'WARD' },
+                { key: 'or', label: 'DR/OR ONCALL / RELIEVER / AMBULANCE NURSE' },
+                { key: 'hn', label: 'HEAD NURSE' },
+            ];
+            const slots = {
+                ward: ['1st','2nd','3rd','4th','5th'],
+                or: ['1st','2nd','3rd','4th','5th','OPD'],
+                hn: ['8-3','3-11','IPCN'],
+            };
+
+            let html = `<div class="text-center pt-4 pb-2">
+                <p class="text-sm font-extrabold tracking-widest uppercase" style="color:#015581;">NURSES SCHEDULE</p>
+                <p class="text-xs font-semibold text-gray-500 mt-0.5">${fromDt.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${toDt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            </div>
+            <div class="px-3 pb-4 overflow-x-auto">
+            <table class="xl-table" style="min-width:600px;">
+                <thead>
+                    <tr>
+                        <th style="min-width:80px;position:sticky;left:0;z-index:2;background:#d1fae5;white-space:nowrap;">Shift</th>`;
+
+            const colCount = dates.length + 1;
+
+            dates.forEach(dt => {
+                html += `<th style="min-width:70px;text-align:center;white-space:nowrap;">
+                    <span style="font-weight:800;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;">${dayNames[dt.getDay()]}</span><br>
+                    <span style="font-weight:900;font-size:.85rem;">${dt.getDate()}</span>
+                </th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            const dateStrings = dates.map(d => {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            });
+
+            sections.forEach((sec, si) => {
+                html += `<tr class="xl-section-row"><td colspan="${colCount}">${sec.label}</td></tr>`;
+                ['am','pm'].forEach((period, pi) => {
+                    const periodLabel = period === 'am' ? 'AM' : 'PM';
+                    html += `<tr class="xl-period-row"><td colspan="${colCount}">${periodLabel}</td></tr>`;
+                    (slots[sec.key] || []).forEach(slot => {
+                        html += `<tr><td class="xl-shift-label" style="position:sticky;left:0;z-index:1;white-space:nowrap;">${slot}</td>`;
+                        dateStrings.forEach(d => {
+                            const cellData = (previewData[sec.key] && previewData[sec.key][slot] && previewData[sec.key][slot][period]) ? (previewData[sec.key][slot][period][d] || []) : [];
+                            const cellText = Array.isArray(cellData) ? cellData.join(', ') : '';
+                            html += `<td style="text-align:center;white-space:normal;word-wrap:break-word;word-break:break-word;font-size:.75rem;min-width:70px;">${cellText}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+                });
+                if (si < sections.length - 1) {
+                    html += `<tr><td colspan="${colCount}" style="padding:2px;background:#f9fafb;border:none;"></td></tr>`;
+                }
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
         },
 
         // Single delegated handler for all dynamic schedule buttons.
