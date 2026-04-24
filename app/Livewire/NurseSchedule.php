@@ -11,7 +11,10 @@ class NurseSchedule extends Component
     public string $selectedDate = '';
     public bool   $toastShow    = false;
     public string $toastMessage = '';
-    public array $schedule = [];
+    public array  $schedule     = [];
+    public array  $previewData  = [];
+    public string $previewFrom  = '';
+    public string $previewTo    = '';
 
     public function mount(): void
     {
@@ -93,6 +96,31 @@ class NurseSchedule extends Component
         $this->dispatch('show-toast', message: "{$customName} assigned successfully.");
     }
 
+    public function loadPreviewRange(string $from, string $to): void
+    {
+        $from = \Carbon\Carbon::parse($from)->toDateString();
+        $to   = \Carbon\Carbon::parse($to)->toDateString();
+        if ($from > $to) [$from, $to] = [$to, $from];
+
+        $this->previewFrom = $from;
+        $this->previewTo   = $to;
+
+        $data = [];
+        NurseScheduleEntry::with('employee')
+            ->whereBetween('schedule_date', [$from, $to])
+            ->orderBy('schedule_date')
+            ->get()
+            ->each(function ($entry) use (&$data) {
+                $name = $entry->employee
+                    ? trim($entry->employee->first_name . ' ' . $entry->employee->last_name)
+                    : $entry->custom_name;
+                $date = $entry->schedule_date->toDateString();
+                $data[$entry->section][$entry->slot][$entry->period][$date][] = $name;
+            });
+
+        $this->previewData = $data;
+    }
+
     public function removeEntry(int $entryId): void
     {
         NurseScheduleEntry::findOrFail($entryId)->delete();
@@ -117,9 +145,23 @@ class NurseSchedule extends Component
                 'emp_no'   => $e->employee_number ?? '',
             ]);
 
+        $previewDates = [];
+        if ($this->previewFrom && $this->previewTo) {
+            $cur = \Carbon\Carbon::parse($this->previewFrom);
+            $end = \Carbon\Carbon::parse($this->previewTo);
+            while ($cur->lte($end)) {
+                $previewDates[] = $cur->toDateString();
+                $cur->addDay();
+            }
+        }
+
         return view('pages.nursing.nurse-schedule', [
-            'nurses'   => $nurses,
-            'schedule' => $this->schedule,
+            'nurses'       => $nurses,
+            'schedule'     => $this->schedule,
+            'previewData'  => $this->previewData,
+            'previewDates' => $previewDates,
+            'previewFrom'  => $this->previewFrom,
+            'previewTo'    => $this->previewTo,
         ])->layout('layouts.app');
     }
 }
