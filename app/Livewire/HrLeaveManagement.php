@@ -124,11 +124,15 @@ class HrLeaveManagement extends Component
 
         $leave = Leave::findOrFail($this->selectedLeaveId);
 
-        $leave->update([
-            'hr_status' => 'rejected',
-            'rejection_reason' => $this->hrRemarks,
-            'remarks' => $this->hrRemarks,
-        ]);
+        DB::transaction(function () use ($leave) {
+            $leave->update([
+                'hr_status' => 'rejected',
+                'rejection_reason' => $this->hrRemarks,
+                'remarks' => $this->hrRemarks,
+            ]);
+
+            $this->restoreConsumed($leave->user_id, $leave->leave_type, (float) $leave->total_days);
+        });
 
         $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
         $staffNotified = $this->notifyEmployee($fresh);

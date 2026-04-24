@@ -455,14 +455,23 @@ class DHead extends Component
             return;
         }
 
-        $this->selectedLeave->update([
-            'dept_head_status' => $status,
-            'dept_head_remarks' => $this->remarks,
-            'dept_head_id' => Auth::id(),
-            'dept_head_approved_at' => now(),
-        ]);
+        $leave = $this->selectedLeave;
 
-        $fresh = $this->selectedLeave->fresh(['user.employmentDetail.department']);
+        DB::transaction(function () use ($leave, $status) {
+            if ($status === 'rejected') {
+                $lt = LeaveType::resolve($leave->leave_type);
+                $this->adjustConsumed($leave->user_id, $lt, (float) $leave->total_days, 'decrement');
+            }
+
+            $leave->update([
+                'dept_head_status' => $status,
+                'dept_head_remarks' => $this->remarks,
+                'dept_head_id' => Auth::id(),
+                'dept_head_approved_at' => now(),
+            ]);
+        });
+
+        $fresh = $leave->fresh(['user.employmentDetail.department']);
 
         // Always notify the employee of the dept head's decision
         $this->notifyStaff($fresh);
