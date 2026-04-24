@@ -24,13 +24,13 @@ return new class extends Migration
         // Migrate existing payroll_and_leaves data into the new normalised table.
         // Maps payroll column prefix → LeaveType code.
         $keyToCode = [
-            'vl'  => 'VL',
-            'sl'  => 'SL',
-            'bl'  => 'BL',
+            'vl' => 'VL',
+            'sl' => 'SL',
+            'bl' => 'BL',
             'spl' => 'SPL',
-            'el'  => 'EL',
-            'ml'  => 'ML',
-            'pl'  => 'PL',
+            'el' => 'EL',
+            'ml' => 'ML',
+            'pl' => 'PL',
             'syl' => 'SYL',
             'cal' => 'CAL',
             'stl' => 'STL',
@@ -57,16 +57,16 @@ return new class extends Migration
                         continue;
                     }
 
-                    $total    = (float) ($row->{$key.'_total'}    ?? 0);
+                    $total = (float) ($row->{$key.'_total'} ?? 0);
                     $consumed = (float) ($row->{$key.'_consumed'} ?? 0);
 
                     $inserts[] = [
-                        'user_id'       => $row->user_id,
+                        'user_id' => $row->user_id,
                         'leave_type_id' => $typeId,
-                        'total'         => $total,
-                        'consumed'      => $consumed,
-                        'created_at'    => $now,
-                        'updated_at'    => $now,
+                        'total' => $total,
+                        'consumed' => $consumed,
+                        'created_at' => $now,
+                        'updated_at' => $now,
                     ];
                 }
 
