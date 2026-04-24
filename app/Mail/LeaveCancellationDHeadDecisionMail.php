@@ -14,7 +14,6 @@ class LeaveCancellationDHeadDecisionMail extends Mailable
     use Queueable, SerializesModels;
 
     /**
-     * @param  Leave   $leave
      * @param  string  $decision  'approved' | 'rejected'
      */
     public function __construct(
@@ -38,7 +37,7 @@ class LeaveCancellationDHeadDecisionMail extends Mailable
         return new Content(
             view: 'emails.leave-cancellation-dhead-decision',
             with: [
-                'leave'    => $this->leave,
+                'leave' => $this->leave,
                 'decision' => $this->decision,
                 'portalUrl' => route('users.leaveform'),
             ],

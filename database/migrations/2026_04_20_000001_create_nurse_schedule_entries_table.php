@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Prevent duplicate assignments for the same employee on same date/section/slot/period
-            $table->unique(['schedule_date','section','slot','period','employee_id'], 'unique_emp_slot');
+            $table->unique(['schedule_date', 'section', 'slot', 'period', 'employee_id'], 'unique_emp_slot');
 
             $table->index('schedule_date');
         });

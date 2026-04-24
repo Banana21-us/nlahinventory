@@ -18,7 +18,7 @@ return [
     ],
 
     'ollama' => [
-        'host'  => env('OLLAMA_HOST', 'http://localhost:11434'),
+        'host' => env('OLLAMA_HOST', 'http://localhost:11434'),
         'model' => env('OLLAMA_MODEL', 'kimi-k2.5:cloud'),
     ],
 

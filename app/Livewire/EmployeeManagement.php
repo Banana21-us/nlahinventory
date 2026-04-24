@@ -323,16 +323,16 @@ class EmployeeManagement extends Component
         $payroll = PayrollAndLeave::where('employee_id', $employee->id)->first()
             ?? ($employee->user_id ? PayrollAndLeave::where('user_id', $employee->user_id)->first() : null);
         if ($payroll) {
-            $this->salary_rate        = $payroll->salary_rate;
-            $this->daily_rate         = $payroll->daily_rate;
-            $this->monthly_rate       = $payroll->monthly_rate;
-            $this->cola               = $payroll->cola;
-            $this->grocery_allowance  = $payroll->grocery_allowance;
-            $this->night_diff_factor  = $payroll->night_diff_factor;
-            $this->min_scale          = $payroll->min_scale;
-            $this->max_scale          = $payroll->max_scale;
-            $this->wage_factor        = $payroll->wage_factor;
-            $this->probi_rate         = $payroll->probi_rate;
+            $this->salary_rate = $payroll->salary_rate;
+            $this->daily_rate = $payroll->daily_rate;
+            $this->monthly_rate = $payroll->monthly_rate;
+            $this->cola = $payroll->cola;
+            $this->grocery_allowance = $payroll->grocery_allowance;
+            $this->night_diff_factor = $payroll->night_diff_factor;
+            $this->min_scale = $payroll->min_scale;
+            $this->max_scale = $payroll->max_scale;
+            $this->wage_factor = $payroll->wage_factor;
+            $this->probi_rate = $payroll->probi_rate;
         }
 
         // Load leave balances from the normalised leave_balances table.
@@ -342,19 +342,19 @@ class EmployeeManagement extends Component
                 ->get()
                 ->keyBy(fn ($b) => $b->leaveType?->code ?? '');
 
-            $this->vl_total    = $balances['VL']?->total    ?? 0;
+            $this->vl_total = $balances['VL']?->total ?? 0;
             $this->vl_consumed = $balances['VL']?->consumed ?? 0;
-            $this->sl_total    = $balances['SL']?->total    ?? 0;
+            $this->sl_total = $balances['SL']?->total ?? 0;
             $this->sl_consumed = $balances['SL']?->consumed ?? 0;
-            $this->bl_total    = $balances['BL']?->total    ?? 0;
+            $this->bl_total = $balances['BL']?->total ?? 0;
             $this->bl_consumed = $balances['BL']?->consumed ?? 0;
-            $this->spl_total   = $balances['SPL']?->total   ?? 0;
+            $this->spl_total = $balances['SPL']?->total ?? 0;
             $this->spl_consumed = $balances['SPL']?->consumed ?? 0;
-            $this->syl_total   = $balances['SYL']?->total   ?? 0;
+            $this->syl_total = $balances['SYL']?->total ?? 0;
             $this->syl_consumed = $balances['SYL']?->consumed ?? 0;
-            $this->ml_total    = $balances['ML']?->total    ?? 0;
+            $this->ml_total = $balances['ML']?->total ?? 0;
             $this->ml_consumed = $balances['ML']?->consumed ?? 0;
-            $this->pl_total    = $balances['PL']?->total    ?? 0;
+            $this->pl_total = $balances['PL']?->total ?? 0;
             $this->pl_consumed = $balances['PL']?->consumed ?? 0;
         }
 
@@ -388,11 +388,11 @@ class EmployeeManagement extends Component
     private function computeRates(): void
     {
         $pct = (float) ($this->salary_rate ?? 0);   // e.g. 47 for 47%
-        $wf  = (float) ($this->wage_factor ?? 0);   // e.g. 30000
+        $wf = (float) ($this->wage_factor ?? 0);   // e.g. 30000
 
         if ($pct > 0 && $wf > 0) {
             $this->monthly_rate = round(($pct / 100) * $wf, 2);          // 47% × 30,000 = 14,100
-            $this->daily_rate   = round($this->monthly_rate * 12 / 262, 2); // 14,100 × 12 / 262 = 645.80
+            $this->daily_rate = round($this->monthly_rate * 12 / 262, 2); // 14,100 × 12 / 262 = 645.80
         }
     }
 
@@ -425,28 +425,28 @@ class EmployeeManagement extends Component
         PayrollAndLeave::updateOrCreate(
             ['employee_id' => $employeeId],
             array_filter(['user_id' => $userId], fn ($v) => $v !== null) + [
-                'salary_rate'        => $this->salary_rate       ?: 0,
-                'daily_rate'         => $this->daily_rate        ?: 0,
-                'monthly_rate'       => $this->monthly_rate      ?: 0,
-                'cola'               => $this->cola              ?: 0,
-                'grocery_allowance'  => $this->grocery_allowance ?: 0,
-                'night_diff_factor'  => $this->night_diff_factor ?: 1.10,
-                'min_scale'          => $this->min_scale         ?: 0,
-                'max_scale'          => $this->max_scale         ?: 0,
-                'wage_factor'        => $this->wage_factor       ?: 1.00,
-                'probi_rate'         => $this->probi_rate        ?: 1.00,
+                'salary_rate' => $this->salary_rate ?: 0,
+                'daily_rate' => $this->daily_rate ?: 0,
+                'monthly_rate' => $this->monthly_rate ?: 0,
+                'cola' => $this->cola ?: 0,
+                'grocery_allowance' => $this->grocery_allowance ?: 0,
+                'night_diff_factor' => $this->night_diff_factor ?: 1.10,
+                'min_scale' => $this->min_scale ?: 0,
+                'max_scale' => $this->max_scale ?: 0,
+                'wage_factor' => $this->wage_factor ?: 1.00,
+                'probi_rate' => $this->probi_rate ?: 1.00,
             ]
         );
 
         // Save leave balances to the normalised table.
         if ($userId) {
-            $this->upsertLeaveBalance($userId, 'VL',  $this->vl_total,  $this->vl_consumed);
-            $this->upsertLeaveBalance($userId, 'SL',  $this->sl_total,  $this->sl_consumed);
-            $this->upsertLeaveBalance($userId, 'BL',  $this->bl_total,  $this->bl_consumed);
+            $this->upsertLeaveBalance($userId, 'VL', $this->vl_total, $this->vl_consumed);
+            $this->upsertLeaveBalance($userId, 'SL', $this->sl_total, $this->sl_consumed);
+            $this->upsertLeaveBalance($userId, 'BL', $this->bl_total, $this->bl_consumed);
             $this->upsertLeaveBalance($userId, 'SPL', $this->spl_total, $this->spl_consumed);
             $this->upsertLeaveBalance($userId, 'SYL', $this->syl_total, $this->syl_consumed);
-            $this->upsertLeaveBalance($userId, 'ML',  $this->ml_total,  $this->ml_consumed);
-            $this->upsertLeaveBalance($userId, 'PL',  $this->pl_total,  $this->pl_consumed);
+            $this->upsertLeaveBalance($userId, 'ML', $this->ml_total, $this->ml_consumed);
+            $this->upsertLeaveBalance($userId, 'PL', $this->pl_total, $this->pl_consumed);
         }
     }
 

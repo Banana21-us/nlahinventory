@@ -133,7 +133,6 @@
 
             @php
                 $hrRoutes = ['HR.hrdashboard','HR.hr-leave-management','HR.userlist','HR.employees','HR.departments','HR.positions','HR.access-keys','HR.attendance','HR.holidays','HR.leave-types','HR.applications-management'];
-                $assetsRoutes = ['Assetsmanagement.assets','Assetsmanagement.transfer','Assetsmanagement.item-entry','Assetsmanagement.transaction-records'];
                 $payrollRoutes = ['HR.attendance','HR.payroll-compliance'];
                 $maintenanceRoutes = ['Maintenance.dashboard','Maintenance.checklist.check','Maintenance.checklist.verify'];
             @endphp
@@ -230,42 +229,6 @@
                     :current="request()->routeIs('HR.applications-management')"
                     wire:navigate="wire:navigate">
                     {{ __('Applications') }}
-                </flux:sidebar.item>
-            </flux:sidebar.group>
-            {{-- ASSETS INVENTORY KUNO --}}
-            <flux:sidebar.group
-                class="grid"
-                icon="queue-list"
-                expandable="expandable"
-                heading="Assets Inventory"
-                :expanded="request()->routeIs($assetsRoutes)">
-                <flux:sidebar.item
-                    icon="square-3-stack-3d"
-                    :href="route('Assetsmanagement.assets')"
-                    :current="request()->routeIs('Assetsmanagement.assets')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Assets') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item
-                    icon="calendar-days"
-                    :href="route('Assetsmanagement.transfer')"
-                    :current="request()->routeIs('Assetsmanagement.transfer')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Transfer') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item
-                    icon="clipboard-document-list"
-                    :href="route('Assetsmanagement.item-entry')"
-                    :current="request()->routeIs('Assetsmanagement.item-entry')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Item Entry') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item
-                    icon="document-text"
-                    :href="route('Assetsmanagement.transaction-records')"
-                    :current="request()->routeIs('Assetsmanagement.transaction-records')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Transaction Records') }}
                 </flux:sidebar.item>
             </flux:sidebar.group>
 

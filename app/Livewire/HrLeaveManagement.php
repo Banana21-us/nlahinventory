@@ -102,7 +102,7 @@ class HrLeaveManagement extends Component
             'approved_by' => Auth::id(),
         ]);
 
-        $fresh        = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
+        $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
         $staffNotified = $this->notifyEmployee($fresh);
         $this->notifyDeptHead($fresh);
 
@@ -130,7 +130,7 @@ class HrLeaveManagement extends Component
             'remarks' => $this->hrRemarks,
         ]);
 
-        $fresh        = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
+        $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
         $staffNotified = $this->notifyEmployee($fresh);
         $this->notifyDeptHead($fresh);
 
@@ -262,8 +262,8 @@ class HrLeaveManagement extends Component
         } catch (\Exception $e) {
             Log::error('LeaveStatusUpdateMail failed', [
                 'leave_id' => $leave->id,
-                'email'    => $email,
-                'error'    => $e->getMessage(),
+                'email' => $email,
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -286,8 +286,8 @@ class HrLeaveManagement extends Component
         } catch (\Exception $e) {
             Log::error('LeaveHRResultMail failed', [
                 'leave_id' => $leave->id,
-                'email'    => $email,
-                'error'    => $e->getMessage(),
+                'email' => $email,
+                'error' => $e->getMessage(),
             ]);
 
             return false;

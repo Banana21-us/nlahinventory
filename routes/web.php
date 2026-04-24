@@ -116,6 +116,7 @@ Route::post('/email/resend', function (Request $request) {
 Route::middleware('can:access-hr-only')->group(function () {
     Route::get('/HR/employees/{employee}/salary-slip', function (\App\Models\Employee $employee) {
         $employee->load(['employmentDetail.department', 'payrollLeave']);
+
         return view('pdf.salary-slip', compact('employee'));
     })->name('HR.employees.salary-slip');
 
@@ -215,11 +216,6 @@ Route::middleware(['auth', 'can:access-dept-head'])->group(function () {
 // under dev
 Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
 Route::get('/waiting', fn () => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
-
-Route::get('/Assetsmanagement/assets', Assets::class)->name('Assetsmanagement.assets');
-Route::get('/Assetsmanagement/transfer', Transfer::class)->name('Assetsmanagement.transfer');
-Route::get('/Assetsmanagement/item-entry', AssetItemEntry::class)->name('Assetsmanagement.item-entry');
-Route::get('/Assetsmanagement/transaction-records', AssetTransactionRecords::class)->name('Assetsmanagement.transaction-records');
 
 Route::post('/nlah/chat', function (Request $request) {
     $messagesInput = $request->input('messages');

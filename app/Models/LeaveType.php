@@ -35,18 +35,18 @@ class LeaveType extends Model
     public function getPayrollKey(): ?string
     {
         return match ($this->code) {
-            'VL'             => 'vl',
+            'VL' => 'vl',
             'SL', 'SL_X', 'SL_M' => 'sl',
-            'BL'             => 'bl',
-            'SPL'            => 'spl',
-            'EL'             => 'el',
-            'ML'             => 'ml',
-            'PL'             => 'pl',
-            'SYL'            => 'syl',
-            'CAL'            => 'cal',
-            'STL'            => 'stl',
-            'MWL'            => 'mwl',
-            default          => null,
+            'BL' => 'bl',
+            'SPL' => 'spl',
+            'EL' => 'el',
+            'ML' => 'ml',
+            'PL' => 'pl',
+            'SYL' => 'syl',
+            'CAL' => 'cal',
+            'STL' => 'stl',
+            'MWL' => 'mwl',
+            default => null,
         };
     }
 
@@ -63,7 +63,7 @@ class LeaveType extends Model
     {
         return match ($this->code) {
             'SL_X', 'SL_M' => 'SL',
-            default         => $this->code,
+            default => $this->code,
         };
     }
 

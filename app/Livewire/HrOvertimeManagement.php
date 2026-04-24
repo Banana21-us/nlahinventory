@@ -47,7 +47,7 @@ class HrOvertimeManagement extends Component
     {
         if ($this->start_datetime && $this->end_datetime) {
             $start = \Carbon\Carbon::parse($this->start_datetime);
-            $end   = \Carbon\Carbon::parse($this->end_datetime);
+            $end = \Carbon\Carbon::parse($this->end_datetime);
             $this->hours = $end->gt($start) ? round($start->diffInMinutes($end) / 60, 2) : null;
         }
     }

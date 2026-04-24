@@ -76,29 +76,53 @@ class HrApplicationsManagement extends Component
 
     // ── Auto-compute (edit modals) ────────────────────────────
 
-    public function updatedOtStartDatetime(): void { $this->computeOtHours(); }
+    public function updatedOtStartDatetime(): void
+    {
+        $this->computeOtHours();
+    }
 
-    public function updatedOtEndDatetime(): void { $this->computeOtHours(); }
+    public function updatedOtEndDatetime(): void
+    {
+        $this->computeOtHours();
+    }
 
-    public function updatedPoStartDatetime(): void { $this->computePoHours(); }
+    public function updatedPoStartDatetime(): void
+    {
+        $this->computePoHours();
+    }
 
-    public function updatedPoEndDatetime(): void { $this->computePoHours(); }
+    public function updatedPoEndDatetime(): void
+    {
+        $this->computePoHours();
+    }
 
     // ── Auto-compute (my forms) ───────────────────────────────
 
-    public function updatedMyOtStartDatetime(): void { $this->computeMyOtHours(); }
+    public function updatedMyOtStartDatetime(): void
+    {
+        $this->computeMyOtHours();
+    }
 
-    public function updatedMyOtEndDatetime(): void { $this->computeMyOtHours(); }
+    public function updatedMyOtEndDatetime(): void
+    {
+        $this->computeMyOtHours();
+    }
 
-    public function updatedMyPoStartDatetime(): void { $this->computeMyPoHours(); }
+    public function updatedMyPoStartDatetime(): void
+    {
+        $this->computeMyPoHours();
+    }
 
-    public function updatedMyPoEndDatetime(): void { $this->computeMyPoHours(); }
+    public function updatedMyPoEndDatetime(): void
+    {
+        $this->computeMyPoHours();
+    }
 
     private function computeOtHours(): void
     {
         if ($this->ot_start_datetime && $this->ot_end_datetime) {
             $start = \Carbon\Carbon::parse($this->ot_start_datetime);
-            $end   = \Carbon\Carbon::parse($this->ot_end_datetime);
+            $end = \Carbon\Carbon::parse($this->ot_end_datetime);
             $this->ot_hours = $end->gt($start) ? round($start->diffInMinutes($end) / 60, 2) : null;
         }
     }
@@ -107,7 +131,7 @@ class HrApplicationsManagement extends Component
     {
         if ($this->po_start_datetime && $this->po_end_datetime) {
             $start = \Carbon\Carbon::parse($this->po_start_datetime);
-            $end   = \Carbon\Carbon::parse($this->po_end_datetime);
+            $end = \Carbon\Carbon::parse($this->po_end_datetime);
             $this->po_hours = $end->gt($start) ? round($start->diffInMinutes($end) / 60, 2) : null;
         }
     }
@@ -116,7 +140,7 @@ class HrApplicationsManagement extends Component
     {
         if ($this->myOt_start_datetime && $this->myOt_end_datetime) {
             $start = \Carbon\Carbon::parse($this->myOt_start_datetime);
-            $end   = \Carbon\Carbon::parse($this->myOt_end_datetime);
+            $end = \Carbon\Carbon::parse($this->myOt_end_datetime);
             $this->myOt_hours = $end->gt($start) ? round($start->diffInMinutes($end) / 60, 2) : null;
         }
     }
@@ -125,7 +149,7 @@ class HrApplicationsManagement extends Component
     {
         if ($this->myPo_start_datetime && $this->myPo_end_datetime) {
             $start = \Carbon\Carbon::parse($this->myPo_start_datetime);
-            $end   = \Carbon\Carbon::parse($this->myPo_end_datetime);
+            $end = \Carbon\Carbon::parse($this->myPo_end_datetime);
             $this->myPo_hours = $end->gt($start) ? round($start->diffInMinutes($end) / 60, 2) : null;
         }
     }

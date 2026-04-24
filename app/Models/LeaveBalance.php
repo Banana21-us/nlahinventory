@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class LeaveBalance extends Model
 {
     use SoftDeletes;
+
     protected $fillable = [
         'user_id',
         'leave_type_id',
@@ -17,7 +18,7 @@ class LeaveBalance extends Model
     ];
 
     protected $casts = [
-        'total'    => 'decimal:2',
+        'total' => 'decimal:2',
         'consumed' => 'decimal:2',
     ];
 

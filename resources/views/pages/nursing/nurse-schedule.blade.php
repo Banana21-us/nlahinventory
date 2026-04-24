@@ -36,7 +36,7 @@
     .section-title  { font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
 
     /* ── Shift grid ── */
-    .shift-grid { display:grid;grid-template-columns:80px 1fr 1fr; }
+    .shift-grid { display:grid;grid-template-columns:80px 1fr 1fr 1fr; }
     .shift-label { font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b;padding:10px 14px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;display:flex;align-items:center; }
     .shift-cell  { padding:8px 12px;border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;min-height:54px; }
     .shift-cell:last-child { border-right:none; }
@@ -87,7 +87,7 @@
 
     /* ── Responsive ── */
     @media (max-width: 639px) {
-        .shift-grid { grid-template-columns: 48px 1fr 1fr; }
+        .shift-grid { grid-template-columns: 48px 1fr 1fr 1fr; }
         .shift-label { font-size:.6rem;padding:8px 6px;letter-spacing:0; }
         .shift-cell  { padding:5px 6px;min-height:40px; }
         .shift-cell-header { font-size:.6rem;padding:5px 6px; }
@@ -243,7 +243,7 @@
 ═══════════════════════════════════════════ --}}
 <div class="space-y-5">
 
-    {{-- ── WARD ── --}}
+    {{-- ── DELIVERY ROOM (AM, PM, NOC rows) ── --}}
     <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
         <div class="section-header brand-bg-primary-light">
             <div class="p-1.5 rounded brand-bg-primary">
@@ -252,38 +252,35 @@
                           d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                 </svg>
             </div>
-            <span class="section-title brand-text-primary">Ward</span>
+            <span class="section-title brand-text-primary">Delivery Room</span>
         </div>
-        <div class="shift-grid">
+        <div class="shift-grid" style="grid-template-columns:80px 1fr;">
             <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
-            <div class="shift-cell-header text-center border-r border-gray-200">AM</div>
-            <div class="shift-cell-header text-center">PM</div>
-            @foreach(['1st','2nd','3rd','4th','5th'] as $slot)
-                <div class="shift-label">{{ $slot }}</div>
-                @foreach(['am','pm'] as $period)
-                    <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
-                        @foreach($schedule['ward'][$slot][$period] ?? [] as $entry)
-                            <span class="nurse-pill" wire:key="pill-ward-{{ $slot }}-{{ $period }}-{{ $entry['id'] }}">
-                                <span class="np-avatar">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
-                                <span>{{ $entry['name'] }}</span>
-                                <button class="np-remove" data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
-                            </span>
-                        @endforeach
-                        <button class="add-nurse-btn"
-                            style="{{ !empty($schedule['ward'][$slot][$period] ?? []) ? 'display:none;' : '' }}"
-                            data-section="ward" data-slot="{{ $slot }}" data-period="{{ $period }}">
+            <div class="shift-cell-header text-center">Nurse</div>
+            @foreach(['am','pm','noc'] as $shift)
+                <div class="shift-label">{{ strtoupper($shift) }}</div>
+                <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
+                    @php $entry = $schedule['ward'][$shift] ?? null; @endphp
+                    @if($entry)
+                        <span class="nurse-pill" wire:key="pill-ward-{{ $shift }}-{{ $entry['id'] }}">
+                            <span class="np-avatar">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
+                            <span>{{ $entry['name'] }}</span>
+                            <button class="np-remove" data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
+                        </span>
+                    @else
+                        <button class="add-nurse-btn" data-section="ward" data-period="{{ $shift }}">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                             </svg>
                             Add
                         </button>
-                    </div>
-                @endforeach
+                    @endif
+                </div>
             @endforeach
         </div>
     </div>
 
-    {{-- ── DR/OR ONCALL / RELIEVER / AMBULANCE ── --}}
+    {{-- ── OPERATING ROOM (AM, PM, NOC rows - 2 nurses per shift) ── --}}
     <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
         <div class="section-header brand-bg-teal-light">
             <div class="p-1.5 rounded brand-bg-teal">
@@ -291,40 +288,52 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
             </div>
-            <span class="section-title brand-text-teal">DR/OR Oncall / Reliever / Ambulance Nurse</span>
+            <span class="section-title brand-text-teal">Operating Room</span>
         </div>
-        <div class="shift-grid">
+        <div class="shift-grid" style="grid-template-columns:80px 1fr 1fr;">
             <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
-            <div class="shift-cell-header text-center border-r border-gray-200">AM</div>
-            <div class="shift-cell-header text-center">PM</div>
-            @foreach(['1st','2nd','3rd','4th','5th','OPD'] as $slot)
-                <div class="shift-label">{{ $slot }}</div>
-                @foreach(['am','pm'] as $period)
-                    <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
-                        @foreach($schedule['or'][$slot][$period] ?? [] as $entry)
-                            <span class="nurse-pill" wire:key="pill-or-{{ $slot }}-{{ $period }}-{{ $entry['id'] }}"
+            <div class="shift-cell-header text-center border-r border-gray-200">Nurse 1</div>
+            <div class="shift-cell-header text-center">Nurse 2</div>
+            @foreach(['am','pm','noc'] as $shift)
+                <div class="shift-label">{{ strtoupper($shift) }}</div>
+                @for($i = 1; $i <= 2; $i++)
+                    @php $slotLabel = $i === 1 ? '1st' : '2nd'; @endphp
+                    <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2{{ $i === 1 ? ' border-r border-gray-200' : '' }}">
+                        @php 
+                            $entries = $schedule['or'][$slotLabel] ?? [];
+                            $entry = null;
+                            foreach ($entries as $e) {
+                                if (isset($e['period']) && $e['period'] === $shift) {
+                                    $entry = $e;
+                                    break;
+                                }
+                            }
+                        @endphp
+                        @if($entry)
+                            <span class="nurse-pill" wire:key="pill-or-{{ $slotLabel }}-n{{ $i }}-{{ $entry['id'] }}"
                                 style="background:#e6f4f5;color:#027c8b;border-color:#a7d9dd;">
                                 <span class="np-avatar" style="background:#027c8b;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
                                 <span>{{ $entry['name'] }}</span>
                                 <button class="np-remove" style="background:#a7d9dd;color:#027c8b;"
                                     data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
                             </span>
-                        @endforeach
-                        <button class="add-nurse-btn"
-                            style="{{ !empty($schedule['or'][$slot][$period] ?? []) ? 'display:none;' : '' }}border-color:#6ee7b7;color:#027c8b;"
-                            data-section="or" data-slot="{{ $slot }}" data-period="{{ $period }}">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            Add
-                        </button>
+                        @else
+                            <button class="add-nurse-btn"
+                                style="border-color:#6ee7b7;color:#027c8b;"
+                                data-section="or" data-period="{{ $shift }}" data-slot="{{ $i === 1 ? '1st' : '2nd' }}">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Add
+                            </button>
+                        @endif
                     </div>
-                @endforeach
+                @endfor
             @endforeach
         </div>
     </div>
 
-    {{-- ── HEAD NURSE ── --}}
+    {{-- ── HEAD NURSE (Shift rows: 8-3, 3-11, IPCN) ── --}}
     <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
         <div class="section-header brand-bg-accent-light">
             <div class="p-1.5 rounded brand-bg-accent">
@@ -335,33 +344,32 @@
             </div>
             <span class="section-title brand-text-accent">Head Nurse</span>
         </div>
-        <div class="shift-grid">
+        <div class="shift-grid" style="grid-template-columns:80px 1fr;">
             <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
-            <div class="shift-cell-header text-center border-r border-gray-200">AM</div>
-            <div class="shift-cell-header text-center">PM</div>
-            @foreach(['8-3','3-11','IPCN'] as $slot)
-                <div class="shift-label">{{ $slot }}</div>
-                @foreach(['am','pm'] as $period)
-                    <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
-                        @foreach($schedule['hn'][$slot][$period] ?? [] as $entry)
-                            <span class="nurse-pill" wire:key="pill-hn-{{ $slot }}-{{ $period }}-{{ $entry['id'] }}"
-                                style="background:#fef8e7;color:#b45309;border-color:#fde68a;">
-                                <span class="np-avatar" style="background:#f0b626;color:#fff;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
-                                <span>{{ $entry['name'] }}</span>
-                                <button class="np-remove" style="background:#fde68a;color:#b45309;"
-                                    data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
-                            </span>
-                        @endforeach
+            <div class="shift-cell-header text-center">Nurse</div>
+            @foreach(['8-3','3-11','IPCN'] as $shift)
+                <div class="shift-label">{{ $shift }}</div>
+                <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
+                    @php $entry = $schedule['hn'][$shift] ?? null; @endphp
+                    @if($entry)
+                        <span class="nurse-pill" wire:key="pill-hn-{{ $shift }}-{{ $entry['id'] }}"
+                            style="background:#fef8e7;color:#b45309;border-color:#fde68a;">
+                            <span class="np-avatar" style="background:#f0b626;color:#fff;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
+                            <span>{{ $entry['name'] }}</span>
+                            <button class="np-remove" style="background:#fde68a;color:#b45309;"
+                                data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
+                        </span>
+                    @else
                         <button class="add-nurse-btn"
-                            style="{{ !empty($schedule['hn'][$slot][$period] ?? []) ? 'display:none;' : '' }}border-color:#fcd34d;color:#b45309;"
-                            data-section="hn" data-slot="{{ $slot }}" data-period="{{ $period }}">
+                            style="border-color:#fcd34d;color:#b45309;"
+                            data-section="hn" data-period="{{ $shift }}" data-slot="">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                             </svg>
                             Add
                         </button>
-                    </div>
-                @endforeach
+                    @endif
+                </div>
             @endforeach
         </div>
     </div>
@@ -403,10 +411,10 @@
                         <div>
                             <h3 class="text-base font-bold text-gray-900">Assign Nurse</h3>
                             <p class="text-xs text-gray-400 mt-0.5">
-                                <span x-text="$store.nurseModal.section.toUpperCase()"></span> ·
-                                <span x-text="$store.nurseModal.slot"></span> ·
-                                <span x-text="$store.nurseModal.period.toUpperCase()"></span> ·
-                                <span x-text="formattedSelectedDate()"></span>
+                                <span x-text="$store.nurseModal.section.toUpperCase()"></span>
+                                <span x-show="$store.nurseModal.slot"> · <span x-text="$store.nurseModal.slot.toUpperCase()"></span></span>
+                                · <span x-text="$store.nurseModal.period.toUpperCase()"></span>
+                                · <span x-text="formattedSelectedDate()"></span>
                             </p>
                         </div>
                     </div>
@@ -434,7 +442,7 @@
                 <div class="max-h-56 overflow-y-auto rounded-lg border border-gray-100">
                     <template x-for="nurse in $store.nurseModal.filteredNurses" :key="nurse.id">
                         <div class="nurse-option"
-                             @click="$wire.assignEmployee(nurse.id, $store.nurseModal.section, $store.nurseModal.slot, $store.nurseModal.period); $store.nurseModal.close()">
+                             @click="$wire.assignEmployee(nurse.id, $store.nurseModal.section, $store.nurseModal.period, $store.nurseModal.slot); $store.nurseModal.close()">
                             <div class="w-8 h-8 rounded-full brand-bg-primary flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
                                  x-text="nurse.name.charAt(0).toUpperCase()"></div>
                             <div>
@@ -454,9 +462,9 @@
                         <input type="text"
                             x-model="$store.nurseModal.customName"
                             placeholder="Enter name…"
-                            @keydown.enter="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.slot, $store.nurseModal.period, $store.nurseModal.customName); $store.nurseModal.close() }"
+                            @keydown.enter="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.period, $store.nurseModal.customName, $store.nurseModal.slot); $store.nurseModal.close() }"
                             class="brand-focus flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm"/>
-                        <button @click="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.slot, $store.nurseModal.period, $store.nurseModal.customName); $store.nurseModal.close() }"
+                        <button @click="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.period, $store.nurseModal.customName, $store.nurseModal.slot); $store.nurseModal.close() }"
                             class="brand-btn-primary text-xs font-bold px-4 py-1.5 rounded-md shadow">
                             Add
                         </button>
@@ -604,7 +612,7 @@
     </div>
     <div class="h-1" style="background-color:#f0b626;animation:shrink 2s linear forwards;"></div>
 </div>
-
+</div>
 
 {{-- ═══════════════════════════════════════════
      ALPINE.JS
@@ -620,8 +628,8 @@ document.addEventListener('alpine:init', () => {
         window.Alpine.store('nurseModal', {
             isOpen: false,
             section: '',
-            slot: '',
             period: '',
+            slot: '',
             search: '',
             customName: '',
             allNurses: @json($nurses),
@@ -635,10 +643,10 @@ document.addEventListener('alpine:init', () => {
                 );
             },
 
-            openFor(section, slot, period) {
+            openFor(section, period, slot = '') {
                 this.section = section;
-                this.slot = slot;
                 this.period = period;
+                this.slot = slot;
                 this.search = '';
                 this.customName = '';
                 this.isOpen = true;
@@ -648,6 +656,7 @@ document.addEventListener('alpine:init', () => {
                 this.isOpen = false;
                 this.search = '';
                 this.customName = '';
+                this.slot = '';
             },
         });
     }
@@ -824,15 +833,10 @@ function nurseSchedule(initialDate) {
 
             const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
             const sections = [
-                { key: 'ward', label: 'WARD' },
-                { key: 'or', label: 'DR/OR ONCALL / RELIEVER / AMBULANCE NURSE' },
-                { key: 'hn', label: 'HEAD NURSE' },
+                { key: 'ward', label: 'DELIVERY ROOM', shifts: ['am','pm','noc'], nursesPerShift: 1 },
+                { key: 'or', label: 'OPERATING ROOM', shifts: ['am','pm','noc'], nursesPerShift: 2 },
+                { key: 'hn', label: 'HEAD NURSE', shifts: ['8-3','3-11','IPCN'], nursesPerShift: 1 },
             ];
-            const slots = {
-                ward: ['1st','2nd','3rd','4th','5th'],
-                or: ['1st','2nd','3rd','4th','5th','OPD'],
-                hn: ['8-3','3-11','IPCN'],
-            };
 
             let html = `<div class="text-center pt-4 pb-2">
                 <p class="text-sm font-extrabold tracking-widest uppercase" style="color:#015581;">NURSES SCHEDULE</p>
@@ -863,18 +867,35 @@ function nurseSchedule(initialDate) {
 
             sections.forEach((sec, si) => {
                 html += `<tr class="xl-section-row"><td colspan="${colCount}">${sec.label}</td></tr>`;
-                ['am','pm'].forEach((period, pi) => {
-                    const periodLabel = period === 'am' ? 'AM' : 'PM';
-                    html += `<tr class="xl-period-row"><td colspan="${colCount}">${periodLabel}</td></tr>`;
-                    (slots[sec.key] || []).forEach(slot => {
-                        html += `<tr><td class="xl-shift-label" style="position:sticky;left:0;z-index:1;white-space:nowrap;">${slot}</td>`;
+                const numNurses = sec.nursesPerShift || 1;
+                sec.shifts.forEach(shift => {
+                    const shiftLabel = shift === 'am' ? 'AM' : (shift === 'pm' ? 'PM' : (shift === 'noc' ? 'NOC' : shift.toUpperCase()));
+                    
+                    if (sec.key === 'or') {
+                        // For OR, iterate through slots (1st, 2nd)
+                        for (let n = 1; n <= numNurses; n++) {
+                            const slotLabel = n === 1 ? '1st' : '2nd';
+                            const nurseLabel = `${shiftLabel} - Nurse ${n}`;
+                            html += `<tr><td class="xl-shift-label" style="position:sticky;left:0;z-index:1;white-space:nowrap;">${nurseLabel}</td>`;
+                            dateStrings.forEach(d => {
+                                const periodData = previewData[sec.key] ? previewData[sec.key][shift] : null;
+                                const slotData = periodData ? periodData[slotLabel] : null;
+                                const cellData = slotData ? slotData[d] || '' : '';
+                                html += `<td style="text-align:center;white-space:normal;word-wrap:break-word;word-break:break-word;font-size:.75rem;min-width:70px;">${cellData || ''}</td>`;
+                            });
+                            html += '</tr>';
+                        }
+                    } else {
+                        // For other sections (ward, hn)
+                        const nurseLabel = shiftLabel;
+                        html += `<tr><td class="xl-shift-label" style="position:sticky;left:0;z-index:1;white-space:nowrap;">${nurseLabel}</td>`;
                         dateStrings.forEach(d => {
-                            const cellData = (previewData[sec.key] && previewData[sec.key][slot] && previewData[sec.key][slot][period]) ? (previewData[sec.key][slot][period][d] || []) : [];
-                            const cellText = Array.isArray(cellData) ? cellData.join(', ') : '';
-                            html += `<td style="text-align:center;white-space:normal;word-wrap:break-word;word-break:break-word;font-size:.75rem;min-width:70px;">${cellText}</td>`;
+                            const periodData = previewData[sec.key] ? previewData[sec.key][shift] : null;
+                            const cellData = periodData ? periodData[d] || '' : '';
+                            html += `<td style="text-align:center;white-space:normal;word-wrap:break-word;word-break:break-word;font-size:.75rem;min-width:70px;">${cellData || ''}</td>`;
                         });
                         html += '</tr>';
-                    });
+                    }
                 });
                 if (si < sections.length - 1) {
                     html += `<tr><td colspan="${colCount}" style="padding:2px;background:#f9fafb;border:none;"></td></tr>`;
@@ -897,8 +918,8 @@ function nurseSchedule(initialDate) {
             if (addBtn) {
                 window.Alpine.store('nurseModal').openFor(
                     addBtn.dataset.section,
-                    addBtn.dataset.slot,
-                    addBtn.dataset.period
+                    addBtn.dataset.period,
+                    addBtn.dataset.slot || ''
                 );
             }
         },
@@ -906,4 +927,4 @@ function nurseSchedule(initialDate) {
 }
 </script>
 
-</div>
+

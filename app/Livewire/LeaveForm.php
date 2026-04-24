@@ -96,7 +96,7 @@ class LeaveForm extends Component
         }
 
         $birth = Carbon::parse($birthDate);
-        $ref   = $this->start_date ? Carbon::parse($this->start_date) : now();
+        $ref = $this->start_date ? Carbon::parse($this->start_date) : now();
 
         $regularizationDate = Auth::user()->employmentDetail?->regularization_date
             ? Carbon::parse(Auth::user()->employmentDetail->regularization_date)
@@ -117,7 +117,7 @@ class LeaveForm extends Component
 
         return [
             'start' => $windowStart,
-            'end'   => $windowEnd,
+            'end' => $windowEnd,
         ];
     }
 
@@ -141,19 +141,19 @@ class LeaveForm extends Component
     private function getAvailableLeaveTypes(): Collection
     {
         if (! $this->isEmployeeRegular()) {
-            return new Collection();
+            return new Collection;
         }
 
         $isSoloParent = $this->isSoloParent();
-        $emp          = $this->employeeRow();
-        $gender       = $emp?->gender ?? '';
-        $isFemale     = $gender === 'Female';
+        $emp = $this->employeeRow();
+        $gender = $emp?->gender ?? '';
+        $isFemale = $gender === 'Female';
         $isMarriedMale = $gender === 'Male' && strtolower($emp?->civil_status ?? '') === 'married';
 
         return LeaveType::where('is_active', true)
-            ->when(! $isSoloParent,   fn ($q) => $q->where('solo_parent_only', false))
-            ->when(! $isFemale,       fn ($q) => $q->where('code', '!=', 'ML'))
-            ->when(! $isMarriedMale,  fn ($q) => $q->where('code', '!=', 'PL'))
+            ->when(! $isSoloParent, fn ($q) => $q->where('solo_parent_only', false))
+            ->when(! $isFemale, fn ($q) => $q->where('code', '!=', 'ML'))
+            ->when(! $isMarriedMale, fn ($q) => $q->where('code', '!=', 'PL'))
             ->orderBy('label')
             ->get();
     }
@@ -217,7 +217,7 @@ class LeaveForm extends Component
         $this->validate();
 
         // Gender / marital status guards for ML and PL
-        $emp    = $this->employeeRow();
+        $emp = $this->employeeRow();
         $gender = $emp?->gender ?? '';
 
         if ($this->leave_type === 'ML' && $gender !== 'Female') {
@@ -242,9 +242,9 @@ class LeaveForm extends Component
         }
 
         if ($lt?->code === 'VL') {
-            $startYear  = Carbon::parse($this->start_date)->year;
+            $startYear = Carbon::parse($this->start_date)->year;
             $usedInYear = $this->getVlUsedInYear($startYear);
-            $remaining  = max(0, 20 - $usedInYear);
+            $remaining = max(0, 20 - $usedInYear);
 
             if ($this->total_days > $remaining) {
                 $this->addError('end_date', "You can only take {$remaining} more VL day(s) in {$startYear}. Unused days carry over to next year.");
@@ -483,9 +483,9 @@ class LeaveForm extends Component
         $isLWOP = $lt?->isLWOP() ?? false;
 
         $creditLabel = match (true) {
-            $isLWOP      => 'Leave Without Pay',
+            $isLWOP => 'Leave Without Pay',
             $payrollKey !== null => 'Available '.strtoupper($payrollKey).' Credits',
-            default      => 'No Credit Cap',
+            default => 'No Credit Cap',
         };
 
         $leaveTypeOptions = $this->getAvailableLeaveTypes()
@@ -519,12 +519,12 @@ class LeaveForm extends Component
         $blWindow = ($lt?->code === 'BL') ? $this->birthdayLeaveWindow() : null;
 
         // VL per-year cap: max 20 days per calendar year
-        $vlMaxEndDate        = null;
+        $vlMaxEndDate = null;
         $vlRemainingThisYear = null;
 
         if ($lt?->code === 'VL' && $this->start_date) {
-            $startYear           = Carbon::parse($this->start_date)->year;
-            $usedInYear          = $this->getVlUsedInYear($startYear);
+            $startYear = Carbon::parse($this->start_date)->year;
+            $usedInYear = $this->getVlUsedInYear($startYear);
             $vlRemainingThisYear = max(0, 20 - $usedInYear);
 
             if ($vlRemainingThisYear > 0) {
@@ -535,16 +535,16 @@ class LeaveForm extends Component
         }
 
         return view('pages.users.leaveform', [
-            'leaves'              => $leaves,
-            'creditLabel'         => $creditLabel,
-            'showCredits'         => $payrollKey !== null,
-            'leaveTypeOptions'    => $leaveTypeOptions,
-            'leaveTypeMap'        => $leaveTypeMap,
-            'isProbationary'      => $isProbationary,
-            'expectedRegDate'     => $expectedRegDate,
-            'daysLeft'            => $daysLeft,
-            'blWindow'            => $blWindow,
-            'vlMaxEndDate'        => $vlMaxEndDate,
+            'leaves' => $leaves,
+            'creditLabel' => $creditLabel,
+            'showCredits' => $payrollKey !== null,
+            'leaveTypeOptions' => $leaveTypeOptions,
+            'leaveTypeMap' => $leaveTypeMap,
+            'isProbationary' => $isProbationary,
+            'expectedRegDate' => $expectedRegDate,
+            'daysLeft' => $daysLeft,
+            'blWindow' => $blWindow,
+            'vlMaxEndDate' => $vlMaxEndDate,
             'vlRemainingThisYear' => $vlRemainingThisYear,
         ])->layout('layouts.app');
     }

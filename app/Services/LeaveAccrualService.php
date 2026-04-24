@@ -30,7 +30,7 @@ class LeaveAccrualService
     public function onRegularization(User $user): void
     {
         $employeeId = DB::table('employee')->where('user_id', $user->id)->value('id');
-        $detail     = $employeeId
+        $detail = $employeeId
             ? DB::table('employment_details')->where('employee_id', $employeeId)->first()
             : null;
 
@@ -52,14 +52,14 @@ class LeaveAccrualService
 
             if (! $payroll) {
                 $payroll = PayrollAndLeave::create([
-                    'employee_id'              => $employeeId,
-                    'user_id'                  => $user->id,
+                    'employee_id' => $employeeId,
+                    'user_id' => $user->id,
                     'initial_transition_grant' => 0,
-                    'years_accrued_count'      => 0,
+                    'years_accrued_count' => 0,
                 ]);
             } else {
                 $payroll->initial_transition_grant = 0;
-                $payroll->years_accrued_count      = 0;
+                $payroll->years_accrued_count = 0;
                 $payroll->save();
             }
 
@@ -123,8 +123,8 @@ class LeaveAccrualService
             // ── VL grant ──────────────────────────────────────────────────────
             if ($regDate) {
                 $currentYear = now()->year;
-                $yearDiff    = $currentYear - $regDate->year;
-                $vlGrant     = 0;
+                $yearDiff = $currentYear - $regDate->year;
+                $vlGrant = 0;
 
                 if ($yearDiff === 1) {
                     // First Jan 1 after regularization — prorate for the months
@@ -136,15 +136,15 @@ class LeaveAccrualService
                         : $regDate->month + 1;
 
                     $fullMonths = max(0, 12 - $firstFullMonth + 1);
-                    $vlGrant    = (int) floor($fullMonths * 10 / 12);
+                    $vlGrant = (int) floor($fullMonths * 10 / 12);
                 } elseif ($yearDiff >= 2) {
                     // Completed full years of regular service as of Jan 1.
                     $completedYears = (int) $regDate->diffInYears(Carbon::create($currentYear, 1, 1));
 
                     $vlGrant = match (true) {
                         $completedYears >= 15 => 20, // 15+ years
-                        $completedYears >= 7  => 15, // 7–14 years
-                        default               => 10, // 1–6 years
+                        $completedYears >= 7 => 15, // 7–14 years
+                        default => 10, // 1–6 years
                     };
                 }
                 // yearDiff === 0: regularized this year — no Jan 1 VL yet.
@@ -159,10 +159,10 @@ class LeaveAccrualService
                         )->increment('total', $vlGrant);
 
                         Log::info('LeaveAccrualService::processAnnualReset — VL granted', [
-                            'user_id'        => $user->id,
-                            'year'           => $currentYear,
-                            'grant'          => $vlGrant,
-                            'year_diff'      => $yearDiff,
+                            'user_id' => $user->id,
+                            'year' => $currentYear,
+                            'grant' => $vlGrant,
+                            'year_diff' => $yearDiff,
                             'completed_years' => $yearDiff >= 2
                                 ? (int) $regDate->diffInYears(Carbon::create($currentYear, 1, 1))
                                 : 0,
@@ -199,7 +199,7 @@ class LeaveAccrualService
 
         Log::info('LeaveAccrualService::processAnnualReset — completed', [
             'user_id' => $user->id,
-            'name'    => $user->name,
+            'name' => $user->name,
         ]);
     }
 
@@ -216,14 +216,14 @@ class LeaveAccrualService
     ): float {
         return match (true) {
             $holidayType === 'regular' && $didWork && ($isOvertime || $isRestDay) => 2.60,
-            $holidayType === 'regular' && $didWork                                => 2.00,
-            $holidayType === 'regular' && ! $didWork                              => 1.00,
-            $holidayType === 'special_non_working' && $didWork && $isOvertime     => 1.69,
-            $holidayType === 'special_non_working' && $didWork                    => 1.30,
-            $holidayType === 'special_non_working' && ! $didWork                  => 0.00,
-            $holidayType === 'special_working' && $didWork                        => 1.30,
-            $holidayType === 'special_working' && ! $didWork                      => 1.00,
-            default                                                               => 1.00,
+            $holidayType === 'regular' && $didWork => 2.00,
+            $holidayType === 'regular' && ! $didWork => 1.00,
+            $holidayType === 'special_non_working' && $didWork && $isOvertime => 1.69,
+            $holidayType === 'special_non_working' && $didWork => 1.30,
+            $holidayType === 'special_non_working' && ! $didWork => 0.00,
+            $holidayType === 'special_working' && $didWork => 1.30,
+            $holidayType === 'special_working' && ! $didWork => 1.00,
+            default => 1.00,
         };
     }
 }
