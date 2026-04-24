@@ -1,0 +1,1 @@
+credits-panel-<?php echo e($leave_type); ?><?php /**PATH C:\Users\JOHNPAUL\OneDrive\Documents\GitHub\nlahinventory\storage\framework\views/c00caceca9c7b146472417c11871692f.blade.php ENDPATH**/ ?>

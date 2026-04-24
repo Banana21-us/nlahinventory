@@ -3,187 +3,262 @@
 namespace App\Livewire;
 
 use App\Models\Asset;
-use App\Models\AssetLocation;
-use App\Models\ItemType;
-use Illuminate\Validation\Rule;
-use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithPagination;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 
 class Assets extends Component
 {
-    public bool $showForm = false;
+    use WithPagination, WithFileUploads;
 
-    public bool $isEditing = false;
+    // Form properties matching your assets table
+    public $asset_id;
+    public $asset_code;
+    public $name;
+    public $category;
+    public $brand;
+    public $model;
+    public $serial_number;
+    public $purchase_date;
+    public $purchase_cost;
+    public $status = 'active';
+    public $condition_status = 'good';
+    public $notes;
+    public $image;
+    public $existing_image;
+    
+    // UI state
+    public $showForm = false;
+    public $isEditing = false;
+    public $confirmingDeletion = false;
+    public $search = '';
+    public $showDetailsModal = false;
+    public $selectedAsset = null;
 
-    public bool $confirmingDeletion = false;
-
-    public ?int $editingId = null;
-
-    public ?int $deletingId = null;
-
-    public string $item_type_id = '';
-
-    public string $location_id = '';
-
-    public string $status = 'available';
-
-    public string $brand = '';
-
-    public ?string $purchase_date = null;
-
-    public string $sku = '';
-
-    public string $search = '';
-
-    protected function rules(): array
-    {
-        return [
-            'item_type_id' => 'required|exists:item_types,id',
-            'location_id' => 'required|exists:asset_locations,id',
-            'status' => 'required|in:available,assigned,maintenance,retired',
-            'brand' => 'nullable|string|max:255',
-            'purchase_date' => 'nullable|date',
-            'sku' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('assets', 'sku')->ignore($this->editingId),
-            ],
-        ];
-    }
-
-    protected $messages = [
-        'item_type_id.required' => 'Please select an item type.',
-        'item_type_id.exists' => 'Selected item type does not exist.',
-        'location_id.required' => 'Please select a location.',
-        'location_id.exists' => 'Selected location does not exist.',
-        'status.required' => 'Status is required.',
-        'sku.required' => 'SKU is required.',
-        'sku.unique' => 'This SKU already exists.',
+    protected $rules = [
+        'asset_code' => 'required|string|max:50',
+        'name' => 'required|string|max:255',
+        'category' => 'nullable|string|max:100',
+        'brand' => 'nullable|string|max:100',
+        'model' => 'nullable|string|max:100',
+        'serial_number' => 'nullable|string|max:100',
+        'purchase_date' => 'nullable|date',
+        'purchase_cost' => 'nullable|numeric|min:0',
+        'status' => 'required|in:active,in_use,maintenance,retired',
+        'condition_status' => 'required|in:good,fair,poor',
+        'notes' => 'nullable|string',
+        'image' => 'nullable|image|max:2048',
     ];
 
-    #[Computed]
-    public function itemTypes()
+    protected $messages = [
+        'asset_code.required' => 'Asset code is required.',
+        'asset_code.unique' => 'This asset code already exists.',
+        'name.required' => 'Asset name is required.',
+        'serial_number.unique' => 'This serial number already exists.',
+        'image.image' => 'File must be an image.',
+        'image.max' => 'Image size must not exceed 2MB.',
+    ];
+
+    public function getAssetsProperty()
     {
-        return ItemType::orderBy('name')->get();
+        $query = Asset::query();
+        
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('asset_code', 'like', '%' . $this->search . '%')
+                    ->orWhere('name', 'like', '%' . $this->search . '%')
+                    ->orWhere('brand', 'like', '%' . $this->search . '%')
+                    ->orWhere('serial_number', 'like', '%' . $this->search . '%')
+                    ->orWhere('category', 'like', '%' . $this->search . '%');
+            });
+        }
+        
+        return $query->orderBy('created_at', 'desc')->paginate(10);
     }
 
-    #[Computed]
-    public function locations()
+    public function save()
     {
-        return AssetLocation::orderBy('name')->get();
-    }
-
-    #[Computed]
-    public function assets()
-    {
-        return Asset::with(['itemType', 'location'])
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('sku', 'like', '%'.$this->search.'%')
-                        ->orWhere('brand', 'like', '%'.$this->search.'%')
-                        ->orWhereHas('itemType', fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'))
-                        ->orWhereHas('location', fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'));
-                });
-            })
-            ->latest()
-            ->get();
-    }
-
-    public function save(): void
-    {
+        // Add unique validation rule for save
+        $this->rules['asset_code'] = 'required|string|max:50|unique:assets,asset_code';
+        $this->rules['serial_number'] = 'nullable|string|max:100|unique:assets,serial_number';
+        
         $this->validate();
+
+        $imagePath = null;
+        if ($this->image) {
+            $imageName = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $this->image->getClientOriginalName());
+            $this->image->storeAs('assets', $imageName, 'public');
+            $imagePath = 'assets/' . $imageName;
+        }
 
         Asset::create([
-            'item_type_id' => (int) $this->item_type_id,
-            'location_id' => (int) $this->location_id,
-            'status' => $this->status,
-            'brand' => $this->brand !== '' ? trim($this->brand) : null,
+            'asset_code' => $this->asset_code,
+            'name' => $this->name,
+            'category' => $this->category,
+            'department_id' => null,
+            'location_id' => null,
+            'brand' => $this->brand,
+            'model' => $this->model,
+            'serial_number' => $this->serial_number,
             'purchase_date' => $this->purchase_date,
-            'sku' => trim($this->sku),
+            'purchase_cost' => $this->purchase_cost,
+            'status' => $this->status,
+            'condition_status' => $this->condition_status,
+            'notes' => $this->notes,
+            'image' => $imagePath,
         ]);
 
-        session()->flash('message', "Asset '{$this->sku}' has been added.");
-        $this->cancelForm();
-    }
-
-    public function edit(int $id): void
-    {
-        $asset = Asset::findOrFail($id);
-
-        $this->editingId = $asset->id;
-        $this->item_type_id = (string) $asset->item_type_id;
-        $this->location_id = (string) $asset->location_id;
-        $this->status = $asset->status;
-        $this->brand = $asset->brand ?? '';
-        $this->purchase_date = $asset->purchase_date?->toDateString();
-        $this->sku = $asset->sku;
-        $this->showForm = false;
-        $this->isEditing = true;
-    }
-
-    public function update(): void
-    {
-        $this->validate();
-
-        $asset = Asset::findOrFail($this->editingId);
-        $asset->update([
-            'item_type_id' => (int) $this->item_type_id,
-            'location_id' => (int) $this->location_id,
-            'status' => $this->status,
-            'brand' => $this->brand !== '' ? trim($this->brand) : null,
-            'purchase_date' => $this->purchase_date,
-            'sku' => trim($this->sku),
-        ]);
-
-        session()->flash('message', "Asset '{$this->sku}' has been updated.");
-        $this->cancelEdit();
-    }
-
-    public function confirmDelete(int $id): void
-    {
-        $this->deletingId = $id;
-        $this->confirmingDeletion = true;
-    }
-
-    public function delete(): void
-    {
-        $asset = Asset::findOrFail($this->deletingId);
-        $sku = $asset->sku;
-
-        $asset->delete();
-
-        session()->flash('message', "Asset '{$sku}' has been removed.");
-        $this->cancelDelete();
-    }
-
-    public function cancelForm(): void
-    {
+        session()->flash('message', 'Asset created successfully!');
         $this->resetForm();
         $this->showForm = false;
-    }
-
-    public function cancelEdit(): void
-    {
-        $this->resetForm();
         $this->isEditing = false;
     }
 
-    public function cancelDelete(): void
+    public function openForm()
     {
-        $this->confirmingDeletion = false;
-        $this->deletingId = null;
+        $this->resetForm();
+        $this->isEditing = false;
+        $this->showForm = true;
     }
 
-    private function resetForm(): void
+    public function showDetails($id)
     {
-        $this->reset(['item_type_id', 'location_id', 'brand', 'purchase_date', 'sku', 'editingId']);
-        $this->status = 'available';
+        $this->selectedAsset = Asset::with(['department', 'location'])->findOrFail($id);
+        $this->showDetailsModal = true;
+    }
+
+    public function closeDetailsModal()
+    {
+        $this->showDetailsModal = false;
+        $this->selectedAsset = null;
+    }
+
+    public function edit($id)
+    {
+        $asset = Asset::findOrFail($id);
+        
+        $this->asset_id = $asset->id;
+        $this->asset_code = $asset->asset_code;
+        $this->name = $asset->name;
+        $this->category = $asset->category;
+        $this->brand = $asset->brand;
+        $this->model = $asset->model;
+        $this->serial_number = $asset->serial_number;
+        $this->purchase_date = $asset->purchase_date;
+        $this->purchase_cost = $asset->purchase_cost;
+        $this->status = $asset->status;
+        $this->condition_status = $asset->condition_status;
+        $this->notes = $asset->notes;
+        $this->existing_image = $asset->image;
+        $this->isEditing = true;
+        $this->showForm = true;
+    }
+
+    public function update()
+    {
+        $asset = Asset::findOrFail($this->asset_id);
+        
+        // Add unique validation with ignore for current ID
+        $this->rules['asset_code'] = 'required|string|max:50|unique:assets,asset_code,' . $this->asset_id;
+        $this->rules['serial_number'] = 'nullable|string|max:100|unique:assets,serial_number,' . $this->asset_id;
+        
+        $this->validate();
+
+        $imagePath = $this->existing_image;
+        if ($this->image) {
+            // Delete old image if exists
+            if ($asset->image && Storage::disk('public')->exists($asset->image)) {
+                Storage::disk('public')->delete($asset->image);
+            }
+            // Store new image
+            $imageName = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $this->image->getClientOriginalName());
+            $this->image->storeAs('assets', $imageName, 'public');
+            $imagePath = 'assets/' . $imageName;
+        }
+
+        $asset->update([
+            'asset_code' => $this->asset_code,
+            'name' => $this->name,
+            'category' => $this->category,
+            'brand' => $this->brand,
+            'model' => $this->model,
+            'serial_number' => $this->serial_number,
+            'purchase_date' => $this->purchase_date,
+            'purchase_cost' => $this->purchase_cost,
+            'status' => $this->status,
+            'condition_status' => $this->condition_status,
+            'notes' => $this->notes,
+            'image' => $imagePath,
+        ]);
+
+        session()->flash('message', 'Asset updated successfully!');
+        $this->resetForm();
+        $this->showForm = false;
+        $this->isEditing = false;
+    }
+
+    public function confirmDelete($id)
+    {
+        $this->asset_id = $id;
+        $this->confirmingDeletion = true;
+    }
+
+    public function delete()
+    {
+        $asset = Asset::findOrFail($this->asset_id);
+        
+        // Delete image if exists
+        if ($asset->image && Storage::disk('public')->exists($asset->image)) {
+            Storage::disk('public')->delete($asset->image);
+        }
+        
+        $asset->delete();
+        
+        session()->flash('message', 'Asset deleted successfully!');
+        $this->confirmingDeletion = false;
+        $this->asset_id = null;
+    }
+
+    public function cancelDelete()
+    {
+        $this->confirmingDeletion = false;
+        $this->asset_id = null;
+    }
+
+    public function cancelForm()
+    {
+        $this->resetForm();
+        $this->showForm = false;
+        $this->isEditing = false;
+    }
+
+    private function resetForm()
+    {
+        $this->reset([
+            'asset_id',
+            'asset_code',
+            'name',
+            'category',
+            'brand',
+            'model',
+            'serial_number',
+            'purchase_date',
+            'purchase_cost',
+            'status',
+            'condition_status',
+            'notes',
+            'image',
+            'existing_image',
+        ]);
+        $this->resetErrorBag();
         $this->resetValidation();
     }
 
     public function render()
     {
-        return view('pages.Assetsmanagement.assets')->layout('layouts.app');
+        return view('pages.Assetsmanagement.assets', [
+            'assets' => $this->assets,
+        ]);
     }
 }

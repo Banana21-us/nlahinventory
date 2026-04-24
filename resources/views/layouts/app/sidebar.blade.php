@@ -171,6 +171,22 @@
             </flux:sidebar.group>
             @endcan
 
+            <flux:sidebar.item
+                    icon="square-3-stack-3d"
+                    :href="route('Deptassetsmanagement.asset')"
+                    :current="request()->routeIs('Deptassetsmanagement.asset')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Assets') }}
+                </flux:sidebar.item>
+
+                <flux:sidebar.item
+                    icon="square-3-stack-3d"
+                    :href="route('RepairAssets.repair')"
+                    :current="request()->routeIs('RepairAssets.repair')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Repairable Assets') }}
+                </flux:sidebar.item>
+
             {{-- ASSETS INVENTORY KUNO --}}
             <flux:sidebar.group
                 class="grid"
@@ -182,28 +198,14 @@
                     :href="route('Assetsmanagement.assets')"
                     :current="request()->routeIs('Assetsmanagement.assets')"
                     wire:navigate="wire:navigate">
-                    {{ __('Assets') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item 
-                    icon="calendar-days"
-                    :href="route('Assetsmanagement.transfer')"
-                    :current="request()->routeIs('Assetsmanagement.transfer')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Transfer') }}
+                    {{ __('Add Asset') }}
                 </flux:sidebar.item>
                 <flux:sidebar.item
-                    icon="clipboard-document-list"
-                    :href="route('Assetsmanagement.item-entry')"
-                    :current="request()->routeIs('Assetsmanagement.item-entry')"
+                    icon="square-3-stack-3d"
+                    :href="route('Assetsmanagement.assign-asset')"
+                    :current="request()->routeIs('Assetsmanagement.assign-asset')"
                     wire:navigate="wire:navigate">
-                    {{ __('Item Entry') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item
-                    icon="document-text"
-                    :href="route('Assetsmanagement.transaction-records')"
-                    :current="request()->routeIs('Assetsmanagement.transaction-records')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Transaction Records') }}
+                    {{ __('Assign Asset') }}
                 </flux:sidebar.item>
             </flux:sidebar.group>
 

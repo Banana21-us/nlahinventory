@@ -43,7 +43,7 @@ class News extends Component
         'date' => 'required|date',
         'newsCategory' => 'required',
         'newsType' => 'required|in:News,Event',
-        'image' => 'nullable|image|max:2048', // Made nullable for editing
+        'image' => 'nullable|image|max:20048', // Made nullable for editing
     ];
 
     public function save()
@@ -114,7 +114,7 @@ class News extends Component
             'date' => 'required|date',
             'newsCategory' => 'required',
             'newsType' => 'required|in:News,Event',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|max:20048',
         ]);
 
         $updateData = [
