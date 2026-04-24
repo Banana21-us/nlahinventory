@@ -1,2 +1,0 @@
-
-<img src="<?php echo e(asset('1.png')); ?>" <?php echo e($attributes->merge(['class' => 'h-10 w-auto'])); ?> alt="NLAH Logo"><?php /**PATH C:\Users\JOHNPAUL\OneDrive\Documents\GitHub\nlahinventory\resources\views/components/app-logo-icon.blade.php ENDPATH**/ ?>

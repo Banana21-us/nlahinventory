@@ -1,1 +1,0 @@
-leave-<?php echo e($leave->id); ?><?php /**PATH C:\Users\JOHNPAUL\OneDrive\Documents\GitHub\nlahinventory\storage\framework\views/1ab8b8ea9be6daefea320632237a3862.blade.php ENDPATH**/ ?>

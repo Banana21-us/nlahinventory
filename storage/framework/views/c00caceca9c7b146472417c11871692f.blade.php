@@ -1,1 +1,0 @@
-credits-panel-{{ $leave_type }}

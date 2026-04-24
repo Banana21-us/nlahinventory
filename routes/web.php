@@ -15,6 +15,7 @@ use App\Livewire\DepartmentManagement;
 use App\Livewire\DHead;
 use App\Livewire\DispenseMedicine;
 use App\Livewire\EmployeeManagement;
+use App\Livewire\AssetItemEntry;
 use App\Livewire\AssetTransactionRecords;
 use App\Livewire\Home;
 use App\Livewire\HR;
@@ -24,14 +25,11 @@ use App\Livewire\LeaveForm;
 use App\Livewire\MaintenanceDashboard;
 use App\Livewire\Medicines;
 use App\Livewire\News;
-use App\Livewire\Repair;
 use App\Livewire\PatientDetail;
 use App\Livewire\PatientManager;
 use App\Livewire\PayrollCompliance;
 use App\Livewire\PositionManagement;
 use App\Livewire\Assets;
-use App\Livewire\DeptAsset;
-use App\Livewire\AssignAsset;
 use App\Livewire\Transfer;
 use App\Livewire\PointOfSale\POS;
 use App\Livewire\PointOfSale\PosCustomer;
@@ -192,11 +190,9 @@ Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
 Route::get('/LeaveForm/dhead', DHead::class)->middleware(['auth', 'verified'])->name('users.dhead-leaveform');
 Route::get('/waiting', fn () => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
 
-Route::get('/RepairAssets/repair', Repair::class)->name('RepairAssets.repair');
-Route::get('/Deptassetsmanagement/asset', DeptAsset::class)->name('Deptassetsmanagement.asset');
 Route::get('/Assetsmanagement/assets', Assets::class)->name('Assetsmanagement.assets');
-Route::get('/Assetsmanagement/assign-asset', AssignAsset::class)->name('Assetsmanagement.assign-asset');
 Route::get('/Assetsmanagement/transfer', Transfer::class)->name('Assetsmanagement.transfer');
+Route::get('/Assetsmanagement/item-entry', AssetItemEntry::class)->name('Assetsmanagement.item-entry');
 Route::get('/Assetsmanagement/transaction-records', AssetTransactionRecords::class)->name('Assetsmanagement.transaction-records');
 
 Route::post('/nlah/chat', function (Request $request) {

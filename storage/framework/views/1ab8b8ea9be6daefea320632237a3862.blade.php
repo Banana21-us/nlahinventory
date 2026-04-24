@@ -1,1 +1,0 @@
-leave-{{ $leave->id }}
