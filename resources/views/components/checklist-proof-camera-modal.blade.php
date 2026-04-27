@@ -115,15 +115,17 @@
                         </div>
 
                         <div class="flex items-center justify-center gap-4">
-                            {{-- Skip: Patient Present --}}
+                            {{-- Skip: Patient Present (hold to skip ALL remaining) --}}
                             <button type="button" id="proofSkipPatientBtn"
-                                class="flex flex-col items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-2 py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                class="relative flex flex-col items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-2 py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400 overflow-hidden select-none"
                                 style="min-width:58px;"
-                                aria-label="{{ __('Skip — patient present') }}">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                aria-label="{{ __('Skip — patient present. Hold to skip all.') }}">
+                                <svg class="h-5 w-5 relative z-10" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                 </svg>
-                                Patient
+                                <span class="relative z-10">Patient</span>
+                                <span id="proofSkipPatientHoldHint" class="relative z-10 text-[8px] text-amber-400 leading-none">hold=all</span>
+                                <span id="proofSkipPatientProgress" class="absolute inset-0 bg-amber-300/50 dark:bg-amber-500/30 origin-left scale-x-0 transition-none"></span>
                             </button>
 
                             {{-- Shutter --}}
@@ -288,7 +290,9 @@
             }
             if (synced > 0) {
                 const component = getChecklistComponent();
-                if (component) { try { component.call('$refresh'); } catch (e) {} }
+                // reloadSlots() re-runs loadExistingSlots() so slotProofs is updated
+                // and the proof preview button appears for newly-synced photos.
+                if (component) { try { component.call('reloadSlots'); } catch (e) {} }
             }
         } finally {
             isFlushing = false;
@@ -353,13 +357,14 @@
                     }
                 }
             } catch (e) {
-                if (!navigator.onLine) {
-                    await idbSavePending(task);
-                    offlinePendingCount++;
-                    updateOfflineBadge();
-                } else {
-                    console.error('Background proof save failed:', e);
-                }
+                // Always fall back to IDB on any Livewire call failure.
+                // navigator.onLine can be true even when the network is unreachable
+                // (e.g., WiFi with no internet), so checking it here causes silent
+                // photo loss.  Saving to IDB is always safe — flushFromIDB will
+                // retry when connectivity is genuinely restored.
+                await idbSavePending(task);
+                offlinePendingCount++;
+                updateOfflineBadge();
             }
             pendingSaveCount = Math.max(0, pendingSaveCount - 1);
             updatePendingIndicator();
@@ -505,7 +510,11 @@
     };
 
     const getChecklistComponent = () => {
-        const root = modal?.closest('[wire\\:id]');
+        // Prefer the modal's own Livewire ancestor; fall back to any wire:id on
+        // the page so reloadSlots() works even if the modal was never opened
+        // (e.g., flush triggered by the 'online' event on page load).
+        const root = modal?.closest('[wire\\:id]')
+                  ?? document.querySelector('[wire\\:id]');
         return root ? window.Livewire?.find(root.getAttribute('wire:id')) : null;
     };
 
@@ -917,11 +926,75 @@
         }
     };
 
+    // ─── Skip-all handler: marks every remaining area as patient_present ────────
+    const handleSkipAll = (skipReason) => {
+        areaQueue = buildQueue();
+        const remaining = areaQueue.slice(currentIndex);
+        if (remaining.length === 0) return;
+
+        remaining.forEach((item) => {
+            const freq  = item.dataset.frequency;
+            const shift = freq === 'daily' ? activeShift : (freq === 'nightly' ? 'PM' : 'AM');
+            capturedMap[item.dataset.partId] = true;
+            if (freq === 'daily') {
+                if (activeShift === 'PM') item.dataset.hasPm = '1';
+                else item.dataset.hasAm = '1';
+            } else {
+                item.dataset.hasAm = '1';
+            }
+            enqueueSave({ partId: Number(item.dataset.partId), dayKey: String(item.dataset.dayKey), shift, imageData: null, comment: null, skipReason, periodType: String(item.dataset.frequency ?? 'daily'), selectedDate: parseDateLabel(item.dataset.dateLabel) ?? new Date().toISOString().split('T')[0] });
+        });
+
+        refreshAreaListUI();
+
+        // Show done state immediately
+        if (areaNameDisplay) areaNameDisplay.textContent = '✓ All areas marked!';
+        if (areaCounter) areaCounter.textContent = `${areaQueue.length}/${areaQueue.length}`;
+        captureOverlayBtn.classList.add('opacity-40', 'pointer-events-none');
+        if (cancelBtn) {
+            cancelBtn.textContent = 'Done';
+            cancelBtn.classList.remove('border-zinc-300','text-zinc-700','hover:bg-zinc-100','dark:border-zinc-700','dark:text-zinc-200','dark:hover:bg-zinc-800');
+            cancelBtn.classList.add('bg-emerald-600','text-white','hover:bg-emerald-700','border-emerald-600');
+        }
+    };
+
     // ─── Element-scoped bindings (safe to re-bind — these elements are replaced on navigate) ──
     document.getElementById('proofCaptureOverlayBtn').addEventListener('click', handleCapture);
     document.getElementById('proofCancelBtn').addEventListener('click', closeModal);
-    document.getElementById('proofSkipPatientBtn').addEventListener('click', () => handleSkip('patient_present'));
     document.getElementById('proofSkipGlovesBtn').addEventListener('click', () => handleSkip('gloves'));
+
+    // Patient button: tap = skip current, hold (600ms) = skip ALL remaining
+    (() => {
+        const btn      = document.getElementById('proofSkipPatientBtn');
+        const progress = document.getElementById('proofSkipPatientProgress');
+        const HOLD_MS  = 600;
+        let holdTimer  = null;
+        let holding    = false;
+
+        const startHold = () => {
+            holding = false;
+            progress.style.transition = `transform ${HOLD_MS}ms linear`;
+            progress.style.transform  = 'scaleX(1)';
+            holdTimer = setTimeout(() => {
+                holding = true;
+                progress.style.transition = 'none';
+                progress.style.transform  = 'scaleX(0)';
+                handleSkipAll('patient_present');
+            }, HOLD_MS);
+        };
+
+        const cancelHold = () => {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+            progress.style.transition = 'none';
+            progress.style.transform  = 'scaleX(0)';
+        };
+
+        btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startHold(); });
+        btn.addEventListener('pointerup',   () => { if (!holding) { cancelHold(); handleSkip('patient_present'); } holding = false; });
+        btn.addEventListener('pointercancel', cancelHold);
+        btn.addEventListener('pointerleave',  cancelHold);
+    })();
 
     // ─── Global listeners — guard against duplicate registration across wire:navigate ──────────
     // Each wire:navigate to this page re-executes this script. Without a guard, global

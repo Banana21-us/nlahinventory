@@ -20,7 +20,7 @@ class Employee extends Model
     ];
 
     protected $casts = [
-        'birth_date'     => 'date',
+        'birth_date' => 'date',
         'is_solo_parent' => 'boolean',
     ];
 
@@ -37,5 +37,10 @@ class Employee extends Model
     public function employmentDetail()
     {
         return $this->hasOne(EmploymentDetail::class, 'employee_id', 'id');
+    }
+
+    public function payrollLeave()
+    {
+        return $this->hasOne(PayrollAndLeave::class, 'employee_id', 'id');
     }
 }

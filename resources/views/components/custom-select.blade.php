@@ -28,7 +28,7 @@
 <div
     x-data="{
         open: false,
-        value: {{ $currentJson }},
+        value: $wire.entangle('{{ $wireProperty }}').live,
         options: {{ $optionsJson }},
         get label() {
             const found = this.options.find(o => o.value === this.value);
@@ -37,7 +37,6 @@
         select(val) {
             this.value = val;
             this.open = false;
-            $wire.set('{{ $wireProperty }}', val, true);
         }
     }"
     @click.outside="open = false"

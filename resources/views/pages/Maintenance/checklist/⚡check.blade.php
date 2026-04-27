@@ -388,6 +388,13 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
         $this->pendingProofShift = null;
     }
 
+    // Called from JS after offline IDB sync completes so slotProofs reflects the
+    // newly-saved records without requiring a full page reload.
+    public function reloadSlots(): void
+    {
+        $this->loadExistingSlots();
+    }
+
     private function storeProofImage(string $imageData, int $partId, string $dayKey, string $shift): ?string
     {
         if (! str_starts_with($imageData, 'data:image/')) {
@@ -606,7 +613,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 
     // ── Computed properties (NOT serialised into Livewire snapshot) ─────────
 
-    /** All locations valid for the current period type. */
+    /** All locations valid for the current period type, grouped by parent name. */
     #[Computed]
     public function locations(): array
     {
@@ -614,12 +621,24 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
             return [];
         }
         try {
-            return DB::table('location_area_parts as lap')
+            // Collect every location name that has area_parts for this period
+            $locationNames = DB::table('location_area_parts as lap')
                 ->join('locations as l', 'l.id', '=', 'lap.location_id')
                 ->where('lap.frequency', $this->periodType)
                 ->distinct()
-                ->orderBy('l.name')
-                ->get(['l.id as id', 'l.name as name', 'l.floor as floor'])
+                ->pluck('l.name');
+
+            // Strip " | sub-area" to get unique parent names
+            $parentNames = $locationNames->map(
+                fn ($n) => str_contains($n, ' | ') ? trim(explode(' | ', $n, 2)[0]) : $n
+            )->unique()->values();
+
+            // Return one row per parent (the parent location row itself, not sub-rows)
+            return DB::table('locations')
+                ->whereIn('name', $parentNames)
+                ->whereRaw("INSTR(name, ' | ') = 0")
+                ->orderBy('name')
+                ->get(['id', 'name', 'floor'])
                 ->map(fn ($loc) => [
                     'id'           => (int) $loc->id,
                     'name'         => $loc->name,
@@ -645,7 +664,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
             ->all();
     }
 
-    /** Area parts for the currently selected location and period. */
+    /** Area parts for the selected parent location and all its sub-locations (e.g. "X-ray Room | CR"). */
     #[Computed]
     public function areaParts(): array
     {
@@ -654,11 +673,33 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
             return [];
         }
         try {
+            $parentLoc = DB::table('locations')
+                ->where('id', $this->selectedLocationId)
+                ->first(['name', 'floor']);
+            if (! $parentLoc) {
+                return [];
+            }
+
+            // If we somehow landed on a sub-location row, use the true parent name
+            $parentName = str_contains($parentLoc->name, ' | ')
+                ? trim(explode(' | ', $parentLoc->name, 2)[0])
+                : $parentLoc->name;
+
+            // IDs of the parent row plus every "Parent | Sub" row
+            $locationIds = DB::table('locations')
+                ->where(function ($q) use ($parentName) {
+                    $q->where('name', $parentName)
+                      ->orWhere('name', 'like', $parentName . ' | %');
+                })
+                ->pluck('id');
+
             return DB::table('location_area_parts as lap')
                 ->join('area_parts as ap', 'ap.id', '=', 'lap.area_part_id')
                 ->join('locations as l', 'l.id', '=', 'lap.location_id')
                 ->where('lap.frequency', $this->periodType)
-                ->where('lap.location_id', $this->selectedLocationId)
+                ->whereIn('lap.location_id', $locationIds)
+                // Parent rows first, sub-areas second (alphabetically within each group)
+                ->orderByRaw("CASE WHEN INSTR(l.name, ' | ') = 0 THEN 0 ELSE 1 END")
                 ->orderBy('l.name')
                 ->orderBy('ap.name')
                 ->get([
@@ -671,11 +712,15 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                 ->map(fn ($part) => [
                     'id'               => (int) $part->location_area_part_id,
                     'name'             => $part->area_part_name,
+                    'display_name'     => $part->area_part_name,
                     'location'         => $part->location_name,
                     'location_id'      => (int) $part->location_id,
                     'location_floor'   => $part->location_floor,
                     'location_display' => trim($part->location_name . ($part->location_floor ? ' (' . $part->location_floor . ')' : '')),
-                    'display_name'     => $part->area_part_name,
+                    // null = parent's own parts; string = sub-area label shown as section header
+                    'sub_area'         => str_contains($part->location_name, ' | ')
+                        ? trim(explode(' | ', $part->location_name, 2)[1])
+                        : null,
                 ])
                 ->all();
         } catch (\Throwable) {
@@ -683,7 +728,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
         }
     }
 
-    /** Completion progress per location for the current period/date. */
+    /** Completion progress for each grid button (parent location + all its sub-locations). */
     #[Computed]
     public function locationProgress(): array
     {
@@ -692,13 +737,40 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
             return [];
         }
 
-        $locationIds = array_column($locs, 'id');
         $shiftsCount = in_array($this->periodType, ['daily', 'nightly'], true) ? 2 : 1;
         $progress    = [];
 
         try {
+            // Build parent name → parent id mapping from grid locations
+            $parentNameToId = [];
+            foreach ($locs as $loc) {
+                $parentNameToId[$loc['name']] = $loc['id'];
+            }
+
+            // Fetch every location row (parent + sub-locations like "X-ray Room | CR")
+            $allLocRows = DB::table('locations')
+                ->where(function ($q) use ($locs) {
+                    foreach ($locs as $loc) {
+                        $q->orWhere('name', $loc['name'])
+                          ->orWhere('name', 'like', $loc['name'] . ' | %');
+                    }
+                })
+                ->pluck('id', 'name'); // name => id
+
+            // Map each location_id (child or parent) → its parent's id
+            $childToParent = [];
+            foreach ($allLocRows as $name => $id) {
+                $pName = str_contains($name, ' | ') ? trim(explode(' | ', $name, 2)[0]) : $name;
+                $pId   = $parentNameToId[$pName] ?? null;
+                if ($pId !== null) {
+                    $childToParent[(int) $id] = (int) $pId;
+                }
+            }
+
+            $allIds = array_keys($childToParent);
+
             $totals = DB::table('location_area_parts')
-                ->whereIn('location_id', $locationIds)
+                ->whereIn('location_id', $allIds)
                 ->where('frequency', $this->periodType)
                 ->selectRaw('location_id, COUNT(*) as cnt')
                 ->groupBy('location_id')
@@ -706,7 +778,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 
             $doneQuery = DB::table('records as r')
                 ->join('location_area_parts as lap', 'lap.id', '=', 'r.location_area_part_id')
-                ->whereIn('lap.location_id', $locationIds)
+                ->whereIn('lap.location_id', $allIds)
                 ->where('r.period_type', $this->periodType)
                 ->where('r.status', 'YES')
                 ->whereNotNull('r.proof')
@@ -733,15 +805,20 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                 ->groupBy('lap.location_id')
                 ->pluck('cnt', 'location_id');
 
-            foreach ($locationIds as $locId) {
-                $total     = (int) ($totals[$locId] ?? 0) * $shiftsCount;
-                $doneCount = (int) ($done[$locId] ?? 0);
-                $pct       = $total > 0 ? min(100, (int) round(($doneCount / $total) * 100)) : 0;
-                $progress[$locId] = [
-                    'total' => $total,
-                    'done'  => min($doneCount, $total),
-                    'pct'   => $pct,
-                ];
+            // Initialise a bucket for each grid button
+            foreach ($locs as $loc) {
+                $progress[$loc['id']] = ['total' => 0, 'done' => 0, 'pct' => 0];
+            }
+
+            // Roll every child/parent count into the parent bucket
+            foreach ($childToParent as $childId => $parentId) {
+                $progress[$parentId]['total'] += (int) ($totals[$childId] ?? 0) * $shiftsCount;
+                $progress[$parentId]['done']  += (int) ($done[$childId] ?? 0);
+            }
+
+            foreach ($progress as &$p) {
+                $p['done'] = min($p['done'], $p['total']);
+                $p['pct']  = $p['total'] > 0 ? min(100, (int) round(($p['done'] / $p['total']) * 100)) : 0;
             }
         } catch (\Throwable) {
             // Leave progress empty; UI still works.
@@ -1154,7 +1231,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 <div wire:loading.delay style="display:none" class="checklist-progress-bar"></div>
 
 {{--
-    Offline banner — pure Alpine.js, no server needed.
+    Offline banner — pure Alpine.js, no server needed..
     Shows automatically when the device loses connectivity.
     Hides again when connectivity returns.
     Tells staff exactly what still works (camera) vs what doesn't (navigation).
@@ -1215,28 +1292,23 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     'prefill_location' => $selectedLocationId ? 1 : null,
                     'date' => $periodType === 'daily' ? $selectedDate : null,
                 ], fn ($value) => $value !== null && $value !== ''));
-                $periodUrl = route('Maintenance.checklist.check', array_filter([
-                    'period' => $periodType,
-                    'location' => $selectedLocationId,
-                    'location_name' => $selectedLocation,
-                    'prefill_location' => $selectedLocationId ? 1 : null,
-                    'date' => $periodType === 'daily' ? $selectedDate : null,
-                ], fn ($value) => $value !== null && $value !== ''));
+                $periodUrl = $checklistUrl;
+                $isDailyChecklistShown = $periodType === 'daily' && $showDailyChecklist;
             @endphp
             <div class="flex flex-col gap-3">
                 <div class="min-w-0">
                     <flux:breadcrumbs>
-                        @if ($periodType === 'daily' && $showDailyChecklist)
+                        @if ($isDailyChecklistShown)
                             <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $sectionLabel }}</flux:breadcrumbs.item>
                         @else
                             <flux:breadcrumbs.item href="{{ $checklistUrl }}" wire:navigate>{{ $sectionLabel }}</flux:breadcrumbs.item>
                         @endif
-                        @if ($periodType === 'daily' && $showDailyChecklist)
+                        @if ($isDailyChecklistShown)
                             <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodLabel }}</flux:breadcrumbs.item>
                         @else
                             <flux:breadcrumbs.item href="{{ $periodUrl }}" wire:navigate>{{ $periodLabel }}</flux:breadcrumbs.item>
                         @endif
-                        @if ($periodType === 'daily' && $showDailyChecklist)
+                        @if ($isDailyChecklistShown)
                             <flux:breadcrumbs.item href="#" wire:click.prevent="showDailyCalendar">{{ $periodContext }}</flux:breadcrumbs.item>
                         @else
                             <flux:breadcrumbs.item>{{ $periodContext }}</flux:breadcrumbs.item>
@@ -1250,6 +1322,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                             ? array_values(array_filter($locations, fn ($l) => $l['floor'] === $floorFilter))
                             : $locations;
                         $locationChunks = array_chunk($filteredLocations, 9);
+                        $locationChunkCount = count($locationChunks);
                     @endphp
 
                     {{-- Floor filter tabs --}}
@@ -1278,8 +1351,8 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 
                     <div
                         x-data="{
-                            page: Math.min(window._locSliderPage ?? 0, Math.max(0, {{ count($locationChunks) }} - 1)),
-                            total: {{ count($locationChunks) }},
+                            page: Math.min(window._locSliderPage ?? 0, Math.max(0, {{ $locationChunkCount }} - 1)),
+                            total: {{ $locationChunkCount }},
                             touchStartX: 0,
                             prev() { if (this.page > 0) { this.page--; window._locSliderPage = this.page; } },
                             next() { if (this.page < this.total - 1) { this.page++; window._locSliderPage = this.page; } },
@@ -1331,6 +1404,7 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                             @endphp
                                             <button
                                                 type="button"
+                                                @click="window._locSliderPage = page"
                                                 wire:click="selectLocationByName('{{ addslashes($location['display_name']) }}')"
                                                 class="checklist-interactive relative flex flex-col items-center gap-1 overflow-hidden rounded-xl border px-1 py-3 text-center text-xs font-medium transition
                                                     {{ $isActive
@@ -1411,7 +1485,18 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                     $today = \Carbon\Carbon::now('Asia/Manila')->toDateString();
                     $weekdayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     $firstVisibleDate = $calendarBase->copy()->startOfWeek(\Carbon\Carbon::SUNDAY);
-                    $cellCount = 42;
+                    $calendarCells = [];
+                    for ($i = 0; $i < 42; $i++) {
+                        $d = $firstVisibleDate->copy()->addDays($i);
+                        $calendarCells[] = [
+                            'date'           => $d->toDateString(),
+                            'day'            => $d->day,
+                            'isCurrentMonth' => $d->month === $calendarBase->month,
+                            'isToday'        => $d->toDateString() === $today,
+                            'isFuture'       => $d->toDateString() > $today,
+                            'isSelected'     => $d->toDateString() === $selectedDate,
+                        ];
+                    }
                 @endphp
                 <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
 
@@ -1453,41 +1538,33 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
 
                     {{-- Day grid --}}
                     <div class="grid gap-1 p-3" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
-                        @for ($cell = 0; $cell < $cellCount; $cell++)
-                            @php
-                                $cellDateObj = $firstVisibleDate->copy()->addDays($cell);
-                                $cellDate    = $cellDateObj->toDateString();
-                                $dayNumber   = $cellDateObj->day;
-                                $isCurrentMonth = $cellDateObj->month === $calendarBase->month;
-                                $isSelected  = $cellDate === $selectedDate;
-                                $isToday     = $cellDate === $today;
-                                $isFuture    = $cellDate > $today;
-                            @endphp
+                        @foreach ($calendarCells as $cell)
                             <button type="button"
-                                    wire:click="selectCalendarDate('{{ $cellDate }}')"
-                                    @disabled($isFuture)
-                                    class="{{ $isFuture ? '' : 'checklist-interactive' }} relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
-                                        {{ $isSelected ? 'text-white shadow-md' : '' }}
-                                        {{ $isToday && ! $isSelected ? 'ring-2 ring-offset-1' : '' }}
-                                        {{ ! $isSelected && ! $isFuture && $isCurrentMonth ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
-                                        {{ ! $isCurrentMonth && ! $isFuture ? 'text-zinc-300 hover:bg-zinc-50 dark:text-zinc-600 dark:hover:bg-zinc-800' : '' }}
-                                        {{ $isFuture ? 'cursor-not-allowed opacity-30' : '' }}"
-                                    style="{{ $isSelected ? 'background: linear-gradient(135deg, #1e3a5f, #097b86);' : '' }}
-                                           {{ $isToday && ! $isSelected ? 'ring-color: #097b86;' : '' }}">
-                                {{ $dayNumber }}
-                                @if ($isToday && ! $isSelected)
+                                    wire:click="selectCalendarDate('{{ $cell['date'] }}')"
+                                    @disabled($cell['isFuture'])
+                                    class="{{ $cell['isFuture'] ? '' : 'checklist-interactive' }} relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold transition-all
+                                        {{ $cell['isSelected'] ? 'text-white shadow-md' : '' }}
+                                        {{ $cell['isToday'] && ! $cell['isSelected'] ? 'ring-2 ring-offset-1' : '' }}
+                                        {{ ! $cell['isSelected'] && ! $cell['isFuture'] && $cell['isCurrentMonth'] ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/50' : '' }}
+                                        {{ ! $cell['isCurrentMonth'] && ! $cell['isFuture'] ? 'text-zinc-300 hover:bg-zinc-50 dark:text-zinc-600 dark:hover:bg-zinc-800' : '' }}
+                                        {{ $cell['isFuture'] ? 'cursor-not-allowed opacity-30' : '' }}"
+                                    style="{{ $cell['isSelected'] ? 'background: linear-gradient(135deg, #1e3a5f, #097b86);' : '' }}
+                                           {{ $cell['isToday'] && ! $cell['isSelected'] ? 'ring-color: #097b86;' : '' }}">
+                                {{ $cell['day'] }}
+                                @if ($cell['isToday'] && ! $cell['isSelected'])
                                     <span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style="background-color:#097b86;"></span>
                                 @endif
                             </button>
-                        @endfor
+                        @endforeach
                     </div>
 
                     {{-- Selected date footer --}}
                     @if ($selectedDate)
+                        @php $selectedDateFormatted = \Carbon\Carbon::parse($selectedDate)->format('l, F d Y'); @endphp
                         <div class="border-t border-zinc-100 px-4 py-2 text-center text-[11px] font-medium text-zinc-400 dark:border-zinc-700/50 dark:text-zinc-500">
                             Selected:
                             <span class="font-semibold text-zinc-600 dark:text-zinc-300">
-                                {{ \Carbon\Carbon::parse($selectedDate)->format('l, F d Y') }}
+                                {{ $selectedDateFormatted }}
                             </span>
                         </div>
                     @endif
@@ -1603,7 +1680,18 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                             </tr>
                         </thead>
                         <tbody>
+                            @php $__wm_subArea = '__init__'; @endphp
                             @forelse ($areaParts as $part)
+                                @if ($part['sub_area'] !== $__wm_subArea)
+                                    @php $__wm_subArea = $part['sub_area']; @endphp
+                                    @if ($__wm_subArea !== null)
+                                        <tr>
+                                            <td colspan="{{ $totalColumns }}" class="border border-zinc-200 bg-sky-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-sky-700 dark:border-zinc-700 dark:bg-sky-900/30 dark:text-sky-300">
+                                                {{ $__wm_subArea }}
+                                            </td>
+                                        </tr>
+                                    @endif
+                                @endif
                                 <tr class="odd:bg-white even:bg-zinc-50 dark:odd:bg-zinc-900 dark:even:bg-zinc-800/60">
                                     <td class="border border-zinc-200 px-4 py-2 font-medium dark:border-zinc-700">
                                         <div class="flex items-center justify-between gap-2">
@@ -1710,7 +1798,18 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                 </tr>
                             </thead>
                             <tbody>
+                                @php $__night_subArea = '__init__'; @endphp
                                 @forelse ($areaParts as $part)
+                                    @if ($part['sub_area'] !== $__night_subArea)
+                                        @php $__night_subArea = $part['sub_area']; @endphp
+                                        @if ($__night_subArea !== null)
+                                            <tr>
+                                                <td colspan="2" class="border border-zinc-200 bg-sky-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-sky-700 dark:border-zinc-700 dark:bg-sky-900/30 dark:text-sky-300">
+                                                    {{ $__night_subArea }}
+                                                </td>
+                                            </tr>
+                                        @endif
+                                    @endif
                                     <tr class="odd:bg-white even:bg-zinc-50 dark:odd:bg-zinc-900 dark:even:bg-zinc-800/60">
                                         <td class="border border-zinc-200 px-4 py-3 font-medium dark:border-zinc-700">
                                             @php $hasNightProof = $this->hasSlotProof($part['id'], 'selected', 'PM'); @endphp
@@ -1808,7 +1907,18 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
                                 </tr>
                             </thead>
                             <tbody>
+                                @php $__daily_subArea = '__init__'; @endphp
                                 @forelse ($areaParts as $part)
+                                    @if ($part['sub_area'] !== $__daily_subArea)
+                                        @php $__daily_subArea = $part['sub_area']; @endphp
+                                        @if ($__daily_subArea !== null)
+                                            <tr>
+                                                <td colspan="3" class="border border-zinc-200 bg-sky-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-sky-700 dark:border-zinc-700 dark:bg-sky-900/30 dark:text-sky-300">
+                                                    {{ $__daily_subArea }}
+                                                </td>
+                                            </tr>
+                                        @endif
+                                    @endif
                                     <tr class="odd:bg-white even:bg-zinc-50 dark:odd:bg-zinc-900 dark:even:bg-zinc-800/60">
                                         <td class="border border-zinc-200 px-4 py-3 font-medium dark:border-zinc-700">
                                             @php
@@ -2007,6 +2117,21 @@ public function confirmToggleWithProof(int $partId, string $dayKey, string $shif
         } catch {}
     }
 })();
+</script>
+
+<script>
+// ── Real-time sync on every page load ─────────────────────────────────────────
+// The SW may serve a stale cached version of the page (containing old progress
+// numbers and slot checkmarks baked into the HTML).  Triggering $refresh
+// immediately after Livewire boots makes a lightweight POST to /livewire/update
+// (which is in the SW bypass list so it always hits the server) and re-renders
+// the component with live DB data — no hard-refresh needed.
+document.addEventListener('livewire:initialized', function () {
+    try {
+        var comp = window.Livewire && window.Livewire.first && window.Livewire.first();
+        if (comp) comp.$refresh();
+    } catch (_) {}
+});
 </script>
 @endonce
 </div>

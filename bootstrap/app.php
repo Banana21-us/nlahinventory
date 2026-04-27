@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\CanAccessMaintenanceOrVerify;
+use App\Http\Middleware\EnforceAccessKey;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -16,8 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // ADD THIS LINE BELOW
         $middleware->trustProxies(at: '*');
 
+        $middleware->appendToGroup('web', EnforceAccessKey::class);
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
+            'can-maintenance-or-verify' => CanAccessMaintenanceOrVerify::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {

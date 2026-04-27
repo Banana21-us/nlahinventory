@@ -2,12 +2,13 @@
 
 namespace App\Livewire;
 
+use App\Mail\LeaveCancellationDHeadMail;
 use App\Mail\LeaveCancellationRequestMail;
 use App\Mail\LeaveHRNotificationMail;
 use App\Mail\LeaveRequestMail;
 use App\Models\Leave;
+use App\Models\LeaveBalance;
 use App\Models\LeaveType;
-use App\Models\PayrollAndLeave;
 use App\Models\User;
 use App\Services\LeaveAccrualService;
 use Carbon\Carbon;
@@ -40,8 +41,6 @@ class LeaveForm extends Component
 
     public string $reason = '';
 
-    public string $reliever = '';
-
     public $attachment = null;
 
     public float $availableCredits = 0;
@@ -51,10 +50,9 @@ class LeaveForm extends Component
         return [
             'leave_type' => 'required|string',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
-            'reason'     => 'required|string|min:5',
-            'day_part'   => 'required|in:Full,AM,PM',
-            'reliever'   => 'nullable|string|max:255',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'reason' => 'required|string|min:5',
+            'day_part' => 'required|in:Full,AM,PM',
             'attachment' => 'nullable|file|max:5120',
         ];
     }
@@ -63,21 +61,64 @@ class LeaveForm extends Component
 
     public function updatedLeaveType(): void
     {
-        $this->total_days       = 0;
+        $this->total_days = 0;
         $this->availableCredits = $this->computeAvailableCredits();
     }
 
-    public function updatedStartDate(): void { $this->calculateTotalDays(); }
+    public function updatedStartDate(): void
+    {
+        $this->calculateTotalDays();
+    }
 
-    public function updatedEndDate(): void { $this->calculateTotalDays(); }
+    public function updatedEndDate(): void
+    {
+        $this->calculateTotalDays();
+    }
 
-    public function updatedDayPart(): void { $this->calculateTotalDays(); }
+    public function updatedDayPart(): void
+    {
+        $this->calculateTotalDays();
+    }
 
     // ─── Internal helpers ─────────────────────────────────────────────────────
 
     private function resolveLeaveType(): ?LeaveType
     {
         return $this->leave_type ? LeaveType::resolve($this->leave_type) : null;
+    }
+
+    private function birthdayLeaveWindow(): ?array
+    {
+        $birthDate = Auth::user()->employee?->birth_date;
+
+        if (! $birthDate) {
+            return null;
+        }
+
+        $birth = Carbon::parse($birthDate);
+        $ref = $this->start_date ? Carbon::parse($this->start_date) : now();
+
+        $regularizationDate = Auth::user()->employmentDetail?->regularization_date
+            ? Carbon::parse(Auth::user()->employmentDetail->regularization_date)
+            : null;
+
+        // Birthday in the same year as the reference date; handle Feb 29 gracefully
+        $windowStart = Carbon::createSafe($ref->year, $birth->month, $birth->day)
+            ?: Carbon::create($ref->year, 3, 1);
+
+        $windowEnd = $windowStart->copy()->addMonths(2);
+
+        // If this year's window ends before the regularization date, advance to next year
+        if ($regularizationDate && $windowEnd->lt($regularizationDate)) {
+            $windowStart = Carbon::createSafe($ref->year + 1, $birth->month, $birth->day)
+                ?: Carbon::create($ref->year + 1, 3, 1);
+            $windowEnd = $windowStart->copy()->addMonths(2);
+        }
+
+        return [
+            'start' => $windowStart,
+            'end' => $windowEnd,
+        ];
     }
 
     private function isEmployeeRegular(): bool
@@ -92,23 +133,29 @@ class LeaveForm extends Component
             ->value('is_solo_parent');
     }
 
+    private function employeeRow(): ?object
+    {
+        return DB::table('employee')->where('user_id', Auth::id())->first();
+    }
+
     private function getAvailableLeaveTypes(): Collection
     {
+        if (! $this->isEmployeeRegular()) {
+            return new Collection;
+        }
+
         $isSoloParent = $this->isSoloParent();
-        $isRegular    = $this->isEmployeeRegular();
+        $emp = $this->employeeRow();
+        $gender = $emp?->gender ?? '';
+        $isFemale = $gender === 'Female';
+        $isMarriedMale = $gender === 'Male' && strtolower($emp?->civil_status ?? '') === 'married';
 
         return LeaveType::where('is_active', true)
             ->when(! $isSoloParent, fn ($q) => $q->where('solo_parent_only', false))
+            ->when(! $isFemale, fn ($q) => $q->where('code', '!=', 'ML'))
+            ->when(! $isMarriedMale, fn ($q) => $q->where('code', '!=', 'PL'))
             ->orderBy('label')
-            ->get()
-            ->filter(function (LeaveType $lt) use ($isRegular) {
-                // Probationary employees cannot take VL, SL, or BL
-                if (! $isRegular && in_array($lt->code, ['VL', 'SL', 'SL_X', 'SL_M', 'BL'])) {
-                    return false;
-                }
-
-                return true;
-            });
+            ->get();
     }
 
     // ─── Credits ──────────────────────────────────────────────────────────────
@@ -125,19 +172,21 @@ class LeaveForm extends Component
             return -1; // unlimited — no cap
         }
 
-        $key = $lt->getPayrollKey();
-
-        if (! $key) {
-            return 0; // no payroll tracking for this type
+        if (! $lt->getPayrollKey()) {
+            return 0; // no tracked balance for this type
         }
 
-        $payroll = PayrollAndLeave::where('user_id', Auth::id())->first();
+        $canonical = $lt->getCanonicalLeaveType();
 
-        if (! $payroll) {
+        if (! $canonical) {
             return 0;
         }
 
-        return max(0, ($payroll->{$key.'_total'} ?? 0) - ($payroll->{$key.'_consumed'} ?? 0));
+        $balance = LeaveBalance::where('user_id', Auth::id())
+            ->where('leave_type_id', $canonical->id)
+            ->first();
+
+        return max(0, ((float) ($balance?->total ?? 0)) - ((float) ($balance?->consumed ?? 0)));
     }
 
     // ─── Day Calculation ──────────────────────────────────────────────────────
@@ -159,15 +208,76 @@ class LeaveForm extends Component
 
     public function save(): void
     {
+        if (! $this->isEmployeeRegular()) {
+            session()->flash('error', 'Leave filing is not available during the probationary period.');
+
+            return;
+        }
+
         $this->validate();
 
-        $lt           = $this->resolveLeaveType();
+        // Gender / marital status guards for ML and PL
+        $emp = $this->employeeRow();
+        $gender = $emp?->gender ?? '';
+
+        if ($this->leave_type === 'ML' && $gender !== 'Female') {
+            $this->addError('leave_type', 'Maternity Leave is only available to female employees.');
+
+            return;
+        }
+
+        if ($this->leave_type === 'PL' && ! ($gender === 'Male' && strtolower($emp?->civil_status ?? '') === 'married')) {
+            $this->addError('leave_type', 'Paternity Leave is only available to married male employees.');
+
+            return;
+        }
+
+        $lt = $this->resolveLeaveType();
         $hasCreditCap = $lt && $lt->getPayrollKey() !== null;
 
         if ($hasCreditCap && $this->total_days > $this->availableCredits) {
             $this->addError('total_days', "You only have {$this->availableCredits} day(s) remaining for this leave type.");
 
             return;
+        }
+
+        if ($lt?->code === 'VL') {
+            $startYear = Carbon::parse($this->start_date)->year;
+            $usedInYear = $this->getVlUsedInYear($startYear);
+            $remaining = max(0, 20 - $usedInYear);
+
+            if ($this->total_days > $remaining) {
+                $this->addError('end_date', "You can only take {$remaining} more VL day(s) in {$startYear}. Unused days carry over to next year.");
+
+                return;
+            }
+        }
+
+        if ($lt?->code === 'BL') {
+            $window = $this->birthdayLeaveWindow();
+
+            if (! $window) {
+                $this->addError('leave_type', 'Your birth date is not on record. Please contact HR.');
+
+                return;
+            }
+
+            $start = Carbon::parse($this->start_date);
+            $regularizationDate = Auth::user()->employmentDetail?->regularization_date
+                ? Carbon::parse(Auth::user()->employmentDetail->regularization_date)
+                : null;
+
+            if ($regularizationDate && $start->lt($regularizationDate)) {
+                $this->addError('start_date', 'Birthday Leave can only be claimed on or after your regularization date ('.$regularizationDate->format('M d, Y').').');
+
+                return;
+            }
+
+            if ($start->lt($window['start']) || $start->gt($window['end'])) {
+                $this->addError('start_date', "Birthday Leave can only be used on your birthday or within 2 months after. Valid window: {$window['start']->format('M d')} – {$window['end']->format('M d, Y')}.");
+
+                return;
+            }
         }
 
         $filePath = null;
@@ -177,19 +287,18 @@ class LeaveForm extends Component
 
         $leave = DB::transaction(function () use ($filePath, $lt) {
             $leave = Leave::create([
-                'user_id'          => auth()->id(),
-                'leave_type'       => $this->leave_type,
-                'is_paid'          => $lt?->is_paid ?? true,
-                'start_date'       => $this->start_date,
-                'end_date'         => $this->end_date,
-                'day_part'         => $this->day_part,
-                'total_days'       => $this->total_days,
-                'reason'           => $this->reason,
-                'reliever'         => $this->reliever ?: null,
-                'attachment'       => $filePath,
-                'date_requested'   => now()->toDateString(),
+                'user_id' => auth()->id(),
+                'leave_type' => $this->leave_type,
+                'is_paid' => $lt?->is_paid ?? true,
+                'start_date' => $this->start_date,
+                'end_date' => $this->end_date,
+                'day_part' => $this->day_part,
+                'total_days' => $this->total_days,
+                'reason' => $this->reason,
+                'attachment' => $filePath,
+                'date_requested' => now()->toDateString(),
                 'dept_head_status' => 'pending',
-                'hr_status'        => 'pending',
+                'hr_status' => 'pending',
             ]);
 
             $this->adjustConsumed(auth()->id(), $lt, $this->total_days, 'increment');
@@ -204,26 +313,25 @@ class LeaveForm extends Component
 
     private function adjustConsumed(int $userId, ?LeaveType $lt, float $days, string $direction): void
     {
-        if (! $lt || $days <= 0) {
+        if (! $lt || $days <= 0 || ! $lt->getPayrollKey()) {
             return;
         }
 
-        $key = $lt->getPayrollKey();
+        $canonical = $lt->getCanonicalLeaveType();
 
-        if (! $key) {
+        if (! $canonical) {
             return;
         }
 
-        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
-
-        if (! $payroll) {
-            return;
-        }
+        $balance = LeaveBalance::firstOrCreate(
+            ['user_id' => $userId, 'leave_type_id' => $canonical->id],
+            ['total' => 0, 'consumed' => 0],
+        );
 
         if ($direction === 'increment') {
-            $payroll->increment("{$key}_consumed", $days);
+            $balance->increment('consumed', $days);
         } else {
-            $payroll->decrement("{$key}_consumed", $days);
+            $balance->update(['consumed' => max(0, (float) $balance->consumed - $days)]);
         }
     }
 
@@ -235,10 +343,10 @@ class LeaveForm extends Component
 
     private function notifyDeptHead(Leave $leave): void
     {
-        $user     = Auth::user()->load('employmentDetail.department.deptHead');
+        $user = Auth::user()->load('employmentDetail.department.deptHead');
         $deptHead = $user->employmentDetail?->department?->deptHead;
 
-        $loaded = $leave->load('user.employmentDetail.department');
+        $loaded = $leave->load('user.employmentDetail.department.deptHead');
 
         if ($deptHead?->email) {
             try {
@@ -266,10 +374,10 @@ class LeaveForm extends Component
     {
         $this->reset([
             'leave_type', 'start_date', 'end_date', 'day_part',
-            'total_days', 'reason', 'reliever', 'attachment', 'showForm',
+            'total_days', 'reason', 'attachment', 'showForm',
         ]);
-        $this->day_part         = 'Full';
-        $this->total_days       = 0;
+        $this->day_part = 'Full';
+        $this->total_days = 0;
         $this->availableCredits = 0;
     }
 
@@ -317,9 +425,39 @@ class LeaveForm extends Component
             return;
         }
 
-        $leave->update(['hr_status' => 'cancellation_requested']);
-        $this->notifyHROfCancellation($leave->fresh(['user.employmentDetail.department']));
-        session()->flash('message', 'Cancellation request submitted. HR will review and confirm.');
+        $fresh = $leave->fresh(['user.employmentDetail.department.deptHead']);
+        $deptHead = $fresh->user?->employmentDetail?->department?->deptHead;
+
+        if ($deptHead?->email) {
+            // Two-stage: notify dept head first
+            $leave->update([
+                'hr_status' => 'cancellation_requested',
+                'cancellation_dhead_status' => 'pending',
+            ]);
+            try {
+                Mail::to($deptHead->email)->send(new LeaveCancellationDHeadMail($fresh));
+            } catch (\Exception) {
+            }
+            session()->flash('message', 'Cancellation request submitted. Your Department Head will review it first.');
+        } else {
+            // No dept head configured — go directly to HR
+            $leave->update([
+                'hr_status' => 'cancellation_requested',
+                'cancellation_dhead_status' => 'approved',
+            ]);
+            $this->notifyHROfCancellation($fresh);
+            session()->flash('message', 'Cancellation request submitted. HR will review and confirm.');
+        }
+    }
+
+    private function getVlUsedInYear(int $year): float
+    {
+        return (float) Leave::where('user_id', Auth::id())
+            ->where('leave_type', 'VL')
+            ->whereYear('start_date', $year)
+            ->whereNotIn('hr_status', ['rejected', 'cancelled'])
+            ->whereNotIn('dept_head_status', ['rejected'])
+            ->sum('total_days');
     }
 
     private function notifyHROfCancellation(Leave $leave): void
@@ -340,19 +478,13 @@ class LeaveForm extends Component
 
     public function render()
     {
-        $lt     = $this->resolveLeaveType();
-        $isVL   = $lt?->code === 'VL';
-        $isSL   = in_array($lt?->code, ['SL', 'SL_X', 'SL_M']);
-        $isBL   = $lt?->code === 'BL';
-        $isSPL  = $lt?->code === 'SPL';
+        $lt = $this->resolveLeaveType();
+        $payrollKey = $lt?->getPayrollKey();
         $isLWOP = $lt?->isLWOP() ?? false;
 
         $creditLabel = match (true) {
-            $isVL   => 'Available VL Credits',
-            $isSL   => 'Available SL Credits',
-            $isBL   => 'Available BL Credits',
-            $isSPL  => 'Available SPL Credits',
             $isLWOP => 'Leave Without Pay',
+            $payrollKey !== null => 'Available '.strtoupper($payrollKey).' Credits',
             default => 'No Credit Cap',
         };
 
@@ -365,15 +497,15 @@ class LeaveForm extends Component
         $leaveTypeMap = LeaveType::pluck('label', 'code')->toArray();
 
         // Probationary status info
-        $detail         = Auth::user()->employmentDetail;
+        $detail = Auth::user()->employmentDetail;
         $isProbationary = $detail && $detail->regularization_date === null;
         $expectedRegDate = null;
-        $daysLeft        = null;
+        $daysLeft = null;
 
         if ($isProbationary && $detail?->hiring_date) {
-            $accrual         = app(LeaveAccrualService::class);
+            $accrual = app(LeaveAccrualService::class);
             $expectedRegDate = $accrual->computeExpectedRegularizationDate($detail->hiring_date);
-            $daysLeft        = (int) now()->diffInDays($expectedRegDate, false);
+            $daysLeft = (int) now()->diffInDays($expectedRegDate, false);
         }
 
         $leaves = Leave::where('user_id', auth()->id())
@@ -384,15 +516,36 @@ class LeaveForm extends Component
             ->latest()
             ->get();
 
+        $blWindow = ($lt?->code === 'BL') ? $this->birthdayLeaveWindow() : null;
+
+        // VL per-year cap: max 20 days per calendar year
+        $vlMaxEndDate = null;
+        $vlRemainingThisYear = null;
+
+        if ($lt?->code === 'VL' && $this->start_date) {
+            $startYear = Carbon::parse($this->start_date)->year;
+            $usedInYear = $this->getVlUsedInYear($startYear);
+            $vlRemainingThisYear = max(0, 20 - $usedInYear);
+
+            if ($vlRemainingThisYear > 0) {
+                $vlMaxEndDate = Carbon::parse($this->start_date)
+                    ->addDays($vlRemainingThisYear - 1)
+                    ->toDateString();
+            }
+        }
+
         return view('pages.users.leaveform', [
-            'leaves'           => $leaves,
-            'creditLabel'      => $creditLabel,
-            'showCredits'      => $isVL || $isSL || $isBL || $isSPL,
+            'leaves' => $leaves,
+            'creditLabel' => $creditLabel,
+            'showCredits' => $payrollKey !== null,
             'leaveTypeOptions' => $leaveTypeOptions,
-            'leaveTypeMap'     => $leaveTypeMap,
-            'isProbationary'   => $isProbationary,
-            'expectedRegDate'  => $expectedRegDate,
-            'daysLeft'         => $daysLeft,
+            'leaveTypeMap' => $leaveTypeMap,
+            'isProbationary' => $isProbationary,
+            'expectedRegDate' => $expectedRegDate,
+            'daysLeft' => $daysLeft,
+            'blWindow' => $blWindow,
+            'vlMaxEndDate' => $vlMaxEndDate,
+            'vlRemainingThisYear' => $vlRemainingThisYear,
         ])->layout('layouts.app');
     }
 }

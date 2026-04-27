@@ -22,7 +22,19 @@
 --}}
 <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
+        navigator.serviceWorker.register('/sw.js').then(function (reg) {
+            // When a new SW activates (e.g. after a cache-version bump), reload the
+            // page once so the user always runs the latest HTML + script code.
+            // Without this, iOS Safari keeps serving the old cached page until
+            // all tabs are closed manually.
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+        }).catch(function () {});
     }
 </script>
 
@@ -39,4 +51,18 @@
 @stack('chart-scripts')
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
+@livewireStyles
 @fluxAppearance
+
+<script>
+    window.NurseScheduleState = {
+        modalOpen: false,
+        modalSection: '',
+        modalSlot: '',
+        modalPeriod: '',
+        modalSearch: '',
+        customName: '',
+        toastShow: false,
+        toastMessage: ''
+    };
+</script>

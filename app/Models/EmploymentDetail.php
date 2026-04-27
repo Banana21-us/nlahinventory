@@ -32,7 +32,7 @@ class EmploymentDetail extends Model
                     } catch (\Throwable $e) {
                         Log::error('LeaveAccrualService::onRegularization failed on EmploymentDetail update', [
                             'employee_id' => $detail->employee_id,
-                            'error'       => $e->getMessage(),
+                            'error' => $e->getMessage(),
                         ]);
                     }
                 }

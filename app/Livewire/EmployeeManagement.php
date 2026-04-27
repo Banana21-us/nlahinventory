@@ -7,14 +7,19 @@ use App\Models\Department;
 use App\Models\Dependency;
 use App\Models\Employee;
 use App\Models\EmploymentDetail;
+use App\Models\LeaveBalance;
+use App\Models\LeaveType;
 use App\Models\PayrollAndLeave;
 use App\Models\Position;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class EmployeeManagement extends Component
 {
+    use WithFileUploads;
+
     public string $search = '';
 
     public bool $showForm = false;
@@ -134,7 +139,23 @@ class EmployeeManagement extends Component
 
     public $spl_total;
 
-    public $el_total;
+    public $spl_consumed;
+
+    public $bl_total;
+
+    public $bl_consumed;
+
+    public $syl_total;
+
+    public $syl_consumed;
+
+    public $ml_total;
+
+    public $ml_consumed;
+
+    public $pl_total;
+
+    public $pl_consumed;
 
     public $min_scale;
 
@@ -174,7 +195,27 @@ class EmployeeManagement extends Component
     {
         $this->validate();
 
-        DB::transaction(function () {
+        \Illuminate\Support\Facades\Log::info('EM save() before transaction', [
+            'picture_class' => $this->picture ? get_class($this->picture) : 'null',
+            'picture_is_string' => is_string($this->picture),
+            'picture_raw' => $this->picture,
+            'signature_class' => $this->signature ? get_class($this->signature) : 'null',
+        ]);
+
+        $picturePath = $this->picture instanceof \Illuminate\Http\UploadedFile
+            ? $this->picture->store('employees/pictures', 'public')
+            : null;
+        $signaturePath = $this->signature instanceof \Illuminate\Http\UploadedFile
+            ? $this->signature->store('employees/signatures', 'public')
+            : null;
+
+        \Illuminate\Support\Facades\Log::info('EM paths after store', [
+            'picturePath' => $picturePath,
+            'signaturePath' => $signaturePath,
+        ]);
+
+        DB::transaction(function () use ($picturePath, $signaturePath) {
+
             $emp = Employee::create([
                 'employee_number' => $this->employee_number,
                 'user_id' => $this->user_id ?: null,
@@ -201,6 +242,8 @@ class EmployeeManagement extends Component
                 'contact_number' => $this->contact_number,
                 'contact_relationship' => $this->contact_relationship ?? null,
                 'is_solo_parent' => $this->is_solo_parent,
+                'picture' => $picturePath,
+                'signature' => $signaturePath,
             ]);
 
             EmploymentDetail::updateOrCreate(
@@ -286,16 +329,33 @@ class EmployeeManagement extends Component
             $this->cola = $payroll->cola;
             $this->grocery_allowance = $payroll->grocery_allowance;
             $this->night_diff_factor = $payroll->night_diff_factor;
-            $this->vl_total = $payroll->vl_total;
-            $this->vl_consumed = $payroll->vl_consumed;
-            $this->sl_total = $payroll->sl_total;
-            $this->sl_consumed = $payroll->sl_consumed;
-            $this->spl_total = $payroll->spl_total;
-            $this->el_total = $payroll->el_total;
-            $this->min_scale   = $payroll->min_scale;
-            $this->max_scale   = $payroll->max_scale;
+            $this->min_scale = $payroll->min_scale;
+            $this->max_scale = $payroll->max_scale;
             $this->wage_factor = $payroll->wage_factor;
-            $this->probi_rate  = $payroll->probi_rate;
+            $this->probi_rate = $payroll->probi_rate;
+        }
+
+        // Load leave balances from the normalised leave_balances table.
+        if ($employee->user_id) {
+            $balances = LeaveBalance::where('user_id', $employee->user_id)
+                ->with('leaveType')
+                ->get()
+                ->keyBy(fn ($b) => $b->leaveType?->code ?? '');
+
+            $this->vl_total = $balances['VL']?->total ?? 0;
+            $this->vl_consumed = $balances['VL']?->consumed ?? 0;
+            $this->sl_total = $balances['SL']?->total ?? 0;
+            $this->sl_consumed = $balances['SL']?->consumed ?? 0;
+            $this->bl_total = $balances['BL']?->total ?? 0;
+            $this->bl_consumed = $balances['BL']?->consumed ?? 0;
+            $this->spl_total = $balances['SPL']?->total ?? 0;
+            $this->spl_consumed = $balances['SPL']?->consumed ?? 0;
+            $this->syl_total = $balances['SYL']?->total ?? 0;
+            $this->syl_consumed = $balances['SYL']?->consumed ?? 0;
+            $this->ml_total = $balances['ML']?->total ?? 0;
+            $this->ml_consumed = $balances['ML']?->consumed ?? 0;
+            $this->pl_total = $balances['PL']?->total ?? 0;
+            $this->pl_consumed = $balances['PL']?->consumed ?? 0;
         }
 
         $this->dependents = Dependency::where('employee_id', $employee->id)
@@ -313,6 +373,27 @@ class EmployeeManagement extends Component
             ])->toArray();
 
         $this->isEditing = true;
+    }
+
+    public function updatedWageFactor(): void
+    {
+        $this->computeRates();
+    }
+
+    public function updatedSalaryRate(): void
+    {
+        $this->computeRates();
+    }
+
+    private function computeRates(): void
+    {
+        $pct = (float) ($this->salary_rate ?? 0);   // e.g. 47 for 47%
+        $wf = (float) ($this->wage_factor ?? 0);   // e.g. 30000
+
+        if ($pct > 0 && $wf > 0) {
+            $this->monthly_rate = round(($pct / 100) * $wf, 2);          // 47% × 30,000 = 14,100
+            $this->daily_rate = round($this->monthly_rate * 12 / 262, 2); // 14,100 × 12 / 262 = 645.80
+        }
     }
 
     public function addDependent(): void
@@ -343,26 +424,43 @@ class EmployeeManagement extends Component
     {
         PayrollAndLeave::updateOrCreate(
             ['employee_id' => $employeeId],
-            array_filter([
-                'user_id' => $userId,
-            ], fn ($v) => $v !== null) + [
+            array_filter(['user_id' => $userId], fn ($v) => $v !== null) + [
                 'salary_rate' => $this->salary_rate ?: 0,
                 'daily_rate' => $this->daily_rate ?: 0,
                 'monthly_rate' => $this->monthly_rate ?: 0,
                 'cola' => $this->cola ?: 0,
                 'grocery_allowance' => $this->grocery_allowance ?: 0,
                 'night_diff_factor' => $this->night_diff_factor ?: 1.10,
-                'vl_total' => $this->vl_total ?: 0,
-                'vl_consumed' => $this->vl_consumed ?: 0,
-                'sl_total' => $this->sl_total ?: 0,
-                'sl_consumed' => $this->sl_consumed ?: 0,
-                'spl_total' => $this->spl_total ?: 0,
-                'el_total' => $this->el_total ?: 0,
                 'min_scale' => $this->min_scale ?: 0,
                 'max_scale' => $this->max_scale ?: 0,
                 'wage_factor' => $this->wage_factor ?: 1.00,
-                'probi_rate'  => $this->probi_rate ?: 1.00,
+                'probi_rate' => $this->probi_rate ?: 1.00,
             ]
+        );
+
+        // Save leave balances to the normalised table.
+        if ($userId) {
+            $this->upsertLeaveBalance($userId, 'VL', $this->vl_total, $this->vl_consumed);
+            $this->upsertLeaveBalance($userId, 'SL', $this->sl_total, $this->sl_consumed);
+            $this->upsertLeaveBalance($userId, 'BL', $this->bl_total, $this->bl_consumed);
+            $this->upsertLeaveBalance($userId, 'SPL', $this->spl_total, $this->spl_consumed);
+            $this->upsertLeaveBalance($userId, 'SYL', $this->syl_total, $this->syl_consumed);
+            $this->upsertLeaveBalance($userId, 'ML', $this->ml_total, $this->ml_consumed);
+            $this->upsertLeaveBalance($userId, 'PL', $this->pl_total, $this->pl_consumed);
+        }
+    }
+
+    private function upsertLeaveBalance(int $userId, string $code, $total, $consumed = 0): void
+    {
+        $lt = LeaveType::where('code', $code)->first();
+
+        if (! $lt) {
+            return;
+        }
+
+        LeaveBalance::updateOrCreate(
+            ['user_id' => $userId, 'leave_type_id' => $lt->id],
+            ['total' => max(0, (float) $total), 'consumed' => max(0, (float) $consumed)],
         );
     }
 
@@ -393,7 +491,7 @@ class EmployeeManagement extends Component
         $employee = Employee::findOrFail($this->selectedId);
 
         DB::transaction(function () use ($employee) {
-            $employee->update([
+            $data = [
                 'employee_number' => $this->employee_number,
                 'user_id' => $this->user_id ?: null,
                 'biometric_id' => $this->biometric_id ?: null,
@@ -419,7 +517,17 @@ class EmployeeManagement extends Component
                 'contact_number' => $this->contact_number,
                 'contact_relationship' => $this->contact_relationship ?? null,
                 'is_solo_parent' => $this->is_solo_parent,
-            ]);
+            ];
+
+            if ($this->picture instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                $data['picture'] = $this->picture->store('employees/pictures', 'public');
+            }
+
+            if ($this->signature instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                $data['signature'] = $this->signature->store('employees/signatures', 'public');
+            }
+
+            $employee->update($data);
 
             EmploymentDetail::updateOrCreate(
                 ['employee_id' => $employee->id],
@@ -496,7 +604,9 @@ class EmployeeManagement extends Component
             'philhealth_no', 'pagibig_no', 'tin_no', 'sss_no', 'gsis_no',
             'salary_rate', 'daily_rate', 'monthly_rate', 'cola', 'grocery_allowance',
             'night_diff_factor', 'vl_total', 'vl_consumed', 'sl_total', 'sl_consumed',
-            'spl_total', 'el_total', 'min_scale', 'max_scale', 'wage_factor', 'probi_rate',
+            'bl_total', 'bl_consumed', 'spl_total', 'spl_consumed',
+            'syl_total', 'syl_consumed', 'ml_total', 'ml_consumed', 'pl_total', 'pl_consumed',
+            'min_scale', 'max_scale', 'wage_factor', 'probi_rate',
             'dependents', 'new_dependent',
             'selectedId', 'isEditing', 'showForm', 'confirmingDeletion', 'isViewing',
         ]);

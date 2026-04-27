@@ -38,18 +38,18 @@ class LeaveTypeManagement extends Component
     protected function rules(): array
     {
         return [
-            'code'                    => ['required', 'string', 'max:20',
+            'code' => ['required', 'string', 'max:20',
                 $this->isEditing
                     ? "unique:leave_types,code,{$this->selectedId}"
                     : 'unique:leave_types,code'],
-            'label'                   => ['required', 'string', 'max:255'],
-            'is_paid'                 => ['boolean'],
-            'requires_attachment'     => ['boolean'],
-            'solo_parent_only'        => ['boolean'],
+            'label' => ['required', 'string', 'max:255'],
+            'is_paid' => ['boolean'],
+            'requires_attachment' => ['boolean'],
+            'solo_parent_only' => ['boolean'],
             'requires_admin_approval' => ['boolean'],
-            'annual_days'             => ['nullable', 'numeric', 'min:0', 'max:365'],
-            'reset_type'              => ['required', 'in:anniversary,january,birth_month,none'],
-            'is_active'               => ['boolean'],
+            'annual_days' => ['nullable', 'numeric', 'min:0', 'max:365'],
+            'reset_type' => ['required', 'in:anniversary,january,birth_month,none'],
+            'is_active' => ['boolean'],
         ];
     }
 
@@ -58,15 +58,15 @@ class LeaveTypeManagement extends Component
         $this->validate();
 
         LeaveType::create([
-            'code'                    => strtoupper($this->code),
-            'label'                   => $this->label,
-            'is_paid'                 => $this->is_paid,
-            'requires_attachment'     => $this->requires_attachment,
-            'solo_parent_only'        => $this->solo_parent_only,
+            'code' => strtoupper($this->code),
+            'label' => $this->label,
+            'is_paid' => $this->is_paid,
+            'requires_attachment' => $this->requires_attachment,
+            'solo_parent_only' => $this->solo_parent_only,
             'requires_admin_approval' => $this->requires_admin_approval,
-            'annual_days'             => $this->annual_days,
-            'reset_type'              => $this->reset_type,
-            'is_active'               => $this->is_active,
+            'annual_days' => $this->annual_days,
+            'reset_type' => $this->reset_type,
+            'is_active' => $this->is_active,
         ]);
 
         $this->resetForm();
@@ -77,17 +77,17 @@ class LeaveTypeManagement extends Component
     {
         $lt = LeaveType::findOrFail($id);
 
-        $this->selectedId              = $lt->id;
-        $this->code                    = $lt->code;
-        $this->label                   = $lt->label;
-        $this->is_paid                 = $lt->is_paid;
-        $this->requires_attachment     = $lt->requires_attachment;
-        $this->solo_parent_only        = $lt->solo_parent_only;
+        $this->selectedId = $lt->id;
+        $this->code = $lt->code;
+        $this->label = $lt->label;
+        $this->is_paid = $lt->is_paid;
+        $this->requires_attachment = $lt->requires_attachment;
+        $this->solo_parent_only = $lt->solo_parent_only;
         $this->requires_admin_approval = $lt->requires_admin_approval;
-        $this->annual_days             = $lt->annual_days;
-        $this->reset_type              = $lt->reset_type;
-        $this->is_active               = $lt->is_active;
-        $this->isEditing               = true;
+        $this->annual_days = $lt->annual_days;
+        $this->reset_type = $lt->reset_type;
+        $this->is_active = $lt->is_active;
+        $this->isEditing = true;
     }
 
     public function update(): void
@@ -95,15 +95,15 @@ class LeaveTypeManagement extends Component
         $this->validate();
 
         LeaveType::findOrFail($this->selectedId)->update([
-            'code'                    => strtoupper($this->code),
-            'label'                   => $this->label,
-            'is_paid'                 => $this->is_paid,
-            'requires_attachment'     => $this->requires_attachment,
-            'solo_parent_only'        => $this->solo_parent_only,
+            'code' => strtoupper($this->code),
+            'label' => $this->label,
+            'is_paid' => $this->is_paid,
+            'requires_attachment' => $this->requires_attachment,
+            'solo_parent_only' => $this->solo_parent_only,
             'requires_admin_approval' => $this->requires_admin_approval,
-            'annual_days'             => $this->annual_days,
-            'reset_type'              => $this->reset_type,
-            'is_active'               => $this->is_active,
+            'annual_days' => $this->annual_days,
+            'reset_type' => $this->reset_type,
+            'is_active' => $this->is_active,
         ]);
 
         $this->resetForm();
@@ -129,12 +129,12 @@ class LeaveTypeManagement extends Component
             'code', 'label', 'annual_days',
             'selectedId', 'isEditing', 'showForm', 'confirmingDeletion',
         ]);
-        $this->is_paid                 = true;
-        $this->requires_attachment     = false;
-        $this->solo_parent_only        = false;
+        $this->is_paid = true;
+        $this->requires_attachment = false;
+        $this->solo_parent_only = false;
         $this->requires_admin_approval = false;
-        $this->reset_type              = 'anniversary';
-        $this->is_active               = true;
+        $this->reset_type = 'anniversary';
+        $this->is_active = true;
     }
 
     public function render()

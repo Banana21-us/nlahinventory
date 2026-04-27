@@ -12,15 +12,15 @@ class OvertimeApplication extends Model
         'type',
         'start_datetime',
         'end_datetime',
+        'hours',
         'reason',
-        'remarks',
         'status',
         'approved_by',
     ];
 
     protected $casts = [
         'start_datetime' => 'datetime',
-        'end_datetime'   => 'datetime',
+        'end_datetime' => 'datetime',
     ];
 
     public function user(): BelongsTo

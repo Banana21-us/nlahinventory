@@ -38,7 +38,7 @@
 
     <div class="body">
         <p class="greeting">
-            Hello, <strong>{{ $leave->user->department?->deptHead?->name ?? 'Department Head' }}</strong>.
+            Hello, <strong>{{ $leave->user->employmentDetail?->department?->deptHead?->name ?? 'Department Head' }}</strong>.
             <br>
             <strong>{{ $leave->user->name }}</strong> has filed a leave application that requires your approval.
         </p>
@@ -50,7 +50,7 @@
             </div>
             <div class="card-row">
                 <span class="card-label">Department</span>
-                <span class="card-value">{{ $leave->user->department?->name ?? 'N/A' }}</span>
+                <span class="card-value">{{ $leave->user->employmentDetail?->department?->name ?? 'N/A' }}</span>
             </div>
             <div class="card-row">
                 <span class="card-label">Leave Type</span>

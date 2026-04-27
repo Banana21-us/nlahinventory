@@ -19,12 +19,12 @@ class LeaveType extends Model
     ];
 
     protected $casts = [
-        'is_paid'                 => 'boolean',
-        'requires_attachment'     => 'boolean',
-        'solo_parent_only'        => 'boolean',
+        'is_paid' => 'boolean',
+        'requires_attachment' => 'boolean',
+        'solo_parent_only' => 'boolean',
         'requires_admin_approval' => 'boolean',
-        'is_active'               => 'boolean',
-        'annual_days'             => 'float',
+        'is_active' => 'boolean',
+        'annual_days' => 'float',
     ];
 
     /**
@@ -35,18 +35,45 @@ class LeaveType extends Model
     public function getPayrollKey(): ?string
     {
         return match ($this->code) {
-            'VL'                  => 'vl',
+            'VL' => 'vl',
             'SL', 'SL_X', 'SL_M' => 'sl',
-            'BL'                  => 'bl',
-            'SPL'                 => 'spl',
-            'EL'                  => 'el',
-            default               => null,
+            'BL' => 'bl',
+            'SPL' => 'spl',
+            'EL' => 'el',
+            'ML' => 'ml',
+            'PL' => 'pl',
+            'SYL' => 'syl',
+            'CAL' => 'cal',
+            'STL' => 'stl',
+            'MWL' => 'mwl',
+            default => null,
         };
     }
 
     public function isLWOP(): bool
     {
         return $this->code === 'LWOP';
+    }
+
+    /**
+     * Some sub-types share a balance row with their parent type.
+     * e.g. SL_X (Extended) and SL_M (Maternity-linked SL) draw from the SL bucket.
+     */
+    public function getCanonicalCode(): string
+    {
+        return match ($this->code) {
+            'SL_X', 'SL_M' => 'SL',
+            default => $this->code,
+        };
+    }
+
+    public function getCanonicalLeaveType(): ?self
+    {
+        $canonical = $this->getCanonicalCode();
+
+        return $canonical === $this->code
+            ? $this
+            : static::where('code', $canonical)->first();
     }
 
     /**

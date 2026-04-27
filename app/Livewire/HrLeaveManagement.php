@@ -6,7 +6,8 @@ use App\Mail\LeaveCancellationResultMail;
 use App\Mail\LeaveHRResultMail;
 use App\Mail\LeaveStatusUpdateMail;
 use App\Models\Leave;
-use App\Models\PayrollAndLeave;
+use App\Models\LeaveBalance;
+use App\Models\LeaveType;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -54,7 +55,10 @@ class HrLeaveManagement extends Component
     #[Computed]
     public function cancellationCount()
     {
-        return Leave::where('hr_status', 'cancellation_requested')->count();
+        // Only show cancellations that have passed the dept head stage
+        return Leave::where('hr_status', 'cancellation_requested')
+            ->where('cancellation_dhead_status', 'approved')
+            ->count();
     }
 
     #[Computed]
@@ -99,10 +103,14 @@ class HrLeaveManagement extends Component
         ]);
 
         $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
-        $this->notifyEmployee($fresh);
+        $staffNotified = $this->notifyEmployee($fresh);
         $this->notifyDeptHead($fresh);
 
-        session()->flash('message', "Leave for {$leave->user->name} has been approved.");
+        if (! $staffNotified) {
+            session()->flash('warning', "Leave approved but the notification email to {$leave->user->name} could not be sent. Please inform them manually.");
+        } else {
+            session()->flash('message', "Leave for {$leave->user->name} has been approved.");
+        }
         $this->closeModal();
     }
 
@@ -116,17 +124,25 @@ class HrLeaveManagement extends Component
 
         $leave = Leave::findOrFail($this->selectedLeaveId);
 
-        $leave->update([
-            'hr_status' => 'rejected',
-            'rejection_reason' => $this->hrRemarks,
-            'remarks' => $this->hrRemarks,
-        ]);
+        DB::transaction(function () use ($leave) {
+            $leave->update([
+                'hr_status' => 'rejected',
+                'rejection_reason' => $this->hrRemarks,
+                'remarks' => $this->hrRemarks,
+            ]);
+
+            $this->restoreConsumed($leave->user_id, $leave->leave_type, (float) $leave->total_days);
+        });
 
         $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
-        $this->notifyEmployee($fresh);
+        $staffNotified = $this->notifyEmployee($fresh);
         $this->notifyDeptHead($fresh);
 
-        session()->flash('message', 'Leave request rejected.');
+        if (! $staffNotified) {
+            session()->flash('warning', "Leave rejected but the notification email to {$leave->user->name} could not be sent. Please inform them manually.");
+        } else {
+            session()->flash('message', 'Leave request rejected.');
+        }
         $this->closeModal();
     }
 
@@ -136,8 +152,8 @@ class HrLeaveManagement extends Component
 
         DB::transaction(function () use ($leave) {
             $leave->update([
-                'hr_status'   => 'cancelled',
-                'remarks'     => $this->hrRemarks ?: 'Cancellation approved by HR.',
+                'hr_status' => 'cancelled',
+                'remarks' => $this->hrRemarks ?: 'Cancellation approved by HR.',
                 'approved_by' => Auth::id(),
             ]);
 
@@ -157,21 +173,27 @@ class HrLeaveManagement extends Component
             return;
         }
 
-        // Resolves by code first, then falls back to legacy label strings
-        $lt  = \App\Models\LeaveType::resolve($leaveType);
-        $key = $lt?->getPayrollKey();
+        $lt = LeaveType::resolve($leaveType);
 
-        if (! $key) {
+        if (! $lt || ! $lt->getPayrollKey()) {
             return;
         }
 
-        $payroll = PayrollAndLeave::where('user_id', $userId)->first();
+        $canonical = $lt->getCanonicalLeaveType();
 
-        if (! $payroll) {
+        if (! $canonical) {
             return;
         }
 
-        $payroll->decrement("{$key}_consumed", $days);
+        $balance = LeaveBalance::where('user_id', $userId)
+            ->where('leave_type_id', $canonical->id)
+            ->first();
+
+        if (! $balance) {
+            return;
+        }
+
+        $balance->update(['consumed' => max(0, (float) $balance->consumed - $days)]);
     }
 
     public function rejectCancellation()
@@ -227,41 +249,52 @@ class HrLeaveManagement extends Component
         }
     }
 
-    private function notifyEmployee(Leave $leave): void
+    private function notifyEmployee(Leave $leave): bool
     {
         $email = $leave->user?->email;
+
         if (! $email) {
             Log::warning('LeaveStatusUpdateMail: user has no email', ['leave_id' => $leave->id]);
 
-            return;
+            return false;
         }
 
         try {
             Mail::to($email)->send(new LeaveStatusUpdateMail($leave));
+
+            return true;
         } catch (\Exception $e) {
             Log::error('LeaveStatusUpdateMail failed', [
                 'leave_id' => $leave->id,
                 'email' => $email,
                 'error' => $e->getMessage(),
             ]);
+
+            return false;
         }
     }
 
-    private function notifyDeptHead(Leave $leave): void
+    private function notifyDeptHead(Leave $leave): bool
     {
-        $email = $leave->deptHead?->email;
+        $email = $leave->deptHead?->email
+            ?? $leave->user?->employmentDetail?->department?->deptHead?->email;
+
         if (! $email) {
-            return;
+            return false;
         }
 
         try {
             Mail::to($email)->send(new LeaveHRResultMail($leave));
+
+            return true;
         } catch (\Exception $e) {
             Log::error('LeaveHRResultMail failed', [
                 'leave_id' => $leave->id,
                 'email' => $email,
                 'error' => $e->getMessage(),
             ]);
+
+            return false;
         }
     }
 

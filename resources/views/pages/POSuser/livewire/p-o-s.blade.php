@@ -1,6 +1,7 @@
+
+{{-- Main POS Component --}}
 <div
-    class="flex h-screen font-sans antialiased bg-slate-50/50 text-slate-900 overflow-hidden">
-    <div
+    class="flex h-screen font-sans antialiased bg-slate-50/50 text-slate-900 overflow-hidden"
     x-data="{
         buffer: '',
         timeout: null,
@@ -9,8 +10,7 @@
 
         handleKey(e) {
             const tag = document.activeElement?.tagName;
-            const isRealInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT')
-                && document.activeElement !== this.$refs.scannerInput;
+            const isRealInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
 
             if (isRealInput) return;
 
@@ -34,12 +34,14 @@
             }
         }
     }"
-    x-init="window.addEventListener('keydown', e => handleKey(e))"
-    class="sr-only"
-    aria-hidden="true"
->
-    <input x-ref="scannerInput" type="text" tabindex="-1" readonly />
-</div>
+    x-init="
+        window.addEventListener('keydown', e => handleKey(e));
+        window.addEventListener('notify', e => {
+            showToast(e.detail.type, e.detail.title, e.detail.body);
+        });
+    ">
+
+    {{-- ===== LEFT PANEL: Product Catalog ===== --}}
     {{-- ===== LEFT PANEL: Product Catalog ===== --}}
     <div
         class="flex flex-col flex-1 min-w-0 bg-white border-r border-slate-200/60 shadow-sm">
@@ -550,6 +552,22 @@
                     {{ session('checkout_alert') }}
                 </div>
                 @endif
+
+                @if(session()->has('checkout_success'))
+                <div
+                    x-data="{ show: true }"
+                    x-show="show"
+                    x-init="setTimeout(() => show = false, 3000)"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-200"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    class="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-600">
+                    ✓ {{ session('checkout_success') }}
+                </div>
+                @endif
             </div>
 
             {{-- Totals --}}
@@ -568,7 +586,7 @@
                 <div
                     class="flex justify-between items-center pt-2 border-t border-slate-200/60">
                     <span class="text-sm font-bold text-slate-900">Total Amount</span>
-                    <span class="text-2xl font-black text-slate-900 tracking-tight">₱{{ number_format($this->subtotal, 2) }}</span>
+                    <span id="total-amount-display" class="text-2xl font-black text-slate-900 tracking-tight">₱{{ number_format($this->subtotal, 2) }}</span>
                 </div>
             </div>
 
@@ -581,7 +599,7 @@
                 <span
                     wire:loading.remove="wire:loading.remove"
                     wire:target="checkout"
-                    class="flex items-center gap-2 text-black">
+                    class="flex items-center gap-2 text-white">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                             stroke-linecap="round"
@@ -962,4 +980,60 @@
         </div>
     </div>
     @endif
+    {{-- Toast Notifications Container (pure JS, not Alpine) --}}
+<div id="toast-container" class="fixed top-4 right-4 z-[100] space-y-2 pointer-events-none"></div>
+
 </div>
+
+{{-- Toast Notification Script --}}
+<script>
+    function showToast(type, title, message) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const id = Date.now();
+        const colors = {
+            success: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>' },
+            danger: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>' },
+            warning: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>' },
+            info: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>' }
+        };
+        const style = colors[type] || colors.info;
+
+        // Reset total amount display on success
+        if (type === 'success') {
+            const totalDisplay = document.getElementById('total-amount-display');
+            if (totalDisplay) {
+                totalDisplay.textContent = '₱0.00';
+                totalDisplay.classList.add('scale-95');
+                setTimeout(() => totalDisplay.classList.remove('scale-95'), 200);
+            }
+        }
+
+        const toast = document.createElement('div');
+        toast.id = 'toast-' + id;
+        toast.className = `pointer-events-auto rounded-xl border px-4 py-3 shadow-lg min-w-[280px] max-w-sm transition-all duration-300 translate-x-full ${style.bg} ${style.border}`;
+        toast.innerHTML = `
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-current flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">${style.icon}</svg>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold ${style.text}">${title}</p>
+                    ${message ? `<p class="text-xs mt-0.5 opacity-80 ${style.text}">${message}</p>` : ''}
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" class="text-current opacity-60 hover:opacity-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        `;
+
+        container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.remove('translate-x-full'));
+
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+</script>

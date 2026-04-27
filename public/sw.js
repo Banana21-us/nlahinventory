@@ -1,6 +1,6 @@
 // ─── Cache names ─────────────────────────────────────────────────────────────
 // Bump CACHE_VER whenever you want to force-refresh all clients.
-const CACHE_VER   = 'nlah-v4';
+const CACHE_VER   = 'nlah-v10';
 const SHELL_CACHE = `${CACHE_VER}-shell`;   // HTML pages (checklist shell)
 const ASSET_CACHE = `${CACHE_VER}-assets`;  // JS / CSS / fonts / images
 
@@ -70,13 +70,20 @@ self.addEventListener('fetch', (e) => {
         return;
     }
 
-    // 3. Checklist HTML pages → stale-while-revalidate
-    //    Serve the cached shell IMMEDIATELY (feels instant), then silently
-    //    fetch a fresh copy from the network and drop it in cache for next time.
+    // 3. Checklist HTML pages
     const isChecklist = CHECKLIST_PATHS.some((p) => url.pathname.startsWith(p));
     const isHTML = req.headers.get('accept')?.includes('text/html');
     if (isHTML && isChecklist) {
-        e.respondWith(staleWhileRevalidate(req, e.preloadResponse));
+        // Location-specific pages (prefill_location=1) must show real-time slot
+        // data.  Use alwaysFresh which forces cache:'reload' to bypass both the
+        // SW cache AND iOS Safari's HTTP cache.  Falls back to SW cache offline.
+        if (url.searchParams.has('prefill_location')) {
+            e.respondWith(alwaysFresh(req));
+            return;
+        }
+        // Use network-first so the page always shows today's fresh data.
+        // Falls back to cached copy only when truly offline.
+        e.respondWith(networkFirst(req));
         return;
     }
 
@@ -131,6 +138,27 @@ async function staleWhileRevalidate(req, preloadResponse) {
 
     // Fully offline and no cache: minimal offline page.
     return offlinePage();
+}
+
+/**
+ * Always-fresh for location-specific checklist pages.
+ *
+ * Uses cache:'reload' so the SW's fetch() bypasses both the SW cache AND
+ * iOS Safari's own HTTP cache — the server is always the source of truth.
+ * On network failure (offline) it falls back to the last cached copy.
+ */
+async function alwaysFresh(req) {
+    const cache = await caches.open(SHELL_CACHE);
+    try {
+        // new Request(req, { cache:'reload' }) overrides only the cache directive;
+        // all other attributes (headers, credentials, etc.) are kept from req.
+        const res = await fetch(new Request(req, { cache: 'reload' }));
+        if (res.ok) cache.put(req, res.clone()).catch(() => {});
+        return res;
+    } catch {
+        const cached = await cache.match(req);
+        return cached || offlinePage();
+    }
 }
 
 /**

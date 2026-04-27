@@ -31,7 +31,7 @@ class LeaveHRResultMail extends Mailable
             view: 'emails.leave-hr-result',
             with: [
                 'leave' => $this->leave,
-                'portalUrl' => route('users.dhead-leave'),
+                'portalUrl' => route('users.dhead-leaveform'),
             ],
         );
     }

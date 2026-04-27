@@ -22,7 +22,7 @@ class PositionSeeder extends Seeder
             ['name' => 'Doctor',              'code' => 'DR'],
             ['name' => 'Nurse',               'code' => 'RN'],
             ['name' => 'Pharmacist',          'code' => 'PHARM'],
-            ['name' => 'Medical Technologist','code' => 'MED-TECH'],
+            ['name' => 'Medical Technologist', 'code' => 'MED-TECH'],
             ['name' => 'Radiologic Tech',     'code' => 'RAD-TECH'],
             ['name' => 'Staff',               'code' => 'STF'],
 

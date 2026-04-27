@@ -10,7 +10,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-//php artisan db:seed --class=HRAccountSeeder
+// php artisan db:seed --class=HRAccountSeeder
 
 class HRAccountSeeder extends Seeder
 {

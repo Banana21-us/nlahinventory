@@ -1,157 +1,113 @@
 @include('partials.head')
 <livewire:navigation/>
-<main class="max-w-7xl mx-auto px-6 pt-32 md:pt-48 pb-20">
 
-    <div class="mt-1">
-        <h2 class="text-2xl md:text-3xl font-semibold uppercase tracking-wider mb-6">Who we are</h2>
+<main class="max-w-7xl mx-auto px-6 pt-32 md:pt-48 pb-20 space-y-24">
 
-        <h3 class="text-xl md:text-2xl font-medium mb-5 tracking-tight">Northern Luzon Adventist Hospital</h3>
+  {{-- ── Hero / Who We Are ── --}}
+  <section>
+    <h1 class="text-4xl md:text-6xl font-bold tracking-tight leading-[1.05] text-zinc-900 mb-4">
+      Who We Are
+    </h1>
+    <p class="text-lg md:text-xl text-zinc-500 font-medium max-w-xl leading-snug mb-10">
+      Northern Luzon Adventist Hospital
+    </p>
+    <div class="w-full border-t border-dashed border-zinc-300 mb-12"></div>
 
-        <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
-            <div class="lg:w-[40%]">
-                <div class="relative pl-6 md:pl-8">
-                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#b43b3b]"></div>
-                    
-                    <div class="space-y-6 leading-relaxed">
-                        <p class="text-base md:text-lg tracking-tight">
-                            Northern Luzon Adventist Hospital is a non-stock, non profit healthcare Institution jointly managed
-                            and operated by North Philippine Union Conference of the Seventh-Day Adventistthrough Adventist Medical
-                            Center Manila Manila
-                        </p>
-                        <p class="text-base md:text-lg tracking-tight">
-                            It is licensed by the Department of Health (DOH) and accredited by the Philippine Hospital Association (PHA),
-                            Philippine Health Insurance Corporation(PhilHealth), and various HMOs.
-                        </p>
-                        <p class="text-base md:text-lg italic tracking-tight">
-                            Presently, Northern Luzon Adventist Hospital is a level 1 healthcare facility. Structurally and
-                            Department-wise, however, Northern Luzon Adventist Hospital qualifies as a Level 2 facility due
-                            to the availability of services being rendered by different specialties such as General and Orthopedic
-                            Surgery, Ophthalmology, Otorhinolaryngology, Internal Medicine, Obstetrics & Gynecology and Pediatrics.
-                            <br><br>              
-                            Northern Luzon Adventist Hospital is working towards its full level 2 status by upgrading its Medical
-                            and Nursing services to include a Dialysis Section (Peritoneal and Hemodialysis), Intensive Care
-                            Unit/Coronary Care Unit (ICU/CCU), Neonatal Intensive Care Unit (NICU) and Physical Therapy and
-                            Rehabilitation Department in the near future.
-                        </p>
-                    </div>
-                </div>
-            </div>
+    <div class="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
+      {{-- Text --}}
+      <div class="lg:w-[42%] space-y-5 text-zinc-600 leading-relaxed text-base">
+        <p>
+          Northern Luzon Adventist Hospital is a non-stock, non-profit healthcare institution
+          jointly managed and operated by North Philippine Union Conference of the Seventh-Day
+          Adventist through Adventist Medical Center Manila.
+        </p>
+        <p>
+          It is licensed by the Department of Health (DOH) and accredited by the Philippine
+          Hospital Association (PHA), Philippine Health Insurance Corporation (PhilHealth), and
+          various HMOs.
+        </p>
+        <p class="text-zinc-500 text-sm italic">
+          Presently a Level 1 healthcare facility, NLAH qualifies structurally as Level 2 due to
+          available specialties including General and Orthopedic Surgery, Ophthalmology,
+          Otorhinolaryngology, Internal Medicine, Obstetrics &amp; Gynecology, and Pediatrics.
+          The hospital is actively working toward full Level 2 status by adding Dialysis, ICU/CCU,
+          NICU, and Physical Therapy services.
+        </p>
+      </div>
 
-            <div class="lg:w-[60%] flex flex-col gap-4">
-                <div class="bg-gray-100 rounded-lg overflow-hidden shadow-md">
-                    <img src="/image/areal1.jpg" alt="NLAH" class="w-full h-80 md:h-[400px] object-cover">
-                    <div class="p-4 bg-white">
-                        <p class="text-sm text-gray-600">Northern Luzon Adventist Hospital</p>
-                    </div>
-                </div>
-                
-                <div class="flex flex-col md:flex-row gap-4">
-                    <div class="md:w-1/2 bg-gray-100 rounded-lg overflow-hidden shadow-md">
-                        <img src="/image/areal2.jpg" alt="NLAH Facility" class="w-full h-48 md:h-64 object-cover">
-                        <div class="p-4 bg-white">
-                            <p class="text-sm text-gray-600">Description</p>
-                        </div>
-                    </div>
-                    <div class="md:w-1/2 bg-gray-100 rounded-lg overflow-hidden shadow-md">
-                        <img src="/image/services.jpg" alt="NLAH Services" class="w-full h-48 md:h-64 object-cover">
-                        <div class="p-4 bg-white">
-                            <p class="text-sm text-gray-600">Description</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      {{-- Photos --}}
+      <div class="lg:w-[58%] flex flex-col gap-4">
+        <div class="rounded-xl overflow-hidden border border-zinc-200">
+          <img src="/image/areal1.jpg" alt="NLAH Aerial View" class="w-full h-72 md:h-96 object-cover">
+          <div class="px-4 py-3 bg-white border-t border-zinc-100">
+            <p class="text-xs text-zinc-400">Northern Luzon Adventist Hospital — Artacho, Sison, Pangasinan</p>
+          </div>
         </div>
-    </div>
-
-    <div class="bg-gray-100 mt-20 rounded-2xl py-16 px-6 md:px-12 relative overflow-hidden">
-        <div class="relative z-10 max-w-5xl mx-auto">
-            <div class="text-center mb-12">
-                <h1 class="text-1xl font-bold text-green-600">ABOUT US</h1>
-                <h4 class="text-2xl uppercase tracking-widest text-gray-500 mb-3 font-bold">Mission & Vision</h4>
-                <!-- <p class="text-lg text-gray-600 max-w-2xl mx-auto">Delivering compassionate, innovative care with a focus on transforming healthcare and empowering healthier communities.</p> -->
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Mission Card -->
-                <div class="bg-white rounded-2xl shadow-lg p-8 border-t-4 border-[#b43b3b]">
-                    <h3 class="text-3xl font-bold text-gray-800 mb-4 text-center">MISSION</h3>
-                    <p class="text-lg text-gray-600 leading-relaxed">
-                        Northern Luzon Adventist Hospital shall provide
-                        the highest standard of healthcare, community service, quality
-                        education and training to fulfill the work of the Great Physician
-                        in which the Seventh-Day Adventist Church is committed to.
-                    </p>
-                </div>
-                
-                <!-- Vision Card -->
-                <div class="bg-white rounded-2xl shadow-lg p-8 border-t-4 border-[#b43b3b]">
-                    <h3 class="text-3xl font-bold text-gray-800 mb-4 text-center">VISION</h3>
-                    <p class="text-lg text-gray-600 leading-relaxed">
-                        To be a Center if Excellence in healthcare and education
-                        ministries dedicated in sharing God's Love.
-                </div>
-            </div>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="flex-1 rounded-xl overflow-hidden border border-zinc-200">
+            <img src="/image/areal2.jpg" alt="NLAH Facility" class="w-full h-44 object-cover">
+          </div>
+          <div class="flex-1 rounded-xl overflow-hidden border border-zinc-200">
+            <img src="/image/services.jpg" alt="NLAH Services" class="w-full h-44 object-cover">
+          </div>
         </div>
+      </div>
     </div>
+  </section>
 
-    <div class="mt-20 tracking-normal">
-        <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
-            <!-- Left side - Google Maps (60%) -->
-            <div class="lg:w-[60%]">
-                <div class="bg-gray-100 rounded-lg overflow-hidden shadow-md h-full">
-                    <div class="w-full h-100 md:h-[450px] lg:h-[500px]">
-                        <iframe 
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3829.623123863821!2d120.5126166759043!3d16.193358484497672!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339172a546ef277f%3A0x279c2703d225a1ed!2sNorthern%20Luzon%20Adventist%20Hospital!5e0!3m2!1sen!2sph!4v1715634567890!5m2!1sen!2sph" 
-                            width="100%" 
-                            height="100%" 
-                            style="border:0;" 
-                            allowfullscreen="" 
-                            loading="lazy" 
-                            referrerpolicy="no-referrer-when-downgrade"
-                            class="w-full h-full">
-                        </iframe>
-                    </div>
-                </div>
-            </div>
+  
 
-            <!-- Right side - Contact Information (40%) styled like reference image -->
-            <div class="lg:w-[40%]">
-                <div class="bg-white p-8 md:p-10 rounded-lg shadow-md h-full flex flex-col justify-center">
-                    <h2 class="text-1xl font-bold text-green-600 mb-2 text-center">GET IN TOUCH</h2>
-                    
-                    <h3 class="text-xl md:text-2xl font-medium text-gray-800 mb-4 text-center">Northern Luzon Adventist Hospital</h3>
-                    
-                    <p class="text-gray-600 mb-8 text-sm text-center tracking-tight">
-                        We're here to help! Reach out to us for inquiries, appointments, or assistance, and experience our commitment to your care.
-                    </p>
-                    
-                    <div class="space-y-6">
-                        <!-- Address -->
-                        <div class="flex">
-                            <div class="min-w-[80px] font-semibold text-gray-700">Address:</div>
-                            <div class="text-gray-600">MacArthur Highway, Artacho, Sison, Philippines, 2434</div>
-                        </div>
-                        
-                        <!-- Contact No -->
-                        <div class="flex">
-                            <div class="min-w-[80px] font-semibold text-gray-700">Contact No.</div>
-                            <div class="text-gray-600">(075)-632-3200</div>
-                        </div>
-                        
-                        <!-- Email Address -->
-                        <div class="flex">
-                            <div class="min-w-[80px] font-semibold text-gray-700">Email Address: </div>
-                            <div class="text-blue-800 underline">nlahospital@adventisthealth-pan.com</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Contact Us Button -->
-                    <div class="mt-8">
-                        <a href="#" class="inline-block bg-green-500 hover:bg-green-700 text-white font-medium py-3 px-8 rounded-md transition duration-300 mt-5">Contact Us</a>
-                    </div>
-                </div>
-            </div>
+  {{-- ── Location & Contact ── --}}
+  <section>
+    <div class="w-full border-t border-dashed border-zinc-300 mb-12"></div>
+    <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 mb-10">Find Us</h2>
+
+    <div class="flex flex-col lg:flex-row gap-8 items-stretch">
+      {{-- Map --}}
+      <div class="lg:w-[60%] rounded-xl overflow-hidden border border-zinc-200 min-h-[380px]">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3829.623123863821!2d120.5126166759043!3d16.193358484497672!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339172a546ef277f%3A0x279c2703d225a1ed!2sNorthern%20Luzon%20Adventist%20Hospital!5e0!3m2!1sen!2sph!4v1715634567890!5m2!1sen!2sph"
+          width="100%" height="100%"
+          style="border:0; display:block; min-height:380px;"
+          allowfullscreen loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+      </div>
+
+      {{-- Contact --}}
+      <div class="lg:w-[40%] bg-white border border-zinc-200 rounded-xl p-8 flex flex-col justify-center gap-6">
+        <div>
+          <h3 class="text-xl font-bold text-zinc-900 tracking-tight mb-1">Get in Touch</h3>
+          <p class="text-sm text-zinc-500 leading-snug">
+            Reach out for inquiries, appointments, or any assistance you need.
+          </p>
         </div>
+
+        <div class="space-y-4 text-sm">
+          <div class="flex gap-3">
+            <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span class="text-zinc-600">MacArthur Highway, Artacho, Sison, Pangasinan 2434</span>
+          </div>
+          <div class="flex gap-3">
+            <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            <span class="text-zinc-600">(075) 632-3200</span>
+          </div>
+          <div class="flex gap-3">
+            <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <a href="mailto:nlahospital@adventisthealth-pan.com" class="text-zinc-900 underline underline-offset-2 hover:text-zinc-600 transition-colors break-all">
+              nlahospital@adventisthealth-pan.com
+            </a>
+          </div>
+        </div>
+
+        <a href="https://maps.google.com/?cid=2854199161210118637" target="_blank"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-700 transition-colors">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Open in Google Maps
+        </a>
+      </div>
     </div>
+  </section>
+
 </main>
 <livewire:footer/>

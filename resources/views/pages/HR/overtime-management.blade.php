@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto py-8 px-4 nlah-page-text-primary">
+<div class="max-w-5xl mx-auto py-8 px-4 nlah-page-text-primary">
 <style>
     .brand-bg-primary        { background-color: #015581; }
     .brand-bg-primary-light  { background-color: #e6f0f7; }
@@ -27,7 +27,7 @@
                 </svg>
             </div>
             <div>
-                <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400">HR</p>
+                <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400">Employee</p>
                 <h1 class="text-xl font-bold text-gray-800 leading-tight">Overtime Applications</h1>
             </div>
         </div>
@@ -48,79 +48,56 @@
                 </div>
                 <h2 class="text-lg font-bold text-gray-800">New Overtime Application</h2>
             </div>
-            <span class="text-sm font-medium brand-text-primary" x-text="open ? 'Minimize' : 'Add New'"></span>
+            <span class="text-sm font-medium brand-text-primary" x-text="open ? 'Minimize' : 'Apply'"></span>
         </button>
 
         <div x-show="open" x-collapse class="p-6 border-t border-gray-100 bg-gray-50/30">
-            <form wire:submit.prevent="save" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Employee *</label>
-                    <select wire:model="user_id" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
-                        <option value="">— Select Employee —</option>
-                        @foreach($users as $user)
-                            <option value="{{ $user->id }}">{{ $user->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('user_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            <form wire:submit.prevent="save">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Type *</label>
+                        <select wire:model="type" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
+                            <option value="overtime">Overtime</option>
+                            <option value="on_call">On Call</option>
+                        </select>
+                        @error('type') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Start Date & Time *</label>
+                        <input type="datetime-local" wire:model.live="start_datetime"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        @error('start_datetime') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">End Date & Time *</label>
+                        <input type="datetime-local" wire:model.live="end_datetime"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        @error('end_datetime') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Hours</label>
+                        <input type="number" step="0.01" wire:model="hours" readonly placeholder="Auto-computed"
+                            class="block w-full rounded-md border border-gray-200 bg-gray-100 text-gray-700 shadow-sm sm:text-sm p-2 cursor-not-allowed"/>
+                        @error('hours') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Reason</label>
+                        <input type="text" wire:model="reason" placeholder="Brief reason"
+                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                        @error('reason') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Type *</label>
-                    <select wire:model="type" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
-                        <option value="overtime">Overtime</option>
-                        <option value="on_call">On Call</option>
-                    </select>
-                    @error('type') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Status</label>
-                    <select wire:model="status" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Start Date & Time *</label>
-                    <input type="datetime-local" wire:model="start_datetime"
-                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    @error('start_datetime') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">End Date & Time *</label>
-                    <input type="datetime-local" wire:model="end_datetime"
-                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    @error('end_datetime') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Reason</label>
-                    <input type="text" wire:model="reason" placeholder="Brief reason"
-                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                    @error('reason') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div class="md:col-span-3">
-                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Remarks</label>
-                    <textarea wire:model="remarks" rows="2" placeholder="Additional notes"
-                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"></textarea>
-                    @error('remarks') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div class="md:col-span-3 flex justify-end items-center gap-3 pt-4 border-t border-gray-100 mt-2">
+                <div class="flex justify-end items-center gap-3 pt-4 border-t border-gray-100 mt-4">
                     <button type="button" @click="open = false" class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">Cancel</button>
                     <button type="submit" class="brand-btn-primary text-sm font-bold py-2 px-10 rounded shadow-md active:scale-95 flex items-center gap-2">
-                        <span wire:loading.remove wire:target="save">Save Application</span>
+                        <span wire:loading.remove wire:target="save">Submit Application</span>
                         <span wire:loading wire:target="save" class="flex items-center gap-2">
                             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                             </svg>
-                            Saving…
+                            Submitting…
                         </span>
                     </button>
                 </div>
@@ -128,7 +105,7 @@
         </div>
     </div>
 
-    {{-- TABLE --}}
+    {{-- MY APPLICATIONS TABLE --}}
     <div class="mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
             <div class="flex items-center gap-3">
@@ -137,40 +114,30 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <h3 class="text-lg font-bold text-gray-800">Applications</h3>
+                <h3 class="text-lg font-bold text-gray-800">My Applications</h3>
                 <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
                     {{ $applications->count() }} records
                 </span>
             </div>
-            <div class="flex items-center gap-3">
-                <select wire:model.live="filterStatus" class="search-focus text-sm bg-white border border-gray-200 rounded-lg py-2 px-3">
-                    <option value="">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                </select>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-                        </svg>
-                    </div>
-                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search employee…"
-                        class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg w-48"/>
-                </div>
-            </div>
+            <select wire:model.live="filterStatus" class="search-focus text-sm bg-white border border-gray-200 rounded-lg py-2 px-3">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
         </div>
 
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Employee</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Start</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">End</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hours</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Approved By</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reviewed By</th>
                         <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
@@ -185,10 +152,6 @@
                         @endphp
                         <tr class="brand-row-hover transition-colors">
                             <td class="px-6 py-4">
-                                <p class="text-sm font-bold text-gray-900">{{ $app->user->name }}</p>
-                                <p class="text-xs text-gray-400">{{ $app->user->employee_number }}</p>
-                            </td>
-                            <td class="px-6 py-4">
                                 <span class="px-2.5 py-0.5 text-xs font-bold rounded-full {{ $app->type === 'overtime' ? 'bg-blue-100 text-blue-700' : 'bg-indigo-100 text-indigo-700' }}">
                                     {{ $app->type === 'overtime' ? 'Overtime' : 'On Call' }}
                                 </span>
@@ -196,25 +159,29 @@
                             <td class="px-6 py-4 text-sm text-gray-700">{{ $app->start_datetime->format('M d, Y h:i A') }}</td>
                             <td class="px-6 py-4 text-sm text-gray-700">{{ $app->end_datetime->format('M d, Y h:i A') }}</td>
                             <td class="px-6 py-4">
+                                <span class="text-sm font-semibold brand-text-primary">{{ $app->hours }}h</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{{ $app->reason ?? '—' }}</td>
+                            <td class="px-6 py-4">
                                 <span class="px-2.5 py-0.5 text-xs font-bold rounded-full {{ $statusBadge }} capitalize">
                                     {{ $app->status }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $app->approver?->name ?? '—' }}</td>
                             <td class="px-6 py-4 text-right text-sm font-medium">
-                                <div class="flex items-center justify-end gap-2">
-                                    @if($app->status === 'pending')
-                                        <button wire:click="approve({{ $app->id }})" class="text-green-600 hover:text-green-800 font-semibold transition-colors text-xs">Approve</button>
-                                        <button wire:click="reject({{ $app->id }})" class="text-red-500 hover:text-red-700 font-semibold transition-colors text-xs">Reject</button>
-                                    @endif
-                                    <button wire:click="edit({{ $app->id }})" class="brand-edit-btn rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors">Edit</button>
-                                    <button wire:click="confirmDelete({{ $app->id }})" class="text-red-500 hover:text-red-700 font-semibold transition-colors">Delete</button>
-                                </div>
+                                @if($app->status === 'pending')
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button wire:click="edit({{ $app->id }})" class="brand-edit-btn rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors">Edit</button>
+                                        <button wire:click="confirmDelete({{ $app->id }})" class="text-red-500 hover:text-red-700 font-semibold transition-colors">Delete</button>
+                                    </div>
+                                @else
+                                    <span class="text-xs text-gray-400">—</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-14 text-center">
+                            <td colspan="8" class="px-6 py-14 text-center">
                                 <div class="flex flex-col items-center text-gray-400">
                                     <svg class="w-10 h-10 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -247,7 +214,7 @@
                         </div>
                     </div>
                     <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 rounded-b-xl">
-                        <button wire:click="delete" class="inline-flex justify-center rounded-lg px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-500 active:scale-95">Delete Permanently</button>
+                        <button wire:click="delete" class="inline-flex justify-center rounded-lg px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-500 active:scale-95">Delete</button>
                         <button wire:click="$set('confirmingDeletion', false)" class="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
                     </div>
                 </div>
@@ -260,7 +227,7 @@
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="fixed inset-0 bg-gray-500/75" wire:click="$set('isEditing', false)"></div>
             <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative bg-white rounded-xl shadow-xl sm:w-full sm:max-w-2xl" style="border-top: 4px solid #027c8b;">
+                <div class="relative bg-white rounded-xl shadow-xl sm:w-full sm:max-w-xl" style="border-top: 4px solid #027c8b;">
                     <form wire:submit.prevent="update">
                         <div class="px-6 pt-6 pb-4">
                             <div class="flex items-center mb-5 pb-4 border-b border-gray-100">
@@ -269,19 +236,9 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                 </div>
-                                <h3 class="text-xl font-bold text-gray-900">Update Overtime Application</h3>
+                                <h3 class="text-xl font-bold text-gray-900">Edit Overtime Application</h3>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Employee *</label>
-                                    <select wire:model="user_id" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
-                                        <option value="">— Select Employee —</option>
-                                        @foreach($users as $user)
-                                            <option value="{{ $user->id }}">{{ $user->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('user_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Type *</label>
                                     <select wire:model="type" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
@@ -290,30 +247,24 @@
                                     </select>
                                 </div>
                                 <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Hours</label>
+                                    <input type="number" step="0.01" wire:model="hours" readonly
+                                        class="block w-full rounded-md border border-gray-200 bg-gray-100 text-gray-700 shadow-sm sm:text-sm p-2 cursor-not-allowed"/>
+                                    @error('hours') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                                <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Start Date & Time *</label>
-                                    <input type="datetime-local" wire:model="start_datetime" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    <input type="datetime-local" wire:model.live="start_datetime" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                     @error('start_datetime') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">End Date & Time *</label>
-                                    <input type="datetime-local" wire:model="end_datetime" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                                    <input type="datetime-local" wire:model.live="end_datetime" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
                                     @error('end_datetime') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Status</label>
-                                    <select wire:model="status" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="rejected">Rejected</option>
-                                    </select>
-                                </div>
-                                <div>
+                                <div class="md:col-span-2">
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Reason</label>
                                     <input type="text" wire:model="reason" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Remarks</label>
-                                    <textarea wire:model="remarks" rows="2" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"></textarea>
                                 </div>
                             </div>
                         </div>

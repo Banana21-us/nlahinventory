@@ -32,7 +32,7 @@ class ChecklistSyncController extends Controller
                 $this->processRecord($record);
                 $synced++;
             } catch (\Throwable $e) {
-                Log::warning("Checklist offline sync failed for record {$i}: " . $e->getMessage());
+                Log::warning("Checklist offline sync failed for record {$i}: ".$e->getMessage());
                 $errors[] = $i;
             }
         }
@@ -42,21 +42,21 @@ class ChecklistSyncController extends Controller
 
     private function processRecord(array $r): void
     {
-        $partId      = (int) ($r['partId'] ?? 0);
-        $dayKey      = (string) ($r['dayKey'] ?? 'selected');
-        $shift       = strtoupper((string) ($r['shift'] ?? 'AM'));
-        $periodType  = (string) ($r['periodType'] ?? 'daily');
+        $partId = (int) ($r['partId'] ?? 0);
+        $dayKey = (string) ($r['dayKey'] ?? 'selected');
+        $shift = strtoupper((string) ($r['shift'] ?? 'AM'));
+        $periodType = (string) ($r['periodType'] ?? 'daily');
         $selectedDate = (string) ($r['selectedDate'] ?? Carbon::now('Asia/Manila')->toDateString());
-        $imageData   = $r['imageData'] ?? null;
-        $skipReason  = $r['skipReason'] ?? null;
-        $comment     = $r['comment'] ?? null;
+        $imageData = $r['imageData'] ?? null;
+        $skipReason = $r['skipReason'] ?? null;
+        $comment = $r['comment'] ?? null;
 
         if ($partId <= 0) {
             throw new \InvalidArgumentException('Invalid partId');
         }
 
         $normalizedShift = in_array($shift, ['AM', 'PM'], true) ? $shift : null;
-        $cleaningDate    = $this->resolveCleaningDate($dayKey, $periodType, $selectedDate);
+        $cleaningDate = $this->resolveCleaningDate($dayKey, $periodType, $selectedDate);
 
         if ($cleaningDate === null) {
             throw new \InvalidArgumentException('Cannot resolve cleaning date');
@@ -72,30 +72,32 @@ class ChecklistSyncController extends Controller
             ->delete();
 
         if ($skipReason) {
-            $remarks   = match ($skipReason) {
+            $remarks = match ($skipReason) {
                 'patient_present' => 'Skipped — Patient Present',
-                'gloves'          => 'Skipped — Gloves On',
-                default           => 'Skipped',
+                'gloves' => 'Skipped — Gloves On',
+                default => 'Skipped',
             };
-            $proofPath = null;
+            // Store as "skip:<reason>" to match what confirmToggleWithSkip() writes,
+            // so loadExistingSlots() populates slotProofs and the preview button appears.
+            $proofPath = 'skip:'.$skipReason;
         } else {
             $proofPath = $this->storeProofImage($imageData, $partId, $cleaningDate, $normalizedShift);
-            $remarks   = 'Checked';
+            $remarks = 'Checked';
         }
 
         DB::table('records')->insert([
             'location_area_part_id' => $partId,
-            'cleaning_date'         => $cleaningDate,
-            'period_type'           => $periodType,
-            'shift'                 => $normalizedShift,
-            'status'                => 'YES',
-            'remarks'               => $remarks,
-            'proof'                 => $proofPath,
-            'maintenance_name'      => Auth::user()?->name,
-            'verifier_name'         => null,
-            'verifier_status'       => 'NO',
-            'verifier_comments'     => null,
-            'maintenance_comments'  => is_string($comment) && trim($comment) !== '' ? trim($comment) : null,
+            'cleaning_date' => $cleaningDate,
+            'period_type' => $periodType,
+            'shift' => $normalizedShift,
+            'status' => 'YES',
+            'remarks' => $remarks,
+            'proof' => $proofPath,
+            'maintenance_name' => Auth::user()?->name,
+            'verifier_name' => null,
+            'verifier_status' => 'NO',
+            'verifier_comments' => null,
+            'maintenance_comments' => is_string($comment) && trim($comment) !== '' ? trim($comment) : null,
         ]);
     }
 
@@ -126,7 +128,7 @@ class ChecklistSyncController extends Controller
         }
 
         $safeShift = in_array($shift, ['AM', 'PM'], true) ? $shift : null;
-        $filename  = $safeShift
+        $filename = $safeShift
             ? "locationareapart{$partId}_{$cleaningDate}_{$safeShift}.jpg"
             : "locationareapart{$partId}_{$cleaningDate}.jpg";
 

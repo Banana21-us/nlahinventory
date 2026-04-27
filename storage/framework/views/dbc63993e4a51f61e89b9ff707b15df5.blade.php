@@ -1,1 +1,0 @@
-credits-panel-{{ $form['leave_type'] }}

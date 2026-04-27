@@ -9,22 +9,24 @@ class AccessKeyManagement extends Component
 {
     // All gate slugs that can be granted — add new ones here as modules grow
     public const AVAILABLE_PERMISSIONS = [
-        'access-medical'      => 'Medical Mission',
-        'access-maintenance'  => 'Maintenance Checklist',
-        'access-verify'       => 'Maintenance Verification',
-        'access-hr-only'      => 'HR Management',
-        'access-payroll'      => 'Payroll & Compliance',
+        'access-medical' => 'Medical Mission',
+        'access-maintenance' => 'Maintenance Checklist',
+        'access-verify' => 'Maintenance Verification',
+        'access-hr-only' => 'HR Management',
+        'access-payroll' => 'Payroll & Compliance',
         'access-cashier-only' => 'Point of Sale (Cashier)',
+        'access-dept-head' => 'Department Head',
     ];
 
     // Named routes that are valid login redirect destinations
     public const AVAILABLE_ROUTES = [
-        'HR.hrdashboard'               => 'HR Dashboard',
-        'Maintenance.dashboard'        => 'Maintenance Dashboard',
+        'HR.hrdashboard' => 'HR Dashboard',
+        'Maintenance.dashboard' => 'Maintenance Dashboard',
         'Maintenance.checklist.verify' => 'Maintenance Verification',
-        'pos.dashboard'                => 'Point of Sale',
-        'users.leaveform'              => 'Staff Leave Form',
-        'users.waiting'                => 'Waiting Area (no module)',
+        'pos.dashboard' => 'Point of Sale',
+        'users.leaveform' => 'Staff Leave Form',
+        'users.dhead-leaveform' => 'Department Head Form',
+        'users.waiting' => 'Waiting Area (no module)',
     ];
 
     public string $search = '';
@@ -50,14 +52,14 @@ class AccessKeyManagement extends Component
     protected function rules(): array
     {
         return [
-            'name'               => ['required', 'string', 'max:255',
+            'name' => ['required', 'string', 'max:255',
                 $this->isEditing
                     ? "unique:access_keys,name,{$this->selectedId}"
                     : 'unique:access_keys,name',
             ],
-            'description'        => ['nullable', 'string', 'max:500'],
-            'redirect_to'        => ['nullable', 'string', 'max:255'],
-            'is_super'           => ['boolean'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'redirect_to' => ['nullable', 'string', 'max:255'],
+            'is_super' => ['boolean'],
             'selectedPermissions' => ['array'],
         ];
     }
@@ -67,10 +69,10 @@ class AccessKeyManagement extends Component
         $this->validate();
 
         AccessKey::create([
-            'name'        => $this->name,
+            'name' => $this->name,
             'description' => $this->description ?: null,
             'redirect_to' => $this->redirect_to ?: null,
-            'is_super'    => $this->is_super,
+            'is_super' => $this->is_super,
             'permissions' => $this->selectedPermissions,
         ]);
 
@@ -82,14 +84,14 @@ class AccessKeyManagement extends Component
     {
         $key = AccessKey::findOrFail($id);
 
-        $this->selectedId          = $key->id;
-        $this->name                = $key->name;
-        $this->description         = $key->description ?? '';
-        $this->redirect_to         = $key->redirect_to ?? '';
-        $this->is_super            = (bool) $key->is_super;
+        $this->selectedId = $key->id;
+        $this->name = $key->name;
+        $this->description = $key->description ?? '';
+        $this->redirect_to = $key->redirect_to ?? '';
+        $this->is_super = (bool) $key->is_super;
         $this->selectedPermissions = $key->permissions ?? [];
-        $this->isEditing           = true;
-        $this->showForm            = true;
+        $this->isEditing = true;
+        $this->showForm = true;
     }
 
     public function update(): void
@@ -97,10 +99,10 @@ class AccessKeyManagement extends Component
         $this->validate();
 
         AccessKey::findOrFail($this->selectedId)->update([
-            'name'        => $this->name,
+            'name' => $this->name,
             'description' => $this->description ?: null,
             'redirect_to' => $this->redirect_to ?: null,
-            'is_super'    => $this->is_super,
+            'is_super' => $this->is_super,
             'permissions' => $this->selectedPermissions,
         ]);
 
@@ -110,7 +112,7 @@ class AccessKeyManagement extends Component
 
     public function confirmDelete(int $id): void
     {
-        $this->selectedId         = $id;
+        $this->selectedId = $id;
         $this->confirmingDeletion = true;
     }
 
@@ -138,9 +140,9 @@ class AccessKeyManagement extends Component
             ->get();
 
         return view('pages.HR.access-key-management', [
-            'keys'                 => $keys,
+            'keys' => $keys,
             'availablePermissions' => self::AVAILABLE_PERMISSIONS,
-            'availableRoutes'      => self::AVAILABLE_ROUTES,
+            'availableRoutes' => self::AVAILABLE_ROUTES,
         ])->layout('layouts.app');
     }
 }

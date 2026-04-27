@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\PayrollAndLeave;
 use App\Models\User;
 use App\Services\LeaveAccrualService;
 use Carbon\Carbon;
@@ -13,7 +12,7 @@ class ProcessAnnualLeaveReset extends Command
 {
     protected $signature = 'leave:annual-reset';
 
-    protected $description = 'Reset annual leave balances (SL, BL, SPL) for all active employees — runs January 1 only';
+    protected $description = 'January 1 leave processing: VL annual grant + SL/BL/SPL reset for all regularized active employees';
 
     public function handle(LeaveAccrualService $service): void
     {
@@ -24,11 +23,7 @@ class ProcessAnnualLeaveReset extends Command
         }
 
         $users = User::where('is_active', true)
-            ->whereHas('employmentDetail')
-            ->whereExists(function ($query) {
-                $query->from('payroll_and_leaves')
-                      ->whereColumn('payroll_and_leaves.user_id', 'users.id');
-            })
+            ->whereHas('employmentDetail', fn ($q) => $q->whereNotNull('regularization_date'))
             ->get();
 
         $count = 0;
