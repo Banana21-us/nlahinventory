@@ -228,61 +228,28 @@
                     :href="route('HR.applications-management')"
                     :current="request()->routeIs('HR.applications-management')"
                     wire:navigate="wire:navigate">
-<<<<<<< HEAD
-                    {{ __('Overtime') }}
+                    {{ __('Applications') }}
                 </flux:sidebar.item>
-
-                <!-- Pay-off Applications -->
-                <flux:sidebar.item
-                    :href="route('HR.payoff')"
-                    :current="request()->routeIs('HR.payoff')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Pay-off') }}
-                </flux:sidebar.item>
-
-                {{-- Leave form --}}
-                
             </flux:sidebar.group>
-            @endcan
 
-                <flux:sidebar.item
-                    icon="square-3-stack-3d"
-                    :href="route('Deptassetsmanagement.asset')"
-                    :current="request()->routeIs('Deptassetsmanagement.asset')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Assets') }}
-                </flux:sidebar.item>
-
-                <flux:sidebar.item
-                    icon="square-3-stack-3d"
-                    :href="route('RepairAssets.repair')"
-                    :current="request()->routeIs('RepairAssets.repair')"
-                    wire:navigate="wire:navigate">
-                    {{ __('Repairable Assets') }}
-                </flux:sidebar.item>
-
-            {{-- ASSETS INVENTORY KUNO --}}
+            {{-- Assets Inventory --}}
             <flux:sidebar.group
                 class="grid"
                 icon="queue-list"
                 expandable="expandable"
-                heading="Assets Inventory">
+                heading="Assets Inventory"
+                :expanded="request()->routeIs(['Assetsmanagement.assets','Assetsmanagement.transfer'])">
                 <flux:sidebar.item
-                    icon="square-3-stack-3d"
                     :href="route('Assetsmanagement.assets')"
                     :current="request()->routeIs('Assetsmanagement.assets')"
                     wire:navigate="wire:navigate">
-                    {{ __('Add Assets') }}
+                    {{ __('Assets') }}
                 </flux:sidebar.item>
                 <flux:sidebar.item
-                    icon="square-3-stack-3d"
-                    :href="route('Assetsmanagement.assign-asset')"
-                    :current="request()->routeIs('Assetsmanagement.assign-asset')"
+                    :href="route('Assetsmanagement.transfer')"
+                    :current="request()->routeIs('Assetsmanagement.transfer')"
                     wire:navigate="wire:navigate">
-                    {{ __('Assign Asset') }}
-=======
-                    {{ __('Applications') }}
->>>>>>> 905a9e0c85edaaecfabe151e2686929593f2dac1
+                    {{ __('Transfer') }}
                 </flux:sidebar.item>
             </flux:sidebar.group>
 
