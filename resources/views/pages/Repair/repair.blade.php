@@ -1,4 +1,3 @@
-@php use Illuminate\Support\Facades\Storage; @endphp
 
 <div class="max-w-7xl mx-auto py-8 px-4">
     <div class="flex items-center justify-between mb-6">
