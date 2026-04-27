@@ -1,5 +1,5 @@
 <style>
-    /* ── Brand Palettesss ─────────────────────────── */
+    /* ── Brand Palettessss ─────────────────────────── */
     /* Deep Blue  #015581 | Gold  #f0b626 | Teal  #027c8b */
 
     .brand-bg-blue        { background-color: #015581; }
