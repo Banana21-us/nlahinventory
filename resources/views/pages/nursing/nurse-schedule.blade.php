@@ -36,10 +36,9 @@
     .section-title  { font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
 
     /* ── Shift grid ── */
-    .shift-grid { display:grid;grid-template-columns:80px 1fr 1fr 1fr; }
+    .shift-grid { display:grid;grid-template-columns:80px 1fr; }
     .shift-label { font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b;padding:10px 14px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;display:flex;align-items:center; }
-    .shift-cell  { padding:8px 12px;border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;min-height:54px; }
-    .shift-cell:last-child { border-right:none; }
+    .shift-cell  { padding:8px 12px;border-bottom:1px solid #f1f5f9;min-height:54px; }
     .shift-cell-header { font-size:.65rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;padding:6px 12px;border-bottom:1px solid #e2e8f0;background:#fafafa; }
 
     /* ── Nurse pill ── */
@@ -63,31 +62,23 @@
     .xl-table th { background:#d1fae5;font-weight:700;text-align:center; }
     .xl-section-row td { background:#015581;color:#fff;font-weight:800;letter-spacing:.06em;text-transform:uppercase;text-align:center;font-size:.7rem; }
     .xl-shift-label { background:#e6f0f7;font-weight:700;color:#015581;font-size:.7rem;white-space:nowrap; }
-    .xl-period-header { background:#f0f9ff;font-weight:700;color:#027c8b;text-align:center; }
     .xl-table tbody tr:hover td { background:#fef9ee; }
-    .xl-period-row td { background:#dbeafe;color:#1e40af;font-weight:800;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px; }
 
     @keyframes shrink { from { width:100% } to { width:0% } }
     @keyframes fadeIn { from { opacity:0;transform:translateY(6px) } to { opacity:1;transform:translateY(0) } }
     .fade-in { animation:fadeIn .2s ease forwards; }
-
     [x-cloak] { display:none !important; }
 
     .dp-day.dp-active.dp-today {
-        background-color: #015581 !important; /* Green theme */
-        border-color: #f0b626 !important;     /* Orange outline */
+        background-color: #015581 !important;
+        border-color: #f0b626 !important;
         border-width: 2px;
     }
-    
-    /* Ensure text stays white on the green background */
     .dp-day.dp-active.dp-today .dp-num,
-    .dp-day.dp-active.dp-today .dp-dayname {
-        color: #fff !important;
-    }
+    .dp-day.dp-active.dp-today .dp-dayname { color: #fff !important; }
 
-    /* ── Responsive ── */
     @media (max-width: 639px) {
-        .shift-grid { grid-template-columns: 48px 1fr 1fr 1fr; }
+        .shift-grid { grid-template-columns: 48px 1fr; }
         .shift-label { font-size:.6rem;padding:8px 6px;letter-spacing:0; }
         .shift-cell  { padding:5px 6px;min-height:40px; }
         .shift-cell-header { font-size:.6rem;padding:5px 6px; }
@@ -95,9 +86,7 @@
         .section-title { font-size:.6rem; }
         .nurse-pill { font-size:.65rem;padding:2px 5px 2px 3px;gap:3px; }
         .nurse-pill .np-avatar { width:15px;height:15px;font-size:.55rem; }
-        .nurse-pill .np-remove { width:13px;height:13px; }
         .add-nurse-btn { font-size:.62rem;padding:2px 6px;gap:3px; }
-        .add-nurse-btn svg { width:10px;height:10px; }
         .dp-day { min-width:44px;padding:5px 3px; }
         .dp-num { font-size:1.1rem; }
     }
@@ -121,20 +110,25 @@
     </div>
 
     <div class="flex items-center gap-2">
+        {{-- AI Auto-Schedule --}}
+        <button type="button" @click="$store.autoModal.open()"
+            class="group relative text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 border border-violet-500 text-violet-700 bg-violet-50 transition-all duration-200 hover:bg-violet-100 hover:shadow-md active:scale-95">
+            <svg class="w-4 h-4 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            <span>AI Auto-Schedule</span>
+        </button>
+
         {{-- Preview (Excel) --}}
         <button type="button" @click="openPreview()"
             class="group relative text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 border border-green-600 text-green-700 bg-green-50 transition-all duration-200 hover:bg-green-100 hover:shadow-md active:scale-95">
-
-
             <svg class="w-4 h-4 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
-            
             <span>Preview (Excel)</span>
-
         </button>
-
     </div>
 </div>
 
@@ -142,8 +136,6 @@
      DATE PICKER CARD
 ═══════════════════════════════════════════ --}}
 <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden mb-6">
-
-    {{-- Row 1: Month / Year --}}
     <div class="px-5 pt-4 pb-3 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
         <div class="flex items-center gap-2">
             <button @click="prevMonth()"
@@ -152,23 +144,18 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
                 </svg>
             </button>
-
-            {{-- Month -- x-model.number ensures numeric binding --}}
-            <select x-model.number="currentMonth" @change="buildDays()"
+            <select @change="currentMonth = +$event.target.value; buildDays()"
                 class="brand-focus border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-bold text-gray-700 bg-white cursor-pointer">
                 <template x-for="(m, i) in monthNames" :key="i">
-                    <option :value="i" x-text="m"></option>
+                    <option :value="i" :selected="i === currentMonth" x-text="m"></option>
                 </template>
             </select>
-
-            {{-- Year -- rendered only after yearRange is populated --}}
-            <select x-model.number="currentYear" @change="buildDays()"
+            <select @change="currentYear = +$event.target.value; buildDays()"
                 class="brand-focus border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-bold text-gray-700 bg-white cursor-pointer">
                 <template x-for="y in yearRange" :key="y">
-                    <option :value="y" x-text="y"></option>
+                    <option :value="y" :selected="y === currentYear" x-text="y"></option>
                 </template>
             </select>
-
             <button @click="nextMonth()"
                 class="dp-monyear-btn brand-bg-primary-light brand-text-primary hover:bg-blue-100 flex items-center justify-center w-8 h-8 p-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,8 +163,6 @@
                 </svg>
             </button>
         </div>
-
-        {{-- Legend -- inline styles prevent Tailwind purge from stripping border-yellow-400 --}}
         <div class="flex items-center gap-3 text-xs text-gray-500">
             <span class="flex items-center gap-1.5">
                 <span class="inline-block w-3 h-3 rounded-full" style="background-color:#015581;"></span>
@@ -189,10 +174,6 @@
             </span>
             <button @click="goToday()"
                 class="relative overflow-hidden group px-6 py-2 rounded-lg brand-bg-accent text-white text-[11px] font-black uppercase tracking-tighter shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 border-b-2 border-yellow-600">
-                
-                <!-- Subtle shine effect on hover -->
-                <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
-                
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
@@ -201,36 +182,30 @@
         </div>
     </div>
 
-        {{-- Row 2: Day scroller --}}
-        <div class="px-4 py-3 relative">
-            <button @click="scrollDays(-3)"
-                class="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-full bg-gradient-to-r from-white to-transparent flex items-center justify-start pl-1 border-none cursor-pointer">
-                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </button>
-
-            <div class="dp-track px-5" x-ref="dpTrack">
-                <template x-for="day in days" :key="day.date">
-                    <div class="dp-day"
-                        :class="{ 
-                            'dp-active': selectedDate === day.date, 
-                            'dp-today': day.isToday 
-                        }"
-                        @click="selectDate(day.date)">
-                        <div class="dp-num" x-text="day.num"></div>
-                        <div class="dp-dayname" x-text="day.name"></div>
-                    </div>
-                </template>
-            </div>
-
-            <button @click="scrollDays(3)"
-                class="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-full bg-gradient-to-l from-white to-transparent flex items-center justify-end pr-1 border-none cursor-pointer">
-                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-                </svg>
-            </button>
+    <div class="px-4 py-3 relative">
+        <button @click="scrollDays(-3)"
+            class="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-full bg-gradient-to-r from-white to-transparent flex items-center justify-start pl-1 border-none cursor-pointer">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        <div class="dp-track px-5" x-ref="dpTrack">
+            <template x-for="day in days" :key="day.date">
+                <div class="dp-day"
+                    :class="{ 'dp-active': selectedDate === day.date, 'dp-today': day.isToday }"
+                    @click="selectDate(day.date)">
+                    <div class="dp-num" x-text="day.num"></div>
+                    <div class="dp-dayname" x-text="day.name"></div>
+                </div>
+            </template>
         </div>
+        <button @click="scrollDays(3)"
+            class="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-full bg-gradient-to-l from-white to-transparent flex items-center justify-end pr-1 border-none cursor-pointer">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+    </div>
 
     <div class="px-5 pb-3 flex items-center gap-2">
         <span class="text-xs text-gray-400 font-medium">Viewing schedule for:</span>
@@ -243,7 +218,89 @@
 ═══════════════════════════════════════════ --}}
 <div class="space-y-5">
 
-    {{-- ── DELIVERY ROOM (AM, PM, NOC rows) ── --}}
+    {{-- ── EMERGENCY ROOM ── --}}
+    <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
+        <div class="section-header" style="background:#fff1f2;">
+            <div class="p-1.5 rounded" style="background:#dc2626;">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <span class="section-title" style="color:#dc2626;">Emergency Room (ER)</span>
+            <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:#fecaca;color:#991b1b;">3 nurses/day</span>
+        </div>
+        <div class="shift-grid">
+            <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
+            <div class="shift-cell-header text-center">Nurse</div>
+            @foreach(['am' => 'AM', 'pm' => 'PM', 'noc' => 'NOC'] as $period => $label)
+                <div class="shift-label">{{ $label }}</div>
+                <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
+                    @php $entry = $schedule['er'][$period] ?? null; @endphp
+                    @if($entry)
+                        <span class="nurse-pill" wire:key="pill-er-{{ $period }}-{{ $entry['id'] }}"
+                            style="background:#fff1f2;color:#dc2626;border-color:#fecaca;">
+                            <span class="np-avatar" style="background:#dc2626;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
+                            <span>{{ $entry['name'] }}</span>
+                            <button class="np-remove" style="background:#fecaca;color:#dc2626;"
+                                data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
+                        </span>
+                    @else
+                        <button class="add-nurse-btn" style="border-color:#fca5a5;color:#dc2626;"
+                            data-section="er" data-period="{{ $period }}">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- ── TRIAGE ── --}}
+    <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
+        <div class="section-header" style="background:#fff7ed;">
+            <div class="p-1.5 rounded" style="background:#ea580c;">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+            </div>
+            <span class="section-title" style="color:#ea580c;">Triage</span>
+            <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:#fed7aa;color:#9a3412;">3 nurses/day</span>
+        </div>
+        <div class="shift-grid">
+            <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
+            <div class="shift-cell-header text-center">Nurse</div>
+            @foreach(['am' => 'AM', 'pm' => 'PM', 'noc' => 'NOC'] as $period => $label)
+                <div class="shift-label">{{ $label }}</div>
+                <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
+                    @php $entry = $schedule['triage'][$period] ?? null; @endphp
+                    @if($entry)
+                        <span class="nurse-pill" wire:key="pill-triage-{{ $period }}-{{ $entry['id'] }}"
+                            style="background:#fff7ed;color:#ea580c;border-color:#fed7aa;">
+                            <span class="np-avatar" style="background:#ea580c;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
+                            <span>{{ $entry['name'] }}</span>
+                            <button class="np-remove" style="background:#fed7aa;color:#ea580c;"
+                                data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
+                        </span>
+                    @else
+                        <button class="add-nurse-btn" style="border-color:#fdba74;color:#ea580c;"
+                            data-section="triage" data-period="{{ $period }}">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- ── WARD ── --}}
     <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
         <div class="section-header brand-bg-primary-light">
             <div class="p-1.5 rounded brand-bg-primary">
@@ -252,23 +309,25 @@
                           d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                 </svg>
             </div>
-            <span class="section-title brand-text-primary">Delivery Room</span>
+            <span class="section-title brand-text-primary">Ward</span>
+            <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full brand-bg-primary-light brand-text-primary border border-blue-200">3 nurses/day</span>
         </div>
-        <div class="shift-grid" style="grid-template-columns:80px 1fr;">
+        <div class="shift-grid">
             <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
             <div class="shift-cell-header text-center">Nurse</div>
-            @foreach(['am','pm','noc'] as $shift)
-                <div class="shift-label">{{ strtoupper($shift) }}</div>
+            @foreach(['am' => 'AM', 'pm' => 'PM', 'noc' => 'NOC'] as $period => $label)
+                <div class="shift-label">{{ $label }}</div>
                 <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
-                    @php $entry = $schedule['ward'][$shift] ?? null; @endphp
+                    @php $entry = $schedule['ward'][$period] ?? null; @endphp
                     @if($entry)
-                        <span class="nurse-pill" wire:key="pill-ward-{{ $shift }}-{{ $entry['id'] }}">
+                        <span class="nurse-pill" wire:key="pill-ward-{{ $period }}-{{ $entry['id'] }}">
                             <span class="np-avatar">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
                             <span>{{ $entry['name'] }}</span>
                             <button class="np-remove" data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
                         </span>
                     @else
-                        <button class="add-nurse-btn" data-section="ward" data-period="{{ $shift }}">
+                        <button class="add-nurse-btn"
+                            data-section="ward" data-period="{{ $period }}">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                             </svg>
@@ -280,97 +339,57 @@
         </div>
     </div>
 
-    {{-- ── OPERATING ROOM (AM, PM, NOC rows - 2 nurses per shift) ── --}}
+    {{-- ── OPD (closed weekends) ── --}}
     <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
-        <div class="section-header brand-bg-teal-light">
-            <div class="p-1.5 rounded brand-bg-teal">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-            </div>
-            <span class="section-title brand-text-teal">Operating Room</span>
-        </div>
-        <div class="shift-grid" style="grid-template-columns:80px 1fr 1fr;">
-            <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
-            <div class="shift-cell-header text-center border-r border-gray-200">Nurse 1</div>
-            <div class="shift-cell-header text-center">Nurse 2</div>
-            @foreach(['am','pm','noc'] as $shift)
-                <div class="shift-label">{{ strtoupper($shift) }}</div>
-                @for($i = 1; $i <= 2; $i++)
-                    @php $slotLabel = $i === 1 ? '1st' : '2nd'; @endphp
-                    <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2{{ $i === 1 ? ' border-r border-gray-200' : '' }}">
-                        @php 
-                            $entries = $schedule['or'][$slotLabel] ?? [];
-                            $entry = null;
-                            foreach ($entries as $e) {
-                                if (isset($e['period']) && $e['period'] === $shift) {
-                                    $entry = $e;
-                                    break;
-                                }
-                            }
-                        @endphp
-                        @if($entry)
-                            <span class="nurse-pill" wire:key="pill-or-{{ $slotLabel }}-n{{ $i }}-{{ $entry['id'] }}"
-                                style="background:#e6f4f5;color:#027c8b;border-color:#a7d9dd;">
-                                <span class="np-avatar" style="background:#027c8b;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
-                                <span>{{ $entry['name'] }}</span>
-                                <button class="np-remove" style="background:#a7d9dd;color:#027c8b;"
-                                    data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
-                            </span>
-                        @else
-                            <button class="add-nurse-btn"
-                                style="border-color:#6ee7b7;color:#027c8b;"
-                                data-section="or" data-period="{{ $shift }}" data-slot="{{ $i === 1 ? '1st' : '2nd' }}">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Add
-                            </button>
-                        @endif
-                    </div>
-                @endfor
-            @endforeach
-        </div>
-    </div>
-
-    {{-- ── HEAD NURSE (Shift rows: 8-3, 3-11, IPCN) ── --}}
-    <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
-        <div class="section-header brand-bg-accent-light">
-            <div class="p-1.5 rounded brand-bg-accent">
+        <div class="section-header" style="background:#f5f3ff;">
+            <div class="p-1.5 rounded" style="background:#7c3aed;">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>
             </div>
-            <span class="section-title brand-text-accent">Head Nurse</span>
+            <span class="section-title" style="color:#7c3aed;">OPD (Out-Patient Department)</span>
+            @if($isOpdClosed)
+                <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:#e5e7eb;color:#6b7280;">
+                    Closed — Weekend
+                </span>
+            @else
+                <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:#ede9fe;color:#5b21b6;">1 nurse/day · 8-5</span>
+            @endif
         </div>
-        <div class="shift-grid" style="grid-template-columns:80px 1fr;">
+        <div class="shift-grid">
             <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
             <div class="shift-cell-header text-center">Nurse</div>
-            @foreach(['8-3','3-11','IPCN'] as $shift)
-                <div class="shift-label">{{ $shift }}</div>
-                <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
-                    @php $entry = $schedule['hn'][$shift] ?? null; @endphp
+            <div class="shift-label">8–5</div>
+            <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
+                @if($isOpdClosed)
+                    <span class="text-xs text-gray-400 italic flex items-center gap-1.5 mt-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                        </svg>
+                        Closed on Saturdays & Sundays
+                    </span>
+                @else
+                    @php $entry = $schedule['opd']['day'] ?? null; @endphp
                     @if($entry)
-                        <span class="nurse-pill" wire:key="pill-hn-{{ $shift }}-{{ $entry['id'] }}"
-                            style="background:#fef8e7;color:#b45309;border-color:#fde68a;">
-                            <span class="np-avatar" style="background:#f0b626;color:#fff;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
+                        <span class="nurse-pill" wire:key="pill-opd-day-{{ $entry['id'] }}"
+                            style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe;">
+                            <span class="np-avatar" style="background:#7c3aed;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
                             <span>{{ $entry['name'] }}</span>
-                            <button class="np-remove" style="background:#fde68a;color:#b45309;"
+                            <button class="np-remove" style="background:#ddd6fe;color:#7c3aed;"
                                 data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
                         </span>
                     @else
-                        <button class="add-nurse-btn"
-                            style="border-color:#fcd34d;color:#b45309;"
-                            data-section="hn" data-period="{{ $shift }}" data-slot="">
+                        <button class="add-nurse-btn" style="border-color:#c4b5fd;color:#7c3aed;"
+                            data-section="opd" data-period="day">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                             </svg>
                             Add
                         </button>
                     @endif
-                </div>
-            @endforeach
+                @endif
+            </div>
         </div>
     </div>
 
@@ -378,10 +397,159 @@
 
 
 {{-- ═══════════════════════════════════════════
-     ASSIGN NURSE MODAL — state lives in Alpine.store('nurseModal')
-     so it survives every Livewire re-render (morphdom never touches
-     Alpine stores). wire:ignore.self also guards the modal shell.
- ═══════════════════════════════════════════ --}}
+     AI AUTO-SCHEDULE MODAL
+     Controlled entirely by Alpine.store('autoModal').
+     wire:ignore keeps Livewire from patching this section.
+═══════════════════════════════════════════ --}}
+<div wire:ignore
+     x-show="$store.autoModal.isOpen"
+     x-cloak
+     class="fixed inset-0 z-50 overflow-y-auto"
+     role="dialog" aria-modal="true"
+     @keydown.escape.window="$store.autoModal.close()">
+
+    <div class="fixed inset-0 bg-gray-900/75 transition-opacity"
+         @click="$store.autoModal.close()"></div>
+
+    <div class="flex min-h-full items-center justify-center p-4" @click.stop>
+        <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl w-full max-w-md fade-in"
+             style="border-top:4px solid #7c3aed;">
+
+            <div class="bg-white px-6 pt-6 pb-4">
+                {{-- Header --}}
+                <div class="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg" style="background:#f5f3ff;">
+                            <svg class="w-5 h-5" style="color:#7c3aed;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900">AI Auto-Generate Schedule</h3>
+                            <p class="text-xs text-gray-400 mt-0.5">Algorithm assigns nurses based on rotation & leave data</p>
+                        </div>
+                    </div>
+                    <button @click="$store.autoModal.close()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Block selection --}}
+                <div class="mb-4">
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Schedule Block</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-start gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all"
+                               :class="$store.autoModal.block === 'A' ? 'border-violet-500 bg-violet-50' : 'border-gray-200 hover:border-violet-300'">
+                            <input type="radio" x-model="$store.autoModal.block" value="A" class="mt-0.5 accent-violet-600">
+                            <div>
+                                <p class="text-sm font-bold text-gray-800">Block A</p>
+                                <p class="text-xs text-gray-400">11th – 25th</p>
+                                <p class="text-xs font-semibold text-violet-600 mt-0.5"
+                                   x-show="$store.autoModal.block === 'A'"
+                                   x-text="$store.autoModal.blockDateRange"></p>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all"
+                               :class="$store.autoModal.block === 'B' ? 'border-violet-500 bg-violet-50' : 'border-gray-200 hover:border-violet-300'">
+                            <input type="radio" x-model="$store.autoModal.block" value="B" class="mt-0.5 accent-violet-600">
+                            <div>
+                                <p class="text-sm font-bold text-gray-800">Block B</p>
+                                <p class="text-xs text-gray-400">26th – 10th (next month)</p>
+                                <p class="text-xs font-semibold text-violet-600 mt-0.5"
+                                   x-show="$store.autoModal.block === 'B'"
+                                   x-text="$store.autoModal.blockDateRange"></p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                {{-- Month / Year --}}
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Month</label>
+                        <select @change="$store.autoModal.month = +$event.target.value"
+                            class="brand-focus w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 bg-white">
+                            <template x-for="(mName, i) in $store.autoModal.monthNames" :key="i">
+                                <option :value="i + 1" :selected="(i + 1) === $store.autoModal.month" x-text="mName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Year</label>
+                        <select @change="$store.autoModal.year = +$event.target.value"
+                            class="brand-focus w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 bg-white">
+                            <template x-for="y in $store.autoModal.yearRange" :key="y">
+                                <option :value="y" :selected="y === $store.autoModal.year" x-text="y"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
+                {{-- Rules reminder --}}
+                <div class="rounded-lg p-3 mb-4 text-xs text-gray-600 space-y-1" style="background:#f8fafc;border:1px solid #e2e8f0;">
+                    <p class="font-bold text-gray-700 mb-1.5">Scheduling rules applied:</p>
+                    <p>• Nurses rotate sections each block (ER → Triage → Ward → ER)</p>
+                    <p>• Minimum 80 hours per nurse per block</p>
+                    <p>• No NOC → AM back-to-back (fatigue protection)</p>
+                    <p>• Approved leave days are automatically skipped</p>
+                    <p>• OPD closed on Saturdays &amp; Sundays</p>
+                </div>
+
+                {{-- Warning --}}
+                <div class="rounded-lg p-3 flex items-start gap-2 text-xs" style="background:#fffbeb;border:1px solid #fde68a;">
+                    <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <span class="text-amber-700 font-medium">Existing schedule for this block will be replaced.</span>
+                </div>
+
+                {{-- Error status --}}
+                <div x-show="$store.autoModal.status" x-cloak
+                     class="mt-3 rounded-lg p-3 text-sm text-red-700 font-medium" style="background:#fff1f2;border:1px solid #fecaca;">
+                    <span x-text="$store.autoModal.status"></span>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 px-6 py-3 flex justify-end gap-3 rounded-b-xl">
+                <button @click="$store.autoModal.close()"
+                    class="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button @click="$store.autoModal.running = true; $wire.autoGenerate($store.autoModal.block, $store.autoModal.month, $store.autoModal.year)"
+                        :disabled="$store.autoModal.running"
+                        class="inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white shadow transition-all active:scale-95 disabled:opacity-60"
+                        style="background:#7c3aed;">
+                    <template x-if="!$store.autoModal.running">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Generate Schedule
+                        </span>
+                    </template>
+                    <template x-if="$store.autoModal.running">
+                        <span class="flex items-center gap-2">
+                            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                            </svg>
+                            Generating…
+                        </span>
+                    </template>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{-- ═══════════════════════════════════════════
+     ASSIGN NURSE MODAL
+═══════════════════════════════════════════ --}}
 <div wire:ignore
      x-show="$store.nurseModal.isOpen"
      x-cloak
@@ -389,7 +557,6 @@
      role="dialog" aria-modal="true"
      @keydown.escape.window="$store.nurseModal.close()">
 
-    {{-- Backdrop --}}
     <div class="fixed inset-0 bg-gray-500/75 transition-opacity"
          @click="$store.nurseModal.close()"></div>
 
@@ -398,8 +565,6 @@
              style="border-top:4px solid #015581;">
 
             <div class="bg-white px-6 pt-6 pb-4">
-
-                {{-- Header --}}
                 <div class="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
                     <div class="flex items-center gap-3">
                         <div class="p-2 rounded-lg brand-bg-primary-light">
@@ -412,7 +577,6 @@
                             <h3 class="text-base font-bold text-gray-900">Assign Nurse</h3>
                             <p class="text-xs text-gray-400 mt-0.5">
                                 <span x-text="$store.nurseModal.section.toUpperCase()"></span>
-                                <span x-show="$store.nurseModal.slot"> · <span x-text="$store.nurseModal.slot.toUpperCase()"></span></span>
                                 · <span x-text="$store.nurseModal.period.toUpperCase()"></span>
                                 · <span x-text="formattedSelectedDate()"></span>
                             </p>
@@ -425,7 +589,6 @@
                     </button>
                 </div>
 
-                {{-- Search (pure client-side) --}}
                 <div class="relative mb-3">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -438,11 +601,10 @@
                         class="brand-focus w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white"/>
                 </div>
 
-                {{-- Nurse list — filtered client-side; no Livewire calls on search --}}
                 <div class="max-h-56 overflow-y-auto rounded-lg border border-gray-100">
                     <template x-for="nurse in $store.nurseModal.filteredNurses" :key="nurse.id">
                         <div class="nurse-option"
-                             @click="$wire.assignEmployee(nurse.id, $store.nurseModal.section, $store.nurseModal.period, $store.nurseModal.slot); $store.nurseModal.close()">
+                             @click="$wire.assignEmployee(nurse.id, $store.nurseModal.section, $store.nurseModal.period); $store.nurseModal.close()">
                             <div class="w-8 h-8 rounded-full brand-bg-primary flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
                                  x-text="nurse.name.charAt(0).toUpperCase()"></div>
                             <div>
@@ -455,16 +617,15 @@
                          class="px-4 py-8 text-center text-sm text-gray-400">No nurses found.</div>
                 </div>
 
-                {{-- Manual entry --}}
                 <div class="mt-4 pt-3 border-t border-gray-100">
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Or type a name manually</label>
                     <div class="flex gap-2">
                         <input type="text"
                             x-model="$store.nurseModal.customName"
                             placeholder="Enter name…"
-                            @keydown.enter="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.period, $store.nurseModal.customName, $store.nurseModal.slot); $store.nurseModal.close() }"
+                            @keydown.enter="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.period, $store.nurseModal.customName); $store.nurseModal.close() }"
                             class="brand-focus flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm"/>
-                        <button @click="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.period, $store.nurseModal.customName, $store.nurseModal.slot); $store.nurseModal.close() }"
+                        <button @click="if($store.nurseModal.customName.trim()) { $wire.assignCustom($store.nurseModal.section, $store.nurseModal.period, $store.nurseModal.customName); $store.nurseModal.close() }"
                             class="brand-btn-primary text-xs font-bold px-4 py-1.5 rounded-md shadow">
                             Add
                         </button>
@@ -500,7 +661,6 @@
              style="border-top:4px solid #166534;"
              @click.stop>
 
-            {{-- Header --}}
             <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50 flex-wrap gap-3">
                 <div class="flex items-center gap-3">
                     <div class="p-2 rounded-lg bg-green-100">
@@ -518,7 +678,6 @@
                 </button>
             </div>
 
-            {{-- Date range controls --}}
             <div class="px-4 sm:px-6 py-3 border-b border-gray-100 bg-white flex flex-wrap items-center gap-3">
                 <div class="flex items-center gap-2 text-sm">
                     <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">From</label>
@@ -539,7 +698,6 @@
                 </button>
             </div>
 
-            {{-- Table area (reactive via Livewire component ref) --}}
             <div class="overflow-auto max-h-[62vh] bg-white" id="preview-scroll-area">
                 <div id="preview-table-container" wire:ignore>
                     <div class="flex flex-col items-center justify-center py-16 text-center">
@@ -552,10 +710,9 @@
             </div>
 
             <div id="preview-data-store" class="hidden" x-data="{}" wire:ignore
-                 x-init="$watch('$wire.previewData', value => { document.getElementById('preview-data-store').dataset.previewData = JSON.stringify(value); window.dispatchEvent(new CustomEvent('preview-data-updated', { detail: value })); })">
+                 x-init="$watch('$wire.previewData', value => { window.dispatchEvent(new CustomEvent('preview-data-updated', { detail: value })); })">
             </div>
 
-            {{-- Footer --}}
             <div class="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
                 <button onclick="window.print()"
                     class="brand-btn-teal text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2">
@@ -576,7 +733,7 @@
 
 
 {{-- ═══════════════════════════════════════════
-     TOAST (controlled by Alpine global state)
+     TOAST
 ═══════════════════════════════════════════ --}}
 <div x-data="{ show: false, message: '' }"
      x-show="show"
@@ -586,13 +743,7 @@
      x-transition:leave="transition ease-in duration-200"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     x-init="
-        window.addEventListener('show-toast', (e) => {
-            show = true;
-            message = e.detail.message;
-            setTimeout(() => { show = false; }, 2000);
-        });
-     "
+     x-init="window.addEventListener('show-toast', (e) => { show=true; message=e.detail.message; setTimeout(()=>{ show=false; }, 2000); });"
      class="fixed top-5 right-5 z-[60] w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
     <div class="p-4 flex items-start gap-3">
         <div class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full brand-bg-teal-light">
@@ -618,18 +769,12 @@
      ALPINE.JS
 ═══════════════════════════════════════════ --}}
 <script>
-/*
- * Alpine store — holds assign-modal state globally so it survives every
- * Livewire re-render (morphdom never touches Alpine.store). This is the
- * key to "add another nurse without refreshing the page".
- */
 document.addEventListener('alpine:init', () => {
     if (!window.Alpine.store('nurseModal')) {
         window.Alpine.store('nurseModal', {
             isOpen: false,
             section: '',
             period: '',
-            slot: '',
             search: '',
             customName: '',
             allNurses: @json($nurses),
@@ -643,20 +788,18 @@ document.addEventListener('alpine:init', () => {
                 );
             },
 
-            openFor(section, period, slot = '') {
+            openFor(section, period) {
                 this.section = section;
-                this.period = period;
-                this.slot = slot;
-                this.search = '';
+                this.period  = period;
+                this.search  = '';
                 this.customName = '';
-                this.isOpen = true;
+                this.isOpen  = true;
             },
 
             close() {
-                this.isOpen = false;
-                this.search = '';
+                this.isOpen     = false;
+                this.search     = '';
                 this.customName = '';
-                this.slot = '';
             },
         });
     }
@@ -665,39 +808,63 @@ document.addEventListener('alpine:init', () => {
         window.Alpine.store('nursePreview', {
             isOpen: false,
             from: @js($previewFrom),
-            to: @js($previewTo),
+            to:   @js($previewTo),
 
-            open(from, to) {
-                this.from = from;
-                this.to = to;
-                this.isOpen = true;
-            },
+            open(from, to) { this.from = from; this.to = to; this.isOpen = true; },
+            close()        { this.isOpen = false; },
+        });
+    }
 
-            close() {
-                this.isOpen = false;
+    if (!window.Alpine.store('autoModal')) {
+        const _nowY = new Date().getFullYear();
+        const _nowM = new Date().getMonth() + 1;
+        const _yr   = [];
+        for (let y = _nowY - 1; y <= _nowY + 2; y++) _yr.push(y);
+        window.Alpine.store('autoModal', {
+            isOpen:  false,
+            block:   'A',
+            month:   _nowM,
+            year:    _nowY,
+            status:  '',
+            running: false,
+            monthNames: ['January','February','March','April','May','June',
+                         'July','August','September','October','November','December'],
+            yearRange: _yr,
+            get blockDateRange() {
+                const p = n => String(n).padStart(2, '0');
+                const m = this.month, y = this.year;
+                if (this.block === 'A') {
+                    return `${y}-${p(m)}-11 – ${y}-${p(m)}-25`;
+                }
+                const nm = m === 12 ? 1 : m + 1;
+                const ny = m === 12 ? y + 1 : y;
+                return `${y}-${p(m)}-26 – ${ny}-${p(nm)}-10`;
             },
+            open()  { this.isOpen = true;  this.status = ''; this.running = false; },
+            close() { this.isOpen = false; this.status = ''; this.running = false; },
         });
     }
 });
 
 function nurseSchedule(initialDate) {
     return {
-        /* ── Date picker ── */
         selectedDate: initialDate,
         currentMonth: new Date(initialDate + 'T00:00:00').getMonth(),
         currentYear:  new Date(initialDate + 'T00:00:00').getFullYear(),
         days:      [],
-        yearRange: [],
+        yearRange: (() => { const b = new Date().getFullYear(), r = []; for (let y = b-3; y <= b+3; y++) r.push(y); return r; })(),
         monthNames: ['January','February','March','April','May','June',
                      'July','August','September','October','November','December'],
         dayNames:   ['SUN','MON','TUE','WED','THU','FRI','SAT'],
 
-        /* ── Preview modal ── */
         init() {
-            const now = new Date();
-            const base = now.getFullYear();
-            for (let y = base - 3; y <= base + 3; y++) this.yearRange.push(y);
             this.buildDays();
+
+            window.addEventListener('auto-schedule-result', (e) => {
+                const s = window.Alpine.store('autoModal');
+                s.running = false;
+                if (e.detail.success) { s.close(); } else { s.status = e.detail.message; }
+            });
 
             window.addEventListener('preview-data-updated', (e) => {
                 const preview = window.Alpine.store('nursePreview');
@@ -708,8 +875,7 @@ function nurseSchedule(initialDate) {
         },
 
         buildDays() {
-            const m = Number(this.currentMonth);
-            const y = Number(this.currentYear);
+            const m = Number(this.currentMonth), y = Number(this.currentYear);
             const daysInMonth = new Date(y, m + 1, 0).getDate();
             const today = new Date();
             const pad = n => String(n).padStart(2, '0');
@@ -721,9 +887,7 @@ function nurseSchedule(initialDate) {
                     date:    dateStr,
                     num:     d,
                     name:    this.dayNames[dt.getDay()],
-                    isToday: today.getFullYear() === y &&
-                             today.getMonth()    === m &&
-                             today.getDate()     === d,
+                    isToday: today.getFullYear() === y && today.getMonth() === m && today.getDate() === d,
                 });
             }
             this.$nextTick(() => this.scrollToSelected());
@@ -754,21 +918,15 @@ function nurseSchedule(initialDate) {
         },
 
         prevMonth() {
-            let m = Number(this.currentMonth);
-            let y = Number(this.currentYear);
+            let m = Number(this.currentMonth), y = Number(this.currentYear);
             if (m === 0) { m = 11; y--; } else { m--; }
-            this.currentMonth = m;
-            this.currentYear  = y;
-            this.buildDays();
+            this.currentMonth = m; this.currentYear = y; this.buildDays();
         },
 
         nextMonth() {
-            let m = Number(this.currentMonth);
-            let y = Number(this.currentYear);
+            let m = Number(this.currentMonth), y = Number(this.currentYear);
             if (m === 11) { m = 0; y++; } else { m++; }
-            this.currentMonth = m;
-            this.currentYear  = y;
-            this.buildDays();
+            this.currentMonth = m; this.currentYear = y; this.buildDays();
         },
 
         scrollDays(n) {
@@ -779,22 +937,19 @@ function nurseSchedule(initialDate) {
         formattedSelectedDate() {
             if (!this.selectedDate) return '';
             const [y, m, d] = this.selectedDate.split('-');
-            const dt = new Date(+y, +m - 1, +d);
-            return dt.toLocaleDateString('en-US', {
+            return new Date(+y, +m - 1, +d).toLocaleDateString('en-US', {
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
             });
         },
 
         openPreview() {
-            const d = this.selectedDate
-                ? new Date(this.selectedDate + 'T00:00:00')
-                : new Date();
+            const d = this.selectedDate ? new Date(this.selectedDate + 'T00:00:00') : new Date();
             const y = d.getFullYear(), m = d.getMonth();
             const pad = n => String(n).padStart(2, '0');
-            const previewFrom = `${y}-${pad(m + 1)}-01`;
-            const previewTo = `${y}-${pad(m + 1)}-${pad(new Date(y, m + 1, 0).getDate())}`;
-
-            window.Alpine.store('nursePreview').open(previewFrom, previewTo);
+            window.Alpine.store('nursePreview').open(
+                `${y}-${pad(m + 1)}-01`,
+                `${y}-${pad(m + 1)}-${pad(new Date(y, m + 1, 0).getDate())}`
+            );
             this.loadPreview();
         },
 
@@ -812,52 +967,32 @@ function nurseSchedule(initialDate) {
             if (!previewData || Object.keys(previewData).length === 0) {
                 container.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-16 text-center">
-                        <svg class="w-10 h-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
                         <p class="text-sm font-semibold text-gray-400">No schedule data found for the selected range.</p>
-                    </div>
-                `;
+                    </div>`;
                 return;
             }
 
             const fromDt = new Date(previewFrom + 'T00:00:00');
-            const toDt = new Date(previewTo + 'T00:00:00');
-
-            const dates = [];
+            const toDt   = new Date(previewTo   + 'T00:00:00');
+            const dates  = [];
             const cur = new Date(fromDt);
-            while (cur <= toDt) {
-                dates.push(new Date(cur));
-                cur.setDate(cur.getDate() + 1);
-            }
+            while (cur <= toDt) { dates.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
 
             const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+            const sectionColors = {
+                er:     { bg: '#dc2626', light: '#fff1f2' },
+                triage: { bg: '#ea580c', light: '#fff7ed' },
+                ward:   { bg: '#015581', light: '#e6f0f7' },
+                opd:    { bg: '#7c3aed', light: '#f5f3ff' },
+            };
             const sections = [
-                { key: 'ward', label: 'DELIVERY ROOM', shifts: ['am','pm','noc'], nursesPerShift: 1 },
-                { key: 'or', label: 'OPERATING ROOM', shifts: ['am','pm','noc'], nursesPerShift: 2 },
-                { key: 'hn', label: 'HEAD NURSE', shifts: ['8-3','3-11','IPCN'], nursesPerShift: 1 },
+                { key: 'er',     label: 'EMERGENCY ROOM (ER)', shifts: ['am','pm','noc'] },
+                { key: 'triage', label: 'TRIAGE',              shifts: ['am','pm','noc'] },
+                { key: 'ward',   label: 'WARD',                shifts: ['am','pm','noc'] },
+                { key: 'opd',    label: 'OPD',                 shifts: ['day'] },
             ];
 
-            let html = `<div class="text-center pt-4 pb-2">
-                <p class="text-sm font-extrabold tracking-widest uppercase" style="color:#015581;">NURSES SCHEDULE</p>
-                <p class="text-xs font-semibold text-gray-500 mt-0.5">${fromDt.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${toDt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-            </div>
-            <div class="px-3 pb-4 overflow-x-auto">
-            <table class="xl-table" style="min-width:600px;">
-                <thead>
-                    <tr>
-                        <th style="min-width:80px;position:sticky;left:0;z-index:2;background:#d1fae5;white-space:nowrap;">Shift</th>`;
-
             const colCount = dates.length + 1;
-
-            dates.forEach(dt => {
-                html += `<th style="min-width:70px;text-align:center;white-space:nowrap;">
-                    <span style="font-weight:800;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;">${dayNames[dt.getDay()]}</span><br>
-                    <span style="font-weight:900;font-size:.85rem;">${dt.getDate()}</span>
-                </th>`;
-            });
-            html += '</tr></thead><tbody>';
-
             const dateStrings = dates.map(d => {
                 const y = d.getFullYear();
                 const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -865,38 +1000,51 @@ function nurseSchedule(initialDate) {
                 return `${y}-${m}-${day}`;
             });
 
+            let html = `<div class="text-center pt-4 pb-2">
+                <p class="text-sm font-extrabold tracking-widest uppercase" style="color:#015581;">NORTHERN LUZON ADVENTIST HOSPITAL — NURSES SCHEDULE</p>
+                <p class="text-xs font-semibold text-gray-500 mt-0.5">${fromDt.toLocaleDateString('en-US',{month:'long',day:'numeric'})} – ${toDt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</p>
+            </div>
+            <div class="px-3 pb-4 overflow-x-auto">
+            <table class="xl-table" style="min-width:600px;">
+                <thead><tr>
+                    <th style="min-width:90px;position:sticky;left:0;z-index:2;background:#d1fae5;white-space:nowrap;">Shift</th>`;
+
+            dates.forEach(dt => {
+                const dow = dt.getDay();
+                const isWknd = dow === 0 || dow === 6;
+                html += `<th style="min-width:70px;text-align:center;white-space:nowrap;${isWknd?'background:#f9fafb;color:#9ca3af;':''}" >
+                    <span style="font-size:.65rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;">${dayNames[dow]}</span><br>
+                    <span style="font-weight:900;font-size:.85rem;">${dt.getDate()}</span>
+                </th>`;
+            });
+            html += '</tr></thead><tbody>';
+
             sections.forEach((sec, si) => {
-                html += `<tr class="xl-section-row"><td colspan="${colCount}">${sec.label}</td></tr>`;
-                const numNurses = sec.nursesPerShift || 1;
+                const color = sectionColors[sec.key] || { bg: '#015581', light: '#e6f0f7' };
+                html += `<tr><td colspan="${colCount}" style="background:${color.bg};color:#fff;font-weight:800;letter-spacing:.06em;text-transform:uppercase;text-align:center;font-size:.7rem;padding:4px 12px;">${sec.label}</td></tr>`;
+
                 sec.shifts.forEach(shift => {
-                    const shiftLabel = shift === 'am' ? 'AM' : (shift === 'pm' ? 'PM' : (shift === 'noc' ? 'NOC' : shift.toUpperCase()));
-                    
-                    if (sec.key === 'or') {
-                        // For OR, iterate through slots (1st, 2nd)
-                        for (let n = 1; n <= numNurses; n++) {
-                            const slotLabel = n === 1 ? '1st' : '2nd';
-                            const nurseLabel = `${shiftLabel} - Nurse ${n}`;
-                            html += `<tr><td class="xl-shift-label" style="position:sticky;left:0;z-index:1;white-space:nowrap;">${nurseLabel}</td>`;
-                            dateStrings.forEach(d => {
-                                const periodData = previewData[sec.key] ? previewData[sec.key][shift] : null;
-                                const slotData = periodData ? periodData[slotLabel] : null;
-                                const cellData = slotData ? slotData[d] || '' : '';
-                                html += `<td style="text-align:center;white-space:normal;word-wrap:break-word;word-break:break-word;font-size:.75rem;min-width:70px;">${cellData || ''}</td>`;
-                            });
-                            html += '</tr>';
+                    const shiftLabel = shift === 'am' ? 'AM' : shift === 'pm' ? 'PM' : shift === 'noc' ? 'NOC' : '8–5';
+                    html += `<tr><td class="xl-shift-label" style="position:sticky;left:0;z-index:1;white-space:nowrap;background:${color.light};color:${color.bg};">${shiftLabel}</td>`;
+
+                    dateStrings.forEach((d, idx) => {
+                        const dt = dates[idx];
+                        const dow = dt.getDay();
+                        const isWknd = dow === 0 || dow === 6;
+                        let cellContent = '';
+
+                        if (sec.key === 'opd' && isWknd) {
+                            cellContent = '<span style="font-size:.65rem;color:#9ca3af;font-style:italic;">Closed</span>';
+                        } else {
+                            const name = previewData[sec.key]?.[shift]?.[d] || '';
+                            cellContent = `<span style="font-size:.75rem;">${name}</span>`;
                         }
-                    } else {
-                        // For other sections (ward, hn)
-                        const nurseLabel = shiftLabel;
-                        html += `<tr><td class="xl-shift-label" style="position:sticky;left:0;z-index:1;white-space:nowrap;">${nurseLabel}</td>`;
-                        dateStrings.forEach(d => {
-                            const periodData = previewData[sec.key] ? previewData[sec.key][shift] : null;
-                            const cellData = periodData ? periodData[d] || '' : '';
-                            html += `<td style="text-align:center;white-space:normal;word-wrap:break-word;word-break:break-word;font-size:.75rem;min-width:70px;">${cellData || ''}</td>`;
-                        });
-                        html += '</tr>';
-                    }
+
+                        html += `<td style="text-align:center;word-break:break-word;min-width:70px;${isWknd?'background:#f9fafb;':''}">${cellContent}</td>`;
+                    });
+                    html += '</tr>';
                 });
+
                 if (si < sections.length - 1) {
                     html += `<tr><td colspan="${colCount}" style="padding:2px;background:#f9fafb;border:none;"></td></tr>`;
                 }
@@ -906,8 +1054,7 @@ function nurseSchedule(initialDate) {
             container.innerHTML = html;
         },
 
-        // Single delegated handler for all dynamic schedule buttons.
-        // Avoids relying on Alpine/wire re-initialization after morphdom patches.
+        // Delegated click handler for dynamically rendered schedule buttons
         handleScheduleClick(event) {
             const removeBtn = event.target.closest('.np-remove[data-remove-id]');
             if (removeBtn) {
@@ -918,13 +1065,10 @@ function nurseSchedule(initialDate) {
             if (addBtn) {
                 window.Alpine.store('nurseModal').openFor(
                     addBtn.dataset.section,
-                    addBtn.dataset.period,
-                    addBtn.dataset.slot || ''
+                    addBtn.dataset.period
                 );
             }
         },
     };
 }
 </script>
-
-

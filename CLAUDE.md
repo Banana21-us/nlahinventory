@@ -129,8 +129,14 @@ Late alerts sent via `LateAlertMail`. Import biometric logs via `AttendanceManag
 - `app/Livewire/AttendanceManagement.php` — biometric log import + attendance summary
 - `app/Livewire/MaintenanceDashboard.php` — KPI stats from `records` filtered by `maintenance_name`
 - `app/Livewire/PointofSale/POS.php` — cart with budget meal bundles, multi-payment (Cash/GCash/Credit), DB transaction rollback
-- `app/Livewire/Assets.php` — asset inventory with transaction records
+- `app/Livewire/AssetManagement.php` — HR-side asset CRUD (inventory, movements, locations); `activeTab` switches between sub-views
+- `app/Livewire/Assets.php` — department view of assigned assets
+- `app/Livewire/AssignAsset.php` — assign assets to employees/departments
+- `app/Livewire/DeptAsset.php` — department asset listing
+- `app/Livewire/Repair.php` — asset repair tracking (pending/completed filter); scoped to `$userDepartmentId`
 - `app/Livewire/Transfer.php` — asset transfer management
+
+> **Note:** `/Assetsmanagement/*` routes currently have **no auth or gate middleware** — they are still in active development.
 
 ### Frontend Conventions
 
