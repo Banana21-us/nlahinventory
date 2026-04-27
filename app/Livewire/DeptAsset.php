@@ -156,7 +156,7 @@ class DeptAsset extends Component
 
     public function render()
     {
-        return view('pages.Deptassetmanagement.asset', [
+        return view('pages.Assetsmanagement.dept-asset', [
             'assets' => $this->assets,
         ]);
     }

@@ -232,25 +232,38 @@
                 </flux:sidebar.item>
             </flux:sidebar.group>
 
-            {{-- Assets Inventory --}}
+            {{-- Asset Management --}}
             <flux:sidebar.group
                 class="grid"
                 icon="queue-list"
                 expandable="expandable"
-                heading="Assets Inventory"
-                :expanded="request()->routeIs(['Assetsmanagement.assets','Assetsmanagement.transfer'])">
+                heading="Asset Management"
+                :expanded="request()->routeIs(['Assetsmanagement.*'])">
                 <flux:sidebar.item
                     :href="route('Assetsmanagement.assets')"
                     :current="request()->routeIs('Assetsmanagement.assets')"
                     wire:navigate="wire:navigate">
-                    {{ __('Assets') }}
+                    {{ __('Inventory') }}
                 </flux:sidebar.item>
                 <flux:sidebar.item
-                    :href="route('Assetsmanagement.transfer')"
-                    :current="request()->routeIs('Assetsmanagement.transfer')"
+                    :href="route('Assetsmanagement.assign-asset')"
+                    :current="request()->routeIs('Assetsmanagement.assign-asset')"
                     wire:navigate="wire:navigate">
-                    {{ __('Transfer') }}
+                    {{ __('Assign Assets') }}
                 </flux:sidebar.item>
+                <flux:sidebar.item
+                    :href="route('Assetsmanagement.dept-asset')"
+                    :current="request()->routeIs('Assetsmanagement.dept-asset')"
+                    wire:navigate="wire:navigate">
+                    {{ __('My Department') }}
+                </flux:sidebar.item>
+                <flux:sidebar.item
+                    :href="route('Assetsmanagement.repair')"
+                    :current="request()->routeIs('Assetsmanagement.repair')"
+                    wire:navigate="wire:navigate">
+                    {{ __('Repairs') }}
+                </flux:sidebar.item>
+
             </flux:sidebar.group>
 
             {{-- Payroll & Compliance as a group — HR sees it here --}}

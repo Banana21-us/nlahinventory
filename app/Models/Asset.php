@@ -23,7 +23,8 @@ class Asset extends Model
         'status',
         'condition_status',
         'notes',
-        'item_type_id',  // Add this if your assets table has this column
+        'image',
+        'item_type_id',
     ];
 
     protected $casts = [

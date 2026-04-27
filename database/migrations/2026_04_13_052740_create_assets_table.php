@@ -6,15 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('assets', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('item_type_id'); // Just an integer
-            $table->unsignedBigInteger('location_id');  // Just an integer
+            $table->unsignedBigInteger('item_type_id');
+            $table->unsignedBigInteger('location_id');
             $table->string('status')->default('available');
             $table->string('brand')->nullable();
             $table->date('purchase_date')->nullable();
@@ -23,9 +20,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('assets');

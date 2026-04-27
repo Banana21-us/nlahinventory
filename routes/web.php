@@ -5,17 +5,17 @@ use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LeaveResponseController;
 use App\Http\Controllers\NewsEventController;
 use App\Livewire\AccessKeyManagement;
-use App\Livewire\AssetItemEntry;
+use App\Livewire\AssetManagement;
 use App\Livewire\Assets;
-use App\Livewire\AssetTransactionRecords;
+use App\Livewire\AssignAsset;
 use App\Livewire\AttendanceManagement;
 use App\Livewire\Dashboard;
 use App\Livewire\DepartmentManagement;
+use App\Livewire\DeptAsset;
 use App\Livewire\DHead;
 use App\Livewire\DispenseMedicine;
 use App\Livewire\EmployeeManagement;
-use App\Livewire\AssetItemEntry;
-use App\Livewire\AssetTransactionRecords;
+use App\Livewire\HolidayManagement;
 use App\Livewire\Home;
 use App\Livewire\HR;
 use App\Livewire\HrApplicationsManagement;
@@ -26,12 +26,14 @@ use App\Livewire\LeaveTypeManagement;
 use App\Livewire\MaintenanceDashboard;
 use App\Livewire\Medicines;
 use App\Livewire\News;
+use App\Livewire\NurseSchedule;
+use App\Livewire\OvertimeManagement;
 use App\Livewire\PatientDetail;
 use App\Livewire\PatientManager;
 use App\Livewire\PayoffManagement;
 use App\Livewire\PayrollCompliance;
 use App\Livewire\PositionManagement;
-use App\Livewire\Assets;
+use App\Livewire\Repair;
 use App\Livewire\Transfer;
 use App\Livewire\PointOfSale\POS;
 use App\Livewire\PointOfSale\PosCustomer;
@@ -39,8 +41,6 @@ use App\Livewire\PointOfSale\Posdashboard;
 use App\Livewire\PointOfSale\PosInventory;
 use App\Livewire\PointOfSale\PosItems;
 use App\Livewire\PointOfSale\PosSales;
-use App\Livewire\PositionManagement;
-use App\Livewire\Transfer;
 use App\Models\Feedback;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
@@ -219,10 +219,11 @@ Route::middleware(['auth', 'can:access-dept-head'])->group(function () {
 Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
 Route::get('/waiting', fn () => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
 
+Route::get('/Assetsmanagement', AssetManagement::class)->name('Assetsmanagement.management');
 Route::get('/Assetsmanagement/assets', Assets::class)->name('Assetsmanagement.assets');
-Route::get('/Assetsmanagement/transfer', Transfer::class)->name('Assetsmanagement.transfer');
-Route::get('/Assetsmanagement/item-entry', AssetItemEntry::class)->name('Assetsmanagement.item-entry');
-Route::get('/Assetsmanagement/transaction-records', AssetTransactionRecords::class)->name('Assetsmanagement.transaction-records');
+Route::get('/Assetsmanagement/assign-asset', AssignAsset::class)->name('Assetsmanagement.assign-asset');
+Route::get('/Assetsmanagement/dept-asset', DeptAsset::class)->name('Assetsmanagement.dept-asset');
+Route::get('/Assetsmanagement/repair', Repair::class)->name('Assetsmanagement.repair');
 
 Route::post('/nlah/chat', function (Request $request) {
     $messagesInput = $request->input('messages');
@@ -402,7 +403,7 @@ Route::post('/nlah/feedback/submit', function (Request $request) {
         'ip_address' => $request->ip(),
     ]);
 
-//     return response()->json(['success' => true]);
-// });
+    return response()->json(['success' => true]);
+});
 
 require __DIR__.'/settings.php';

@@ -149,7 +149,7 @@ class Repair extends Component
 
     public function render()
     {
-        return view('pages.Repair.repair', [
+        return view('pages.Assetsmanagement.repair', [
             'assets' => $this->assets,
         ]);
     }

@@ -26,11 +26,14 @@ class Assets extends Component
     public $notes;
     public $image;
     public $existing_image;
-    
+
     public $showForm = false;
     public $isEditing = false;
     public $confirmingDeletion = false;
     public $search = '';
+
+    public $toastMessage = '';
+    public $toastError = '';
 
     protected $rules = [
         'asset_code' => 'required|string|max:50',
@@ -104,7 +107,7 @@ class Assets extends Component
             'image' => $imagePath,
         ]);
 
-        session()->flash('message', 'Asset created successfully!');
+        $this->toastMessage = 'Asset created successfully!';
         $this->resetForm();
         $this->showForm = false;
         $this->isEditing = false;
@@ -172,7 +175,7 @@ class Assets extends Component
             'image' => $imagePath,
         ]);
 
-        session()->flash('message', 'Asset updated successfully!');
+        $this->toastMessage = 'Asset updated successfully!';
         $this->resetForm();
         $this->showForm = false;
         $this->isEditing = false;
@@ -193,8 +196,8 @@ class Assets extends Component
         }
         
         $asset->delete();
-        
-        session()->flash('message', 'Asset deleted successfully!');
+
+        $this->toastMessage = 'Asset deleted successfully!';
         $this->confirmingDeletion = false;
         $this->asset_id = null;
     }

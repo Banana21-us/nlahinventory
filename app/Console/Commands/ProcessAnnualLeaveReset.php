@@ -10,14 +10,14 @@ use Illuminate\Support\Facades\Log;
 
 class ProcessAnnualLeaveReset extends Command
 {
-    protected $signature = 'leave:annual-reset';
+    protected $signature = 'leave:annual-reset {--force : Run even if today is not January 1}';
 
     protected $description = 'January 1 leave processing: VL annual grant + SL/BL/SPL reset for all regularized active employees';
 
     public function handle(LeaveAccrualService $service): void
     {
-        if (! Carbon::today()->isStartOfYear()) {
-            $this->info('Annual leave reset skipped — today is not January 1.');
+        if (! Carbon::today()->isStartOfYear() && ! $this->option('force')) {
+            $this->info('Annual leave reset skipped — today is not January 1. Use --force to override.');
 
             return;
         }
