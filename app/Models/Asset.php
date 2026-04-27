@@ -4,22 +4,37 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Asset extends Model
 {
+    protected $table = 'assets';
+    
     protected $fillable = [
-        'item_type_id',
+        'asset_code',
+        'name',
+        'category',
+        'department_id',
         'location_id',
-        'status',
         'brand',
+        'model',
+        'serial_number',
         'purchase_date',
-        'sku',
+        'purchase_cost',
+        'status',
+        'condition_status',
+        'notes',
+        'item_type_id',  // Add this if your assets table has this column
     ];
 
     protected $casts = [
         'purchase_date' => 'date',
+        'purchase_cost' => 'decimal:2',
     ];
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
 
     public function itemType(): BelongsTo
     {
@@ -28,11 +43,6 @@ class Asset extends Model
 
     public function location(): BelongsTo
     {
-        return $this->belongsTo(AssetLocation::class, 'location_id');
-    }
-
-    public function transactions(): HasMany
-    {
-        return $this->hasMany(AssetTransaction::class, 'asset_id');
+        return $this->belongsTo(Location::class, 'location_id');
     }
 }

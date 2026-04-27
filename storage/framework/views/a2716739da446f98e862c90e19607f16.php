@@ -1,4 +1,4 @@
-@php use Illuminate\Support\Facades\Storage; @endphp
+<?php use Illuminate\Support\Facades\Storage; ?>
 
 <div class="max-w-7xl mx-auto py-8 px-4">
     <div class="flex items-center justify-between mb-6">
@@ -25,7 +25,7 @@
         </button>
     </div>
 
-    @if($showForm)
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($showForm): ?>
     <div class="bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden mb-6">
         <div class="bg-gradient-to-r from-sky-600 to-sky-700 px-6 py-4">
             <div class="flex items-center justify-between">
@@ -36,7 +36,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-white">{{ $isEditing ? 'Edit Asset' : 'Register New Asset' }}</h3>
+                        <h3 class="text-lg font-bold text-white"><?php echo e($isEditing ? 'Edit Asset' : 'Register New Asset'); ?></h3>
                         <p class="text-xs text-sky-200">Fill in the asset details below</p>
                     </div>
                 </div>
@@ -47,17 +47,31 @@
                 </button>
             </div>
         </div>
-        <form wire:submit.prevent="{{ $isEditing ? 'update' : 'save' }}" class="p-6">
+        <form wire:submit.prevent="<?php echo e($isEditing ? 'update' : 'save'); ?>" class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Asset Code *</label>
                     <input type="text" wire:model="asset_code" placeholder="ASSET-001" class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
-                    @error('asset_code') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['asset_code'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Asset Name *</label>
                     <input type="text" wire:model="name" placeholder="Dell XPS 15" class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
-                    @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Category</label>
@@ -74,7 +88,14 @@
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Serial Number</label>
                     <input type="text" wire:model="serial_number" placeholder="SN-123456" class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
-                    @error('serial_number') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['serial_number'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Purchase Date</label>
@@ -108,42 +129,50 @@
                 <div class="md:col-span-2 xl:col-span-3">
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Asset Image</label>
                     <div class="mt-1 flex items-center gap-4">
-                        @if($existing_image)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($existing_image): ?>
                             <div class="relative">
-                                <img src="{{ Storage::url($existing_image) }}" class="w-20 h-20 object-cover rounded-lg border border-gray-200">
+                                <img src="<?php echo e(Storage::url($existing_image)); ?>" class="w-20 h-20 object-cover rounded-lg border border-gray-200">
                                 <button type="button" wire:click="$set('existing_image', null)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                     </svg>
                                 </button>
                             </div>
-                        @elseif($image)
+                        <?php elseif($image): ?>
                             <div class="relative">
-                                <img src="{{ $image->temporaryUrl() }}" class="w-20 h-20 object-cover rounded-lg border border-gray-200">
+                                <img src="<?php echo e($image->temporaryUrl()); ?>" class="w-20 h-20 object-cover rounded-lg border border-gray-200">
                                 <button type="button" wire:click="$set('image', null)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                     </svg>
                                 </button>
                             </div>
-                        @endif
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         <div class="flex-1">
                             <input type="file" wire:model="image" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
                             <p class="text-xs text-gray-400 mt-1">Supported formats: JPG, PNG, GIF. Max size: 2MB</p>
                         </div>
                     </div>
-                    @error('image') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['image'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <span class="text-red-500 text-xs mt-1 block"><?php echo e($message); ?></span> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
             </div>
             <div class="flex justify-end items-center gap-3 pt-4 border-t border-gray-100 mt-4">
                 <button type="button" wire:click="cancelForm" class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">Cancel</button>
                 <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold py-2 px-6 rounded shadow-md transition-all">
-                    {{ $isEditing ? 'Update Asset' : 'Register Asset' }}
+                    <?php echo e($isEditing ? 'Update Asset' : 'Register Asset'); ?>
+
                 </button>
             </div>
         </form>
     </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
     <div class="mb-6">
         <div class="relative max-w-md">
@@ -170,63 +199,64 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
-                    @forelse($assets as $asset)
-                        @php
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $assets; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $asset): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                        <?php
                             $isAssigned = $asset->department_id && $asset->location_id;
-                        @endphp
+                        ?>
                         <tr class="hover:bg-sky-50/40 transition-colors">
                             <td class="px-6 py-4">
-                                @if($asset->image && Storage::disk('public')->exists($asset->image))
-                                    <img src="{{ Storage::url($asset->image) }}" class="w-12 h-12 object-cover rounded-lg">
-                                @else
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($asset->image && Storage::disk('public')->exists($asset->image)): ?>
+                                    <img src="<?php echo e(Storage::url($asset->image)); ?>" class="w-12 h-12 object-cover rounded-lg">
+                                <?php else: ?>
                                     <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                                         <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
                                     </div>
-                                @endif
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm font-bold text-gray-900">{{ $asset->asset_code }}</div>
-                                <div class="text-xs text-gray-400">Added {{ $asset->created_at?->format('M d, Y') }}</div>
+                                <div class="text-sm font-bold text-gray-900"><?php echo e($asset->asset_code); ?></div>
+                                <div class="text-xs text-gray-400">Added <?php echo e($asset->created_at?->format('M d, Y')); ?></div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm font-semibold text-gray-800">{{ $asset->name }}</div>
-                                @if($asset->serial_number)
-                                    <div class="text-xs text-gray-400">SN: {{ $asset->serial_number }}</div>
-                                @endif
+                                <div class="text-sm font-semibold text-gray-800"><?php echo e($asset->name); ?></div>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($asset->serial_number): ?>
+                                    <div class="text-xs text-gray-400">SN: <?php echo e($asset->serial_number); ?></div>
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ $asset->brand ?: 'N/A' }} @if($asset->model) ({{ $asset->model }}) @endif</td>
-                            <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">{{ ucfirst(str_replace('_', ' ', $asset->status)) }}</span></td>
-                            <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">{{ ucfirst($asset->condition_status) }}</span></td>
+                            <td class="px-6 py-4 text-sm text-gray-600"><?php echo e($asset->brand ?: 'N/A'); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($asset->model): ?> (<?php echo e($asset->model); ?>) <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?></td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700"><?php echo e(ucfirst(str_replace('_', ' ', $asset->status))); ?></span></td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700"><?php echo e(ucfirst($asset->condition_status)); ?></span></td>
                             <td class="px-6 py-4">
-                                @if($isAssigned)
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isAssigned): ?>
                                     <span class="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">Assigned</span>
-                                @else
+                                <?php else: ?>
                                     <span class="px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">Unassigned</span>
-                                @endif
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </td>
                             <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
-                                <button wire:click="edit({{ $asset->id }})" class="rounded-md bg-sky-50 px-2.5 py-1.5 text-sm font-semibold text-sky-700 shadow-sm hover:bg-sky-100">Edit</button>
-                                <button wire:click="confirmDelete({{ $asset->id }})" class="text-red-500 hover:text-red-700 font-semibold">Delete</button>
+                                <button wire:click="edit(<?php echo e($asset->id); ?>)" class="rounded-md bg-sky-50 px-2.5 py-1.5 text-sm font-semibold text-sky-700 shadow-sm hover:bg-sky-100">Edit</button>
+                                <button wire:click="confirmDelete(<?php echo e($asset->id); ?>)" class="text-red-500 hover:text-red-700 font-semibold">Delete</button>
                             </td>
                         </tr>
-                    @empty
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                         <tr>
                             <td colspan="8" class="px-6 py-14 text-center text-gray-400">
                                 No asset records yet. Click "Add New Asset" to get started.
                             </td>
                         </tr>
-                    @endforelse
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </tbody>
             </table>
         </div>
         <div class="px-6 py-4 border-t">
-            {{ $assets->links() }}
+            <?php echo e($assets->links()); ?>
+
         </div>
     </div>
 
-    @if($confirmingDeletion)
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($confirmingDeletion): ?>
     <div class="fixed inset-0 z-50 overflow-y-auto">
         <div class="fixed inset-0 bg-gray-500/75 transition-opacity" wire:click="cancelDelete"></div>
         <div class="flex min-h-full items-center justify-center p-4">
@@ -251,11 +281,12 @@
             </div>
         </div>
     </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-    @if (session()->has('message'))
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session()->has('message')): ?>
     <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="fixed bottom-5 right-5 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
-        {{ session('message') }}
+        <?php echo e(session('message')); ?>
+
     </div>
-    @endif
-</div>
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+</div><?php /**PATH C:\Users\JOHNPAUL\OneDrive\Documents\GitHub\nlahinventory\resources\views/pages/Assetsmanagement/assets.blade.php ENDPATH**/ ?>
