@@ -139,13 +139,13 @@ class OvertimeManagement extends Component
     public function render()
     {
         $applications = OvertimeApplication::query()
-            ->with('approver')
+            ->with('hrApprover', 'accountingApprover')
             ->where('user_id', Auth::id())
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->orderByDesc('start_datetime')
             ->get();
 
-        return view('pages.HR.overtime-management', compact('applications'))
+        return view('pages.users.overtime', compact('applications'))
             ->layout('layouts.app');
     }
 }

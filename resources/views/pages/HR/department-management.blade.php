@@ -145,39 +145,57 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════
-         DEPARTMENT TABLE
-    ═══════════════════════════════════════════ --}}
-    <div class="mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="p-2 rounded-lg brand-bg-teal-light">
-                    <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800">Department List</h3>
-                <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                    {{ $departments->count() }} {{ Str::plural('department', $departments->count()) }}
-                </span>
-            </div>
-
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-                    </svg>
-                </div>
-                <input
-                    wire:model.live.debounce.300ms="search"
-                    type="text"
-                    placeholder="Search departments…"
-                    class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg transition-all w-56"
-                />
-            </div>
+    {{-- Search bar --}}
+    <div class="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 mb-4">
+        <div class="flex items-center gap-2 mb-2">
+            <h3 class="text-sm font-bold text-gray-700">Department List</h3>
+            <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-medium">{{ $departments->count() }}</span>
         </div>
+        <div class="relative w-full">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+            </div>
+            <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search departments…"
+                   class="search-focus w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg"/>
+        </div>
+    </div>
 
+    {{-- Mobile cards --}}
+    <div class="md:hidden space-y-3">
+        @forelse($departments as $dept)
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-4 pt-4 pb-3 flex items-start gap-3">
+                    <span class="shrink-0 px-2.5 py-0.5 text-xs font-bold rounded-full mt-0.5"
+                          style="background-color:#fef8e7;color:#b45309;border:1px solid #fde68a;">{{ $dept->code }}</span>
+                    <p class="text-sm font-bold text-gray-900">{{ $dept->name }}</p>
+                </div>
+                <div class="px-4 pb-3">
+                    @if($dept->deptHead)
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">{{ strtoupper(substr($dept->deptHead->name, 0, 1)) }}</div>
+                            <div>
+                                <p class="text-xs font-semibold text-gray-800">{{ $dept->deptHead->name }}</p>
+                                <p class="text-[10px] text-gray-400">{{ $dept->deptHead->employee_number }}</p>
+                            </div>
+                        </div>
+                    @else
+                        <span class="text-xs text-gray-400 italic">No dept head assigned</span>
+                    @endif
+                </div>
+                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+                    <button wire:click="edit({{ $dept->id }})" class="brand-edit-btn rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm">Edit</button>
+                    <button wire:click="confirmDelete({{ $dept->id }})" class="text-red-500 text-xs font-bold px-2 py-1.5">Delete</button>
+                </div>
+            </div>
+        @empty
+            <div class="bg-white rounded-xl border border-gray-200 px-6 py-12 text-center text-gray-400">
+                <p class="text-sm font-medium">{{ $search ? 'No departments match your search.' : 'No departments found.' }}</p>
+            </div>
+        @endforelse
+    </div>
+
+    {{-- Desktop table --}}
+    <div class="hidden md:block bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -191,63 +209,25 @@
                 <tbody class="bg-white divide-y divide-gray-100">
                     @forelse($departments as $dept)
                         <tr class="brand-row-hover transition-colors">
-
-                            <td class="px-6 py-4">
-                                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full"
-                                      style="background-color:#fef8e7;color:#b45309;border:1px solid #fde68a;">
-                                    {{ $dept->code }}
-                                </span>
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <p class="text-sm font-bold text-gray-900">{{ $dept->name }}</p>
-                            </td>
-
+                            <td class="px-6 py-4"><span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full" style="background-color:#fef8e7;color:#b45309;border:1px solid #fde68a;">{{ $dept->code }}</span></td>
+                            <td class="px-6 py-4"><p class="text-sm font-bold text-gray-900">{{ $dept->name }}</p></td>
                             <td class="px-6 py-4">
                                 @if($dept->deptHead)
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">
-                                            {{ strtoupper(substr($dept->deptHead->name, 0, 1)) }}
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-semibold text-gray-900">{{ $dept->deptHead->name }}</p>
-                                            <p class="text-xs text-gray-400">{{ $dept->deptHead->employee_number }}</p>
-                                        </div>
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">{{ strtoupper(substr($dept->deptHead->name, 0, 1)) }}</div>
+                                        <div><p class="text-sm font-semibold text-gray-900">{{ $dept->deptHead->name }}</p><p class="text-xs text-gray-400">{{ $dept->deptHead->employee_number }}</p></div>
                                     </div>
                                 @else
                                     <span class="text-xs text-gray-400 italic">Not assigned</span>
                                 @endif
                             </td>
-
-                            
-
                             <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
-                                <button wire:click="edit({{ $dept->id }})"
-                                    class="brand-edit-btn rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors">
-                                    Edit
-                                </button>
-                                <button wire:click="confirmDelete({{ $dept->id }})"
-                                    class="text-red-500 hover:text-red-700 font-semibold transition-colors">
-                                    Delete
-                                </button>
+                                <button wire:click="edit({{ $dept->id }})" class="brand-edit-btn rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors">Edit</button>
+                                <button wire:click="confirmDelete({{ $dept->id }})" class="text-red-500 hover:text-red-700 font-semibold transition-colors">Delete</button>
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="5" class="px-6 py-14 text-center">
-                                <div class="flex flex-col items-center text-gray-400">
-                                    <svg class="w-10 h-10 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                    </svg>
-                                    <p class="text-sm font-medium">
-                                        {{ $search ? 'No departments match your search.' : 'No departments found.' }}
-                                    </p>
-                                    <p class="text-xs mt-1">
-                                        {{ $search ? 'Try a different keyword.' : 'Click "Add New Department" above to get started.' }}
-                                    </p>
-                                </div>
-                            </td>
-                        </tr>
+                        <tr><td colspan="4" class="px-6 py-14 text-center text-gray-400 text-sm">{{ $search ? 'No departments match your search.' : 'No departments found.' }}</td></tr>
                     @endforelse
                 </tbody>
             </table>

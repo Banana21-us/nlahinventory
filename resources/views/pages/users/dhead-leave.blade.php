@@ -283,6 +283,16 @@
                     <span class="ml-1.5 bg-gray-200 text-gray-700 text-xs px-1.5 py-0.5 rounded-full">0</span>
                 @endif
             </button>
+            <button @click="activeTab = 'payoffs'"
+                    :class="activeTab === 'payoffs' ? 'tab-active' : 'tab-inactive'"
+                    class="py-3 text-sm font-semibold transition-all duration-200 focus:outline-none">
+                💰 Pay-off Requests
+                @if($pendingPayoffs->count() > 0)
+                    <span class="ml-1.5 bg-emerald-100 text-emerald-700 text-xs px-1.5 py-0.5 rounded-full font-bold">{{ $pendingPayoffs->count() }}</span>
+                @else
+                    <span class="ml-1.5 bg-gray-200 text-gray-700 text-xs px-1.5 py-0.5 rounded-full">0</span>
+                @endif
+            </button>
             <button @click="activeTab = 'myrequests'"
                     :class="activeTab === 'myrequests' ? 'tab-active' : 'tab-inactive'"
                     class="py-3 text-sm font-semibold transition-all duration-200 focus:outline-none">
@@ -481,6 +491,102 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        {{-- ── PAY-OFF APPROVAL QUEUE ── --}}
+        <div x-show="activeTab === 'payoffs'" x-cloak
+             x-data="{
+                 confirmOpen: false, confirmId: null, confirmAction: null,
+                 open(id, action) { this.confirmId = id; this.confirmAction = action; this.confirmOpen = true; },
+                 confirm() {
+                     if (this.confirmAction === 'approve') $wire.approvePayoff(this.confirmId);
+                     else $wire.rejectPayoff(this.confirmId);
+                     this.confirmOpen = false;
+                 }
+             }">
+            <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                <h3 class="text-md font-bold text-gray-700">Pay-off Applications — Pending Your Approval</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Approve or reject employee pay-off requests from your department.</p>
+            </div>
+
+            @if($pendingPayoffs->isEmpty())
+                <div class="px-6 py-14 text-center text-gray-400">
+                    <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <p class="text-sm font-medium">No pending pay-off requests.</p>
+                </div>
+            @else
+                <div class="divide-y divide-gray-100">
+                    @foreach($pendingPayoffs as $po)
+                        <div class="px-6 py-4 flex flex-wrap gap-4 justify-between items-center hover:bg-gray-50 transition-colors">
+                            <div class="flex items-start gap-4">
+                                <div class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
+                                    {{ strtoupper(substr($po->user->name ?? '?', 0, 1)) }}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-gray-800">{{ $po->user->name ?? 'Unknown' }}</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        {{ $po->start_datetime->format('M d, Y h:i A') }} → {{ $po->end_datetime->format('M d, Y h:i A') }}
+                                    </p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-xs font-bold text-[#015581]">{{ $po->hours }}h</span>
+                                        @if($po->redemption_type === 'cash')
+                                            <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Cash</span>
+                                        @else
+                                            <span class="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Leave</span>
+                                        @endif
+                                        @if($po->reason)
+                                            <span class="text-xs text-gray-400 italic">{{ Str::limit($po->reason, 60) }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button @click="open({{ $po->id }}, 'approve')"
+                                    class="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-4 py-2 transition-colors active:scale-95">
+                                    Approve
+                                </button>
+                                <button @click="open({{ $po->id }}, 'reject')"
+                                    class="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg px-4 py-2 transition-colors active:scale-95">
+                                    Reject
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            {{-- Confirm Modal --}}
+            <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
+                <div class="fixed inset-0 bg-gray-900/50" @click="confirmOpen = false"></div>
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div class="relative bg-white rounded-xl shadow-xl w-full max-w-sm">
+                        <div class="px-6 pt-6 pb-4 flex items-start gap-4">
+                            <div class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-amber-100">
+                                <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900" x-text="confirmAction === 'approve' ? 'Approve Pay-off?' : 'Reject Pay-off?'"></h3>
+                                <p class="mt-1 text-sm text-gray-500" x-text="confirmAction === 'approve' ? 'This will forward the request to HR.' : 'This action cannot be undone.'"></p>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 rounded-b-xl">
+                            <button @click="confirm()"
+                                :class="confirmAction === 'approve' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'"
+                                class="inline-flex justify-center rounded-lg px-4 py-2 text-sm font-bold text-white active:scale-95"
+                                x-text="confirmAction === 'approve' ? 'Yes, Approve' : 'Yes, Reject'">
+                            </button>
+                            <button @click="confirmOpen = false"
+                                class="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

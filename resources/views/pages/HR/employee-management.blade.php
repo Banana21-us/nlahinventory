@@ -762,34 +762,88 @@
         </div>
     </div>
 
-    {{-- EMPLOYEE TABLE --}}
-    <div class="mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="p-2 rounded-lg brand-bg-teal-light">
-                    <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800">Employee List</h3>
-                <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                    {{ $employees->count() }} {{ Str::plural('employee', $employees->count()) }}
-                </span>
+    {{-- SEARCH BAR --}}
+    <div class="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3">
+        <div class="relative flex-1 min-w-0">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                </svg>
             </div>
-
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-                    </svg>
-                </div>
-                <input wire:model.live.debounce.300ms="search" type="text"
-                    placeholder="Search employees…"
-                    class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg transition-all w-56"/>
-            </div>
+            <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search employees…"
+                class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg w-full transition-all"/>
         </div>
+        <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0">
+            {{ $employees->count() }} {{ Str::plural('employee', $employees->count()) }}
+        </span>
+    </div>
 
+    {{-- MOBILE CARD LIST --}}
+    <div class="md:hidden mt-4 space-y-3">
+        @forelse($employees as $emp)
+            @php
+                $statusStyles = [
+                    'Regular'      => 'background-color:#dcfce7;color:#166534;border:1px solid #86efac;',
+                    'Probationary' => 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047;',
+                    'Contractual'  => 'background-color:#e6f4f5;color:#027c8b;border:1px solid #a5d8dd;',
+                    'Casual'       => 'background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;',
+                ];
+                $status = $emp->employmentDetail?->employment_status;
+            @endphp
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <button wire:click="view({{ $emp->id }})" class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 brand-bg-primary">
+                        {{ strtoupper(substr($emp->last_name, 0, 1)) }}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-bold text-gray-900 truncate">
+                            {{ $emp->last_name }}, {{ $emp->first_name }} {{ $emp->middle_name ? substr($emp->middle_name,0,1).'.' : '' }}
+                        </p>
+                        <p class="text-xs text-gray-400">{{ $emp->employee_number }} · {{ $emp->gender }}</p>
+                    </div>
+                    @if($status)
+                        <span class="flex-shrink-0 px-2 py-0.5 text-xs font-semibold rounded-full"
+                              style="{{ $statusStyles[$status] ?? 'background-color:#f3f4f6;color:#374151;' }}">
+                            {{ $status }}
+                        </span>
+                    @endif
+                </button>
+                <div class="px-4 pb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+                    <div><span class="font-medium text-gray-400">Dept:</span> {{ $emp->employmentDetail?->department?->name ?? '—' }}</div>
+                    <div><span class="font-medium text-gray-400">Position:</span> {{ $emp->employmentDetail?->position ?? '—' }}</div>
+                    <div><span class="font-medium text-gray-400">Hired:</span> {{ $emp->employmentDetail?->hiring_date?->format('M d, Y') ?? '—' }}</div>
+                </div>
+                <div class="bg-gray-50 px-4 py-2.5 flex justify-end gap-3 border-t border-gray-100">
+                    <button wire:click="edit({{ $emp->id }})"
+                        class="brand-edit-btn rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors">
+                        Edit
+                    </button>
+                    <button wire:click="confirmDelete({{ $emp->id }})"
+                        class="text-red-500 hover:text-red-700 text-xs font-semibold transition-colors px-1.5 py-1.5">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-12 text-gray-400">
+                <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                <p class="text-sm font-medium">{{ $search ? 'No employees match your search.' : 'No employees found.' }}</p>
+            </div>
+        @endforelse
+    </div>
+
+    {{-- DESKTOP TABLE --}}
+    <div class="hidden md:block mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+            <div class="p-2 rounded-lg brand-bg-teal-light">
+                <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800">Employee List</h3>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -816,38 +870,24 @@
                         @endphp
                         <tr class="brand-row-hover transition-colors cursor-pointer"
                             wire:click="view({{ $emp->id }})">
-
                             <td class="px-6 py-4 text-sm font-mono font-semibold text-gray-600">
                                 {{ $emp->employee_number }}
                             </td>
-
-                            <!-- under development -->
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="relative">
-                                        
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">
-                                            {{ strtoupper(substr($emp->last_name, 0, 1)) }}
-                                            
-                                        </div>
-
-                                        
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">
+                                        {{ strtoupper(substr($emp->last_name, 0, 1)) }}
                                     </div>
-
                                     <div>
                                         <p class="text-sm font-bold text-gray-900">
                                             {{ $emp->last_name }}, {{ $emp->first_name }} {{ $emp->middle_name ? substr($emp->middle_name,0,1).'.' : '' }}
-                                            
                                         </p>
                                         <p class="text-xs text-gray-400">{{ $emp->gender }}</p>
                                     </div>
                                 </div>
                             </td>
-
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $emp->employmentDetail?->department?->name ?? '—' }}</td>
-
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $emp->employmentDetail?->position ?? '—' }}</td>
-
                             <td class="px-6 py-4">
                                 @if($status)
                                     <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
@@ -858,11 +898,9 @@
                                     <span class="text-xs text-gray-400">—</span>
                                 @endif
                             </td>
-
                             <td class="px-6 py-4 text-sm text-gray-400">
                                 {{ $emp->employmentDetail?->hiring_date?->format('M d, Y') ?? '—' }}
                             </td>
-
                             <td class="px-6 py-4 text-right text-sm font-medium space-x-2" @click.stop>
                                 <button wire:click="edit({{ $emp->id }})"
                                     class="brand-edit-btn rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors">

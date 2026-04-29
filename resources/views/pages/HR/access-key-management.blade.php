@@ -23,13 +23,6 @@
                 <h1 class="text-xl font-bold text-gray-800 leading-tight">Access Key Management</h1>
             </div>
         </div>
-        <button wire:click="$set('showForm', true)"
-            class="brand-btn-primary text-sm font-bold py-2 px-5 rounded shadow-md active:scale-95 flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            New Access Key
-        </button>
     </div>
 
     @if(session('message'))
@@ -38,102 +31,121 @@
         </div>
     @endif
 
-    {{-- Form --}}
-    @if($showForm)
-    <div class="bg-white shadow-md rounded-lg border border-gray-200 mb-6 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-            <h2 class="text-base font-bold text-gray-800">
-                {{ $isEditing ? 'Edit Access Key' : 'Create New Access Key' }}
-            </h2>
-            <p class="text-xs text-gray-400 mt-0.5">Define what this key unlocks and where it redirects the user after login.</p>
-        </div>
-        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+    {{-- Collapsible Form --}}
+    <div class="bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden mb-6"
+         x-data="{ open: @entangle('showForm') }">
 
-            {{-- Name --}}
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Key Name *</label>
-                <input type="text" wire:model="name" placeholder="e.g. HR Access"
-                    class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-                @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+        <button
+            @click="open = !open"
+            class="w-full flex items-center justify-between p-5 bg-white hover:bg-gray-50 transition-colors focus:outline-none"
+        >
+            <div class="flex items-center">
+                <div class="p-2 rounded-lg mr-4 brand-bg-primary-light">
+                    <svg class="w-5 h-5 brand-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" x-show="!open"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" x-show="open" style="display:none"/>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-gray-800">Access Key Entry</h2>
             </div>
+            <span class="text-sm font-medium brand-text-primary" x-text="open ? 'Minimize' : 'Add New Access Key'"></span>
+        </button>
 
-            {{-- Redirect Route --}}
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Login Redirect</label>
-                <select wire:model="redirect_to"
-                    class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
-                    <option value="">— None (waiting area) —</option>
-                    @foreach($availableRoutes as $route => $label)
-                        <option value="{{ $route }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                <p class="text-xs text-gray-400 mt-1">Where the user lands immediately after login.</p>
-            </div>
+        <div
+            x-show="open"
+            x-collapse
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 -translate-y-2"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            class="border-t border-gray-100 bg-gray-50/30"
+        >
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
 
-            {{-- Description --}}
-            <div class="md:col-span-2">
-                <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Description</label>
-                <input type="text" wire:model="description" placeholder="Short note about what this key grants"
-                    class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
-            </div>
+                {{-- Name --}}
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Key Name *</label>
+                    <input type="text" wire:model="name" placeholder="e.g. HR Access"
+                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                    @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
 
-            {{-- Permissions --}}
-            <div class="md:col-span-2">
-                <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">
-                    Module Access <span class="text-gray-400 font-normal normal-case">(check all this key can open)</span>
-                </label>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    @foreach($availablePermissions as $slug => $label)
-                        <label class="flex items-center gap-2 cursor-pointer group">
-                            <input type="checkbox" wire:model="selectedPermissions" value="{{ $slug }}"
-                                class="rounded border-gray-300 text-[#015581] focus:ring-[#015581]"/>
-                            <span class="text-sm text-gray-700 group-hover:text-gray-900">{{ $label }}</span>
-                        </label>
-                    @endforeach
+                {{-- Redirect Route --}}
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Login Redirect</label>
+                    <select wire:model="redirect_to"
+                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
+                        <option value="">— None (waiting area) —</option>
+                        @foreach($availableRoutes as $route => $label)
+                            <option value="{{ $route }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1">Where the user lands immediately after login.</p>
+                </div>
+
+                {{-- Description --}}
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Description</label>
+                    <input type="text" wire:model="description" placeholder="Short note about what this key grants"
+                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2"/>
+                </div>
+
+                {{-- Permissions --}}
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">
+                        Module Access <span class="text-gray-400 font-normal normal-case">(check all this key can open)</span>
+                    </label>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        @foreach($availablePermissions as $slug => $label)
+                            <label class="flex items-center gap-2 cursor-pointer group">
+                                <input type="checkbox" wire:model="selectedPermissions" value="{{ $slug }}"
+                                    class="rounded border-gray-300 text-[#015581] focus:ring-[#015581]"/>
+                                <span class="text-sm text-gray-700 group-hover:text-gray-900">{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Super Access Toggle --}}
+                <div class="md:col-span-2">
+                    <label class="flex items-start gap-3 cursor-pointer p-4 rounded-lg border-2 transition-colors
+                        {{ $is_super ? 'border-amber-400 bg-amber-50' : 'border-gray-200 bg-white hover:border-gray-300' }}">
+                        <input type="checkbox" wire:model="is_super"
+                            class="mt-0.5 rounded border-gray-300 text-amber-500 focus:ring-amber-400"/>
+                        <div>
+                            <span class="text-sm font-bold text-gray-800 flex items-center gap-1">
+                                Super Access
+                                @if($is_super)
+                                    <span class="text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded ml-1">ACTIVE</span>
+                                @endif
+                            </span>
+                            <p class="text-xs text-gray-500 mt-0.5">
+                                Bypasses ALL gate checks. This user can open every module regardless of what's checked above.
+                                Only assign to fully trusted HR/admin accounts.
+                            </p>
+                        </div>
+                    </label>
                 </div>
             </div>
 
-            {{-- Super Access Toggle --}}
-            <div class="md:col-span-2">
-                <label class="flex items-start gap-3 cursor-pointer p-4 rounded-lg border-2 transition-colors
-                    {{ $is_super ? 'border-amber-400 bg-amber-50' : 'border-gray-200 bg-white hover:border-gray-300' }}">
-                    <input type="checkbox" wire:model="is_super"
-                        class="mt-0.5 rounded border-gray-300 text-amber-500 focus:ring-amber-400"/>
-                    <div>
-                        <span class="text-sm font-bold text-gray-800 flex items-center gap-1">
-                            Super Access
-                            @if($is_super)
-                                <span class="text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded ml-1">ACTIVE</span>
-                            @endif
-                        </span>
-                        <p class="text-xs text-gray-500 mt-0.5">
-                            Bypasses ALL gate checks. This user can open every module regardless of what's checked above.
-                            Only assign to fully trusted HR/admin accounts.
-                        </p>
-                    </div>
-                </label>
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end items-center gap-3">
+                <button type="button" @click="open = false"
+                    class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
+                    Cancel
+                </button>
+                @if($isEditing)
+                    <button wire:click="update"
+                        class="brand-btn-primary text-sm font-bold py-2 px-10 rounded shadow-md active:scale-95">
+                        Save Changes
+                    </button>
+                @else
+                    <button wire:click="save"
+                        class="brand-btn-primary text-sm font-bold py-2 px-10 rounded shadow-md active:scale-95">
+                        Create Key
+                    </button>
+                @endif
             </div>
         </div>
-
-        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex gap-3">
-            @if($isEditing)
-                <button wire:click="update"
-                    class="brand-btn-primary text-sm font-bold py-2 px-6 rounded shadow-md active:scale-95">
-                    Save Changes
-                </button>
-            @else
-                <button wire:click="save"
-                    class="brand-btn-primary text-sm font-bold py-2 px-6 rounded shadow-md active:scale-95">
-                    Create Key
-                </button>
-            @endif
-            <button wire:click="$set('showForm', false); $set('isEditing', false)"
-                class="text-sm text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
-                Cancel
-            </button>
-        </div>
     </div>
-    @endif
 
     {{-- Delete Confirm --}}
     @if($confirmingDeletion)

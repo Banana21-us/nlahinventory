@@ -7,14 +7,15 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('assets', function (Blueprint $table) {
-            $table->unsignedBigInteger('maintenance_department_id')->nullable()->after('department_id');
-
-            $table->foreign('maintenance_department_id')
-                  ->references('id')
-                  ->on('departments')
-                  ->onDelete('set null');
-        });
+        if (!Schema::hasColumn('assets', 'maintenance_department_id')) {
+            Schema::table('assets', function (Blueprint $table) {
+                $table->unsignedBigInteger('maintenance_department_id')->nullable()->after('department_id');
+                $table->foreign('maintenance_department_id')
+                      ->references('id')
+                      ->on('departments')
+                      ->onDelete('set null');
+            });
+        }
     }
 
     public function down(): void

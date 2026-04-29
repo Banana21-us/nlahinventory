@@ -8,6 +8,7 @@ use App\Mail\LeaveStatusUpdateMail;
 use App\Models\Leave;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +29,20 @@ class HrLeaveManagement extends Component
     public $hrRemarks = '';
 
     public $isReviewing = false;
+
+    // Balance Modal States
+    public $showBalanceModal = false;
+
+    public $balanceUserId = null;
+
+    public $balanceName = '';
+
+    public $balanceYear;
+
+    public function mount(): void
+    {
+        $this->balanceYear = now()->year;
+    }
 
     #[Computed]
     public function leaves()
@@ -67,6 +82,70 @@ class HrLeaveManagement extends Component
         return Leave::where('hr_status', 'approved')
             ->whereDate('hr_approved_at', now())
             ->count();
+    }
+
+    public function openBalanceModal(int $userId, string $name): void
+    {
+        $this->balanceUserId = $userId;
+        $this->balanceName = $name;
+        $this->showBalanceModal = true;
+    }
+
+    public function closeBalanceModal(): void
+    {
+        $this->showBalanceModal = false;
+        $this->balanceUserId = null;
+        $this->balanceName = '';
+    }
+
+    #[Computed]
+    public function balanceData(): array
+    {
+        if (! $this->balanceUserId) {
+            return [];
+        }
+
+        $balances = LeaveBalance::with('leaveType')
+            ->where('user_id', $this->balanceUserId)
+            ->whereNull('deleted_at')
+            ->get();
+
+        // Approved leaves in the selected year for this user
+        $yearLeaves = Leave::where('user_id', $this->balanceUserId)
+            ->where('hr_status', 'approved')
+            ->whereYear('start_date', $this->balanceYear)
+            ->get();
+
+        // Group year-leaves by canonical leave_type_id
+        $yearConsumed = [];
+        foreach ($yearLeaves as $leave) {
+            $lt = LeaveType::resolve($leave->leave_type);
+            if (! $lt) {
+                continue;
+            }
+            $canonical = $lt->getCanonicalLeaveType();
+            if (! $canonical) {
+                continue;
+            }
+            $yearConsumed[$canonical->id] = ($yearConsumed[$canonical->id] ?? 0) + (float) $leave->total_days;
+        }
+
+        $result = [];
+        foreach ($balances as $balance) {
+            $lt = $balance->leaveType;
+            if (! $lt) {
+                continue;
+            }
+            $result[] = [
+                'label'         => $lt->label,
+                'total'         => (float) $balance->total,
+                'consumed_year' => $yearConsumed[$lt->id] ?? 0,
+                'consumed_all'  => (float) $balance->consumed,
+                'remaining'     => max(0, (float) $balance->total - (float) $balance->consumed),
+            ];
+        }
+
+        return $result;
     }
 
     public function viewDetails($id)

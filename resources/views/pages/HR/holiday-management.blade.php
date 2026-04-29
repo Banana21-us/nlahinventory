@@ -107,31 +107,82 @@
         </div>
     </div>
 
-    {{-- TABLE --}}
-    <div class="mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="p-2 rounded-lg brand-bg-teal-light">
-                    <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800">Holiday List</h3>
-                <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                    {{ $holidays->count() }} {{ Str::plural('holiday', $holidays->count()) }}
-                </span>
+    {{-- SEARCH BAR --}}
+    <div class="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3">
+        <div class="relative flex-1 min-w-0">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                </svg>
             </div>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-                    </svg>
-                </div>
-                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search holidays…"
-                    class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg transition-all w-56"/>
-            </div>
+            <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search holidays…"
+                class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg w-full transition-all"/>
         </div>
+        <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0">
+            {{ $holidays->count() }} {{ Str::plural('holiday', $holidays->count()) }}
+        </span>
+    </div>
 
+    {{-- MOBILE CARD LIST --}}
+    <div class="md:hidden mt-4 space-y-3">
+        @forelse($holidays as $holiday)
+            @php
+                $typeBadge = match($holiday->type) {
+                    'regular'              => ['bg-blue-100 text-blue-700', 'Regular'],
+                    'special_non_working'  => ['bg-purple-100 text-purple-700', 'Special Non-Working'],
+                    'special_working'      => ['bg-green-100 text-green-700', 'Special Working'],
+                    default                => ['bg-gray-100 text-gray-600', $holiday->type],
+                };
+            @endphp
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-4 py-3">
+                    <div class="flex items-start justify-between gap-2 mb-1">
+                        <p class="text-sm font-bold text-gray-900 min-w-0 flex-1">{{ $holiday->name }}</p>
+                        <span class="flex-shrink-0 px-2 py-0.5 text-xs font-bold rounded-full {{ $typeBadge[0] }}">
+                            {{ $typeBadge[1] }}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-1.5">
+                        <span class="text-xs font-semibold text-gray-600">{{ $holiday->date->format('M d, Y') }}</span>
+                        @if($holiday->is_recurring)
+                            <span class="text-xs text-green-600 font-semibold">Recurring</span>
+                        @endif
+                    </div>
+                    @if($holiday->remarks)
+                        <p class="text-xs text-gray-400 mt-1">{{ $holiday->remarks }}</p>
+                    @endif
+                </div>
+                <div class="bg-gray-50 px-4 py-2.5 flex justify-end gap-3 border-t border-gray-100">
+                    <button wire:click="edit({{ $holiday->id }})"
+                        class="brand-edit-btn rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors">
+                        Edit
+                    </button>
+                    <button wire:click="confirmDelete({{ $holiday->id }})"
+                        class="text-red-500 hover:text-red-700 text-xs font-semibold transition-colors px-1.5 py-1.5">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-12 text-gray-400">
+                <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <p class="text-sm font-medium">{{ $search ? 'No holidays match your search.' : 'No holidays found.' }}</p>
+            </div>
+        @endforelse
+    </div>
+
+    {{-- DESKTOP TABLE --}}
+    <div class="hidden md:block mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+            <div class="p-2 rounded-lg brand-bg-teal-light">
+                <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800">Holiday List</h3>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">

@@ -330,7 +330,7 @@
                 :href="route('HR.payroll-compliance')"
                 :current="request()->routeIs('HR.payroll-compliance')"
                 wire:navigate="wire:navigate">
-                {{ __('Shift Differential') }}
+                {{ __('Payroll & Compliance') }}
             </flux:sidebar.item>
             @endcan @endcannot
 
@@ -450,15 +450,15 @@
             @endcannot
             <flux:sidebar.item
                 icon="clock"
-                :href="route('HR.overtime')"
-                :current="request()->routeIs('HR.overtime')"
+                :href="route('users.overtime')"
+                :current="request()->routeIs('users.overtime')"
                 wire:navigate="wire:navigate">
                 {{ __('Overtime') }}
             </flux:sidebar.item>
             <flux:sidebar.item
                 icon="banknotes"
-                :href="route('HR.payoff')"
-                :current="request()->routeIs('HR.payoff')"
+                :href="route('users.payoff')"
+                :current="request()->routeIs('users.payoff')"
                 wire:navigate="wire:navigate">
                 {{ __('Pay-off') }}
             </flux:sidebar.item>

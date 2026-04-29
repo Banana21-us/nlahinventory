@@ -134,39 +134,71 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════
-         POSITION TABLE
-    ═══════════════════════════════════════════ --}}
-    <div class="mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="p-2 rounded-lg brand-bg-teal-light">
-                    <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800">Position List</h3>
-                <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                    {{ $positions->count() }} {{ Str::plural('position', $positions->count()) }}
-                </span>
+    {{-- SEARCH BAR --}}
+    <div class="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3">
+        <div class="relative flex-1 min-w-0">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                </svg>
             </div>
-
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-                    </svg>
-                </div>
-                <input
-                    wire:model.live.debounce.300ms="search"
-                    type="text"
-                    placeholder="Search positions…"
-                    class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg transition-all w-56"
-                />
-            </div>
+            <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search positions…"
+                class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg w-full transition-all"/>
         </div>
+        <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0">
+            {{ $positions->count() }} {{ Str::plural('position', $positions->count()) }}
+        </span>
+    </div>
 
+    {{-- MOBILE CARD LIST --}}
+    <div class="md:hidden mt-4 space-y-3">
+        @forelse($positions as $pos)
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-4 py-3 flex items-center gap-3">
+                    @if($pos->code)
+                        <span class="flex-shrink-0 px-2.5 py-0.5 text-xs leading-5 font-bold rounded-full"
+                              style="background-color:#fef8e7;color:#b45309;border:1px solid #fde68a;">
+                            {{ $pos->code }}
+                        </span>
+                    @endif
+                    <p class="text-sm font-bold text-gray-900 min-w-0 flex-1">{{ $pos->name }}</p>
+                </div>
+                @if($pos->description)
+                    <div class="px-4 pb-3">
+                        <p class="text-xs text-gray-500">{{ $pos->description }}</p>
+                    </div>
+                @endif
+                <div class="bg-gray-50 px-4 py-2.5 flex justify-end gap-3 border-t border-gray-100">
+                    <button wire:click="edit({{ $pos->id }})"
+                        class="brand-edit-btn rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors">
+                        Edit
+                    </button>
+                    <button wire:click="confirmDelete({{ $pos->id }})"
+                        class="text-red-500 hover:text-red-700 text-xs font-semibold transition-colors px-1.5 py-1.5">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-12 text-gray-400">
+                <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                <p class="text-sm font-medium">{{ $search ? 'No positions match your search.' : 'No positions found.' }}</p>
+            </div>
+        @endforelse
+    </div>
+
+    {{-- DESKTOP TABLE --}}
+    <div class="hidden md:block mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+            <div class="p-2 rounded-lg brand-bg-teal-light">
+                <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800">Position List</h3>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -180,7 +212,6 @@
                 <tbody class="bg-white divide-y divide-gray-100">
                     @forelse($positions as $pos)
                         <tr class="brand-row-hover transition-colors">
-
                             <td class="px-6 py-4">
                                 @if($pos->code)
                                     <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full"
@@ -191,15 +222,12 @@
                                     <span class="text-xs text-gray-300">—</span>
                                 @endif
                             </td>
-
                             <td class="px-6 py-4">
                                 <p class="text-sm font-bold text-gray-900">{{ $pos->name }}</p>
                             </td>
-
                             <td class="px-6 py-4">
                                 <p class="text-sm text-gray-500">{{ $pos->description ?? '—' }}</p>
                             </td>
-
                             <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
                                 <button wire:click="edit({{ $pos->id }})"
                                     class="brand-edit-btn rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors">

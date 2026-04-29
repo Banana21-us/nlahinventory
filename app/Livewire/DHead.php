@@ -9,6 +9,7 @@ use App\Mail\LeaveHRNotificationMail;
 use App\Models\Leave;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\PayoffApplication;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -523,6 +524,38 @@ class DHead extends Component
         }
     }
 
+    // ─── Payoff Approval Queue ────────────────────────────────────────────────
+
+    public function approvePayoff(int $id): void
+    {
+        $app = PayoffApplication::where('dept_head_status', 'pending')
+            ->where('status', 'pending')
+            ->findOrFail($id);
+
+        $app->update([
+            'dept_head_status' => 'approved',
+            'dept_head_approved_by' => Auth::id(),
+            'status' => 'dept_approved',
+        ]);
+
+        session()->flash('message', 'Pay-off approved — forwarded to HR.');
+    }
+
+    public function rejectPayoff(int $id): void
+    {
+        $app = PayoffApplication::where('dept_head_status', 'pending')
+            ->where('status', 'pending')
+            ->findOrFail($id);
+
+        $app->update([
+            'dept_head_status' => 'rejected',
+            'dept_head_approved_by' => Auth::id(),
+            'status' => 'rejected',
+        ]);
+
+        session()->flash('message', 'Pay-off rejected.');
+    }
+
     // ─── Render ───────────────────────────────────────────────────────────────
     public function render()
     {
@@ -586,6 +619,16 @@ class DHead extends Component
             ->latest()
             ->get();
 
+        // Payoff queue — from employees in the dept head's department
+        $deptId = Auth::user()->employmentDetail?->department_id;
+        $pendingPayoffs = PayoffApplication::with('user')
+            ->where('status', 'pending')
+            ->where('dept_head_status', 'pending')
+            ->whereHas('user.employmentDetail', fn ($q) => $q->where('department_id', $deptId))
+            ->where('user_id', '!=', Auth::id())
+            ->orderByDesc('created_at')
+            ->get();
+
         // VL per-year cap
         $vlMaxEndDate = null;
         $vlRemainingThisYear = null;
@@ -606,6 +649,7 @@ class DHead extends Component
             'leaves' => $leaves,
             'myLeaves' => $myLeaves,
             'cancellationLeaves' => $cancellationLeaves,
+            'pendingPayoffs' => $pendingPayoffs,
             'pendingCount' => $this->pendingCount,
             'cancellationPendingCount' => $this->cancellationPendingCount,
             'approvedThisMonth' => $this->approvedThisMonth,

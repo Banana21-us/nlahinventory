@@ -8,8 +8,12 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('assets', function (Blueprint $table) {
-            $table->integer('lifespan_years')->nullable()->after('purchase_cost');
-            $table->date('end_of_life')->nullable()->after('lifespan_years');
+            if (!Schema::hasColumn('assets', 'lifespan_years')) {
+                $table->integer('lifespan_years')->nullable()->after('purchase_cost');
+            }
+            if (!Schema::hasColumn('assets', 'end_of_life')) {
+                $table->date('end_of_life')->nullable()->after('lifespan_years');
+            }
         });
     }
 

@@ -18,6 +18,8 @@ class PayoffManagement extends Component
 
     public ?int $selectedId = null;
 
+    public $redemption_type = 'cash';
+
     public $start_datetime;
 
     public $end_datetime;
@@ -48,6 +50,7 @@ class PayoffManagement extends Component
     protected function rules(): array
     {
         return [
+            'redemption_type' => ['required', 'in:cash,leave'],
             'start_datetime' => ['required', 'date'],
             'end_datetime' => ['required', 'date', 'after:start_datetime'],
             'hours' => ['required', 'numeric', 'min:0.5', 'max:24'],
@@ -61,6 +64,7 @@ class PayoffManagement extends Component
 
         PayoffApplication::create([
             'user_id' => Auth::id(),
+            'redemption_type' => $this->redemption_type,
             'start_datetime' => $this->start_datetime,
             'end_datetime' => $this->end_datetime,
             'hours' => $this->hours,
@@ -79,6 +83,7 @@ class PayoffManagement extends Component
             ->findOrFail($id);
 
         $this->selectedId = $app->id;
+        $this->redemption_type = $app->redemption_type;
         $this->start_datetime = $app->start_datetime->format('Y-m-d\TH:i');
         $this->end_datetime = $app->end_datetime->format('Y-m-d\TH:i');
         $this->hours = $app->hours;
@@ -94,6 +99,7 @@ class PayoffManagement extends Component
             ->where('status', 'pending')
             ->findOrFail($this->selectedId)
             ->update([
+                'redemption_type' => $this->redemption_type,
                 'start_datetime' => $this->start_datetime,
                 'end_datetime' => $this->end_datetime,
                 'hours' => $this->hours,
@@ -127,18 +133,19 @@ class PayoffManagement extends Component
             'start_datetime', 'end_datetime', 'hours', 'reason',
             'selectedId', 'isEditing', 'showForm', 'confirmingDeletion',
         ]);
+        $this->redemption_type = 'cash';
     }
 
     public function render()
     {
         $applications = PayoffApplication::query()
-            ->with('approver')
+            ->with('deptHeadApprover', 'hrApprover', 'accountingApprover')
             ->where('user_id', Auth::id())
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->orderByDesc('start_datetime')
             ->get();
 
-        return view('pages.HR.payoff-management', compact('applications'))
+        return view('pages.users.payoff', compact('applications'))
             ->layout('layouts.app');
     }
 }

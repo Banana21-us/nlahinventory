@@ -19,9 +19,9 @@
     .brand-focus:focus { outline:none;box-shadow:0 0 0 3px rgba(1,85,129,.2);border-color:#015581; }
 
     /* ── Date Picker ── */
-    .dp-track { display:flex;gap:6px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;padding-bottom:4px; }
+    .dp-track { display:flex;gap:4px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;padding-bottom:2px;justify-content:space-between; }
     .dp-track::-webkit-scrollbar { display:none; }
-    .dp-day { min-width:52px;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all .18s ease;text-align:center;padding:6px 4px;user-select:none;flex-shrink:0; }
+    .dp-day { flex:1;min-width:40px;max-width:64px;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all .18s ease;text-align:center;padding:5px 2px;user-select:none; }
     .dp-day:hover { background-color:#e6f0f7;border-color:#015581; }
     .dp-day.dp-active { background-color:#015581 !important;border-color:#015581 !important; }
     .dp-day.dp-active .dp-dayname,
@@ -182,15 +182,10 @@
         </div>
     </div>
 
-    <div class="px-4 py-3 relative">
-        <button @click="scrollDays(-3)"
-            class="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-full bg-gradient-to-r from-white to-transparent flex items-center justify-start pl-1 border-none cursor-pointer">
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
-            </svg>
-        </button>
-        <div class="dp-track px-5" x-ref="dpTrack">
-            <template x-for="day in days" :key="day.date">
+    <div class="px-4 py-2 space-y-1">
+        {{-- Row 1: days 1–16 --}}
+        <div class="dp-track" x-ref="dpTrack">
+            <template x-for="day in days.filter(d => d.num <= 16)" :key="day.date">
                 <div class="dp-day"
                     :class="{ 'dp-active': selectedDate === day.date, 'dp-today': day.isToday }"
                     @click="selectDate(day.date)">
@@ -199,12 +194,17 @@
                 </div>
             </template>
         </div>
-        <button @click="scrollDays(3)"
-            class="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-full bg-gradient-to-l from-white to-transparent flex items-center justify-end pr-1 border-none cursor-pointer">
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-            </svg>
-        </button>
+        {{-- Row 2: days 17–31 --}}
+        <div class="dp-track">
+            <template x-for="day in days.filter(d => d.num >= 17)" :key="day.date">
+                <div class="dp-day"
+                    :class="{ 'dp-active': selectedDate === day.date, 'dp-today': day.isToday }"
+                    @click="selectDate(day.date)">
+                    <div class="dp-num" x-text="day.num"></div>
+                    <div class="dp-dayname" x-text="day.name"></div>
+                </div>
+            </template>
+        </div>
     </div>
 
     <div class="px-5 pb-3 flex items-center gap-2">
@@ -217,6 +217,58 @@
      SCHEDULE SECTIONS
 ═══════════════════════════════════════════ --}}
 <div class="space-y-5">
+
+    {{-- ── NURSE HOURS SUMMARY ── --}}
+    <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
+        <div class="section-header brand-bg-primary-light">
+            <div class="p-1.5 rounded brand-bg-primary">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <span class="section-title brand-text-primary">Nurse Hours — Block Summary</span>
+            <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full brand-bg-primary-light brand-text-primary border border-blue-200">Max 80h / block</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+            @foreach(['A' => '11th – 25th', 'B' => '26th – 10th next month'] as $block => $range)
+            <div class="p-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
+                    Block {{ $block }} <span class="text-gray-300 font-normal normal-case tracking-normal">{{ $range }}</span>
+                </p>
+                @php $entries = $nurseHoursByBlock[$block] ?? []; @endphp
+                @if(empty($entries))
+                    <p class="text-xs text-gray-400 italic">No schedule generated yet.</p>
+                @else
+                <div class="space-y-2">
+                    @foreach($entries as $row)
+                    @php
+                        $pct = min(100, round(($row['hours'] / 80) * 100));
+                        $barColor = $row['over_cap'] ? '#dc2626' : ($pct >= 90 ? '#f0b626' : '#027c8b');
+                        $textColor = $row['over_cap'] ? '#dc2626' : ($pct >= 90 ? '#92400e' : '#027c8b');
+                        $bgColor = $row['over_cap'] ? '#fee2e2' : ($pct >= 90 ? '#fef3c7' : '#e6f4f5');
+                    @endphp
+                    <div>
+                        <div class="flex items-center justify-between mb-0.5">
+                            <span class="text-xs font-semibold text-gray-700 truncate max-w-[60%]">{{ $row['name'] }}</span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                                  style="background-color:{{ $bgColor }};color:{{ $textColor }};">
+                                {{ $row['hours'] }}h / 80h
+                                @if($row['over_cap']) <span class="ml-0.5">⚠</span> @endif
+                            </span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                            <div class="h-full rounded-full transition-all"
+                                 style="width:{{ $pct }}%;background-color:{{ $barColor }};"></div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+            @endforeach
+        </div>
+    </div>
 
     {{-- ── EMERGENCY ROOM ── --}}
     <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
@@ -236,7 +288,7 @@
             @foreach(['am' => 'AM', 'pm' => 'PM', 'noc' => 'NOC'] as $period => $label)
                 <div class="shift-label">{{ $label }}</div>
                 <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
-                    @php $entry = $schedule['er'][$period] ?? null; @endphp
+                    @php $entry = ($schedule['er'][$period] ?? [])[0] ?? null; @endphp
                     @if($entry)
                         <span class="nurse-pill" wire:key="pill-er-{{ $period }}-{{ $entry['id'] }}"
                             style="background:#fff1f2;color:#dc2626;border-color:#fecaca;">
@@ -277,7 +329,7 @@
             @foreach(['am' => 'AM', 'pm' => 'PM', 'noc' => 'NOC'] as $period => $label)
                 <div class="shift-label">{{ $label }}</div>
                 <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
-                    @php $entry = $schedule['triage'][$period] ?? null; @endphp
+                    @php $entry = ($schedule['triage'][$period] ?? [])[0] ?? null; @endphp
                     @if($entry)
                         <span class="nurse-pill" wire:key="pill-triage-{{ $period }}-{{ $entry['id'] }}"
                             style="background:#fff7ed;color:#ea580c;border-color:#fed7aa;">
@@ -318,7 +370,7 @@
             @foreach(['am' => 'AM', 'pm' => 'PM', 'noc' => 'NOC'] as $period => $label)
                 <div class="shift-label">{{ $label }}</div>
                 <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
-                    @php $entry = $schedule['ward'][$period] ?? null; @endphp
+                    @php $entry = ($schedule['ward'][$period] ?? [])[0] ?? null; @endphp
                     @if($entry)
                         <span class="nurse-pill" wire:key="pill-ward-{{ $period }}-{{ $entry['id'] }}">
                             <span class="np-avatar">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
@@ -370,7 +422,7 @@
                         Closed on Saturdays & Sundays
                     </span>
                 @else
-                    @php $entry = $schedule['opd']['day'] ?? null; @endphp
+                    @php $entry = ($schedule['opd']['day'] ?? [])[0] ?? null; @endphp
                     @if($entry)
                         <span class="nurse-pill" wire:key="pill-opd-day-{{ $entry['id'] }}"
                             style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe;">
@@ -382,6 +434,184 @@
                     @else
                         <button class="add-nurse-btn" style="border-color:#c4b5fd;color:#7c3aed;"
                             data-section="opd" data-period="day">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
+                    @endif
+                @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- ── DELIVERY ROOM ── --}}
+    <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
+        <div class="section-header" style="background:#fdf2f8;">
+            <div class="p-1.5 rounded" style="background:#db2777;">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+            </div>
+            <span class="section-title" style="color:#db2777;">Delivery Room (DR)</span>
+            <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:#fce7f3;color:#9d174d;">1 nurse/shift</span>
+        </div>
+        <div class="shift-grid">
+            <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
+            <div class="shift-cell-header text-center">Nurse</div>
+            @foreach(['am' => 'AM', 'pm' => 'PM', 'noc' => 'NOC'] as $period => $label)
+                <div class="shift-label">{{ $label }}</div>
+                <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
+                    @php $entry = ($schedule['dr'][$period] ?? [])[0] ?? null; @endphp
+                    @if($entry)
+                        <span class="nurse-pill" wire:key="pill-dr-{{ $period }}-{{ $entry['id'] }}"
+                            style="background:#fdf2f8;color:#db2777;border-color:#f9a8d4;">
+                            <span class="np-avatar" style="background:#db2777;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
+                            <span>{{ $entry['name'] }}</span>
+                            <button class="np-remove" style="background:#fce7f3;color:#db2777;"
+                                data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
+                        </span>
+                    @else
+                        <button class="add-nurse-btn" style="border-color:#f9a8d4;color:#db2777;"
+                            data-section="dr" data-period="{{ $period }}">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- ── OPERATING ROOM (1-2 nurses per shift) ── --}}
+    <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
+        <div class="section-header" style="background:#ecfdf5;">
+            <div class="p-1.5 rounded" style="background:#059669;">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+            </div>
+            <span class="section-title" style="color:#059669;">Operating Room (OR)</span>
+            <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:#d1fae5;color:#065f46;">1–2 nurses/shift</span>
+        </div>
+        <div class="shift-grid">
+            <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
+            <div class="shift-cell-header text-center">Nurses</div>
+            @foreach(['am' => 'AM', 'pm' => 'PM', 'noc' => 'NOC'] as $period => $label)
+                <div class="shift-label">{{ $label }}</div>
+                <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
+                    @php $orEntries = $schedule['or'][$period] ?? []; @endphp
+                    @foreach($orEntries as $orEntry)
+                        <span class="nurse-pill" wire:key="pill-or-{{ $period }}-{{ $orEntry['id'] }}"
+                            style="background:#ecfdf5;color:#059669;border-color:#6ee7b7;">
+                            <span class="np-avatar" style="background:#059669;">{{ strtoupper(substr($orEntry['name'],0,1)) }}</span>
+                            <span>{{ $orEntry['name'] }}</span>
+                            <button class="np-remove" style="background:#a7f3d0;color:#059669;"
+                                data-remove-id="{{ $orEntry['id'] }}" title="Remove">✕</button>
+                        </span>
+                    @endforeach
+                    @if(count($orEntries) < 2)
+                        <button class="add-nurse-btn" style="border-color:#6ee7b7;color:#059669;"
+                            data-section="or" data-period="{{ $period }}">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            {{ count($orEntries) === 0 ? 'Add' : 'Add 2nd' }}
+                        </button>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- ── HEAD NURSE (8-3 and 3-11) ── --}}
+    <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
+        <div class="section-header" style="background:#eef2ff;">
+            <div class="p-1.5 rounded" style="background:#4f46e5;">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                </svg>
+            </div>
+            <span class="section-title" style="color:#4f46e5;">Head Nurse</span>
+            <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:#e0e7ff;color:#3730a3;">1 per shift</span>
+        </div>
+        <div class="shift-grid">
+            <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
+            <div class="shift-cell-header text-center">Nurse</div>
+            @foreach(['shift_8_3' => '8–3', 'shift_3_11' => '3–11'] as $period => $label)
+                <div class="shift-label">{{ $label }}</div>
+                <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
+                    @php $entry = ($schedule['head_nurse'][$period] ?? [])[0] ?? null; @endphp
+                    @if($entry)
+                        <span class="nurse-pill" wire:key="pill-hn-{{ $period }}-{{ $entry['id'] }}"
+                            style="background:#eef2ff;color:#4f46e5;border-color:#c7d2fe;">
+                            <span class="np-avatar" style="background:#4f46e5;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
+                            <span>{{ $entry['name'] }}</span>
+                            <button class="np-remove" style="background:#e0e7ff;color:#4f46e5;"
+                                data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
+                        </span>
+                    @else
+                        <button class="add-nurse-btn" style="border-color:#c7d2fe;color:#4f46e5;"
+                            data-section="head_nurse" data-period="{{ $period }}">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- ── IPCN (closed weekends) ── --}}
+    <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
+        <div class="section-header" style="background:#ecfeff;">
+            <div class="p-1.5 rounded" style="background:#0891b2;">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+            </div>
+            <span class="section-title" style="color:#0891b2;">IPCN</span>
+            @if($isWeekend)
+                <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:#e5e7eb;color:#6b7280;">
+                    No Duty — Weekend
+                </span>
+            @else
+                <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:#cffafe;color:#164e63;">Weekdays only · 1 nurse</span>
+            @endif
+        </div>
+        <div class="shift-grid">
+            <div class="shift-label bg-gray-50" style="border-bottom:1px solid #e2e8f0;">Shift</div>
+            <div class="shift-cell-header text-center">Nurse</div>
+            <div class="shift-label">Day</div>
+            <div class="shift-cell flex flex-wrap items-start content-start gap-1 pt-2">
+                @if($isWeekend)
+                    <span class="text-xs text-gray-400 italic flex items-center gap-1.5 mt-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                        </svg>
+                        No duty on Saturdays &amp; Sundays
+                    </span>
+                @else
+                    @php $entry = ($schedule['ipcn']['day'] ?? [])[0] ?? null; @endphp
+                    @if($entry)
+                        <span class="nurse-pill" wire:key="pill-ipcn-day-{{ $entry['id'] }}"
+                            style="background:#ecfeff;color:#0891b2;border-color:#a5f3fc;">
+                            <span class="np-avatar" style="background:#0891b2;">{{ strtoupper(substr($entry['name'],0,1)) }}</span>
+                            <span>{{ $entry['name'] }}</span>
+                            <button class="np-remove" style="background:#cffafe;color:#0891b2;"
+                                data-remove-id="{{ $entry['id'] }}" title="Remove">✕</button>
+                        </span>
+                    @else
+                        <button class="add-nurse-btn" style="border-color:#67e8f9;color:#0891b2;"
+                            data-section="ipcn" data-period="day">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                             </svg>
@@ -894,9 +1124,7 @@ function nurseSchedule(initialDate) {
         },
 
         scrollToSelected() {
-            const track = this.$refs.dpTrack;
-            if (!track) return;
-            const active = track.querySelector('.dp-active');
+            const active = document.querySelector('.dp-day.dp-active');
             if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         },
 
@@ -980,16 +1208,24 @@ function nurseSchedule(initialDate) {
 
             const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
             const sectionColors = {
-                er:     { bg: '#dc2626', light: '#fff1f2' },
-                triage: { bg: '#ea580c', light: '#fff7ed' },
-                ward:   { bg: '#015581', light: '#e6f0f7' },
-                opd:    { bg: '#7c3aed', light: '#f5f3ff' },
+                er:         { bg: '#dc2626', light: '#fff1f2' },
+                triage:     { bg: '#ea580c', light: '#fff7ed' },
+                ward:       { bg: '#015581', light: '#e6f0f7' },
+                opd:        { bg: '#7c3aed', light: '#f5f3ff' },
+                dr:         { bg: '#db2777', light: '#fdf2f8' },
+                or:         { bg: '#059669', light: '#ecfdf5' },
+                head_nurse: { bg: '#4f46e5', light: '#eef2ff' },
+                ipcn:       { bg: '#0891b2', light: '#ecfeff' },
             };
             const sections = [
-                { key: 'er',     label: 'EMERGENCY ROOM (ER)', shifts: ['am','pm','noc'] },
-                { key: 'triage', label: 'TRIAGE',              shifts: ['am','pm','noc'] },
-                { key: 'ward',   label: 'WARD',                shifts: ['am','pm','noc'] },
-                { key: 'opd',    label: 'OPD',                 shifts: ['day'] },
+                { key: 'er',         label: 'EMERGENCY ROOM (ER)',  shifts: ['am','pm','noc'] },
+                { key: 'triage',     label: 'TRIAGE',               shifts: ['am','pm','noc'] },
+                { key: 'ward',       label: 'WARD',                 shifts: ['am','pm','noc'] },
+                { key: 'dr',         label: 'DELIVERY ROOM (DR)',   shifts: ['am','pm','noc'] },
+                { key: 'or',         label: 'OPERATING ROOM (OR)',  shifts: ['am','pm','noc'] },
+                { key: 'head_nurse', label: 'HEAD NURSE',           shifts: ['shift_8_3','shift_3_11'] },
+                { key: 'opd',        label: 'OPD',                  shifts: ['day'], weekdayOnly: true },
+                { key: 'ipcn',       label: 'IPCN',                 shifts: ['day'], weekdayOnly: true },
             ];
 
             const colCount = dates.length + 1;
@@ -1024,7 +1260,8 @@ function nurseSchedule(initialDate) {
                 html += `<tr><td colspan="${colCount}" style="background:${color.bg};color:#fff;font-weight:800;letter-spacing:.06em;text-transform:uppercase;text-align:center;font-size:.7rem;padding:4px 12px;">${sec.label}</td></tr>`;
 
                 sec.shifts.forEach(shift => {
-                    const shiftLabel = shift === 'am' ? 'AM' : shift === 'pm' ? 'PM' : shift === 'noc' ? 'NOC' : '8–5';
+                    const shiftLabel = shift === 'am' ? 'AM' : shift === 'pm' ? 'PM' : shift === 'noc' ? 'NOC'
+                        : shift === 'shift_8_3' ? '8–3' : shift === 'shift_3_11' ? '3–11' : 'Day';
                     html += `<tr><td class="xl-shift-label" style="position:sticky;left:0;z-index:1;white-space:nowrap;background:${color.light};color:${color.bg};">${shiftLabel}</td>`;
 
                     dateStrings.forEach((d, idx) => {
@@ -1033,7 +1270,7 @@ function nurseSchedule(initialDate) {
                         const isWknd = dow === 0 || dow === 6;
                         let cellContent = '';
 
-                        if (sec.key === 'opd' && isWknd) {
+                        if (sec.weekdayOnly && isWknd) {
                             cellContent = '<span style="font-size:.65rem;color:#9ca3af;font-style:italic;">Closed</span>';
                         } else {
                             const name = previewData[sec.key]?.[shift]?.[d] || '';

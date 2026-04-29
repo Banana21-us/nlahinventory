@@ -345,6 +345,237 @@
                 </div>
             </div>
 
+        </div>{{-- end ROW 2 grid --}}
+
+        {{-- ══════════════════════════════════════════════════════════════════
+             ACCOUNTING OFFICER — OVERTIME & PAY-OFF APPROVAL
+        ══════════════════════════════════════════════════════════════════ --}}
+        @if(session('message'))
+        <div class="rounded-xl px-5 py-3 text-sm font-semibold text-white brand-bg-t flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+            {{ session('message') }}
+        </div>
+        @endif
+
+        {{-- 2-column grid: Overtime | Pay-off --}}
+        <div x-data="{
+            confirmOpen: false,
+            confirmId: null,
+            confirmType: '',
+            confirmAction: '',
+            open(id, type, action) { this.confirmId = id; this.confirmType = type; this.confirmAction = action; this.confirmOpen = true; },
+            confirm() {
+                if (this.confirmAction === 'approve' && this.confirmType === 'overtime') @this.call('approveOvertimeAccounting', this.confirmId);
+                else if (this.confirmAction === 'reject'  && this.confirmType === 'overtime') @this.call('rejectOvertimeAccounting',  this.confirmId);
+                else if (this.confirmAction === 'approve' && this.confirmType === 'payoff')   @this.call('approvePayoffAccounting',   this.confirmId);
+                else if (this.confirmAction === 'reject'  && this.confirmType === 'payoff')   @this.call('rejectPayoffAccounting',    this.confirmId);
+                this.confirmOpen = false;
+            }
+        }" class="flex flex-col gap-6">
+
+            {{-- ── OVERTIME COLUMN ── --}}
+            <div class="s-card overflow-hidden flex flex-col">
+                <div class="s-head flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Accounting Officer</p>
+                        <h2 class="text-base font-black text-gray-800 mt-0.5">Overtime Applications</h2>
+                    </div>
+                    <span class="badge" style="background:#fef3c7;color:#92400e;">{{ $pendingOvertimes->count() }} pending</span>
+                </div>
+                <div class="s-body flex-1 flex flex-col gap-4">
+
+                    {{-- Pending --}}
+                    @if($pendingOvertimes->isEmpty())
+                        <p class="text-xs text-gray-400 text-center py-3">No pending overtime applications.</p>
+                    @else
+                        @foreach($pendingOvertimes as $ot)
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-2">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <p class="text-sm font-black text-gray-900">{{ $ot->user->name }}</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        <span class="badge" style="{{ $ot->type === 'on_call' ? 'background:#f0fdf4;color:#166534;' : 'background:#eff6ff;color:#1d4ed8;' }}">
+                                            {{ $ot->type === 'on_call' ? 'On Call' : 'Overtime' }}
+                                        </span>
+                                        &nbsp;{{ $ot->start_datetime->format('M d, Y') }} · <strong>{{ $ot->hours }}h</strong>
+                                    </p>
+                                    @if($ot->reason)
+                                    <p class="text-xs text-gray-400 mt-1 italic">{{ $ot->reason }}</p>
+                                    @endif
+                                    <p class="text-[10px] text-gray-400 mt-1">HR: {{ $ot->hrApprover?->name ?? '—' }}</p>
+                                </div>
+                                <div class="flex gap-2 shrink-0">
+                                    <button @click="open({{ $ot->id }}, 'overtime', 'approve')"
+                                        class="rounded-lg px-3 py-1.5 text-xs font-bold text-white brand-bg-t hover:opacity-80 transition">
+                                        Approve
+                                    </button>
+                                    <button @click="open({{ $ot->id }}, 'overtime', 'reject')"
+                                        class="rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition">
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    @endif
+
+                    {{-- History --}}
+                    @if($historyOvertimes->isNotEmpty())
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Past Transactions</p>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="text-[10px] uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                                        <th class="pb-2 text-left">Employee</th>
+                                        <th class="pb-2 text-left">Date</th>
+                                        <th class="pb-2 text-right">Hrs</th>
+                                        <th class="pb-2 text-left">Result</th>
+                                        <th class="pb-2 text-left">By</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50">
+                                    @foreach($historyOvertimes as $ot)
+                                    <tr>
+                                        <td class="py-2 font-semibold text-gray-700">{{ $ot->user->name }}</td>
+                                        <td class="py-2 text-gray-500">{{ $ot->start_datetime->format('M d') }}</td>
+                                        <td class="py-2 text-right font-bold brand-primary">{{ $ot->hours }}h</td>
+                                        <td class="py-2">
+                                            <span class="badge" style="{{ $ot->accounting_status === 'approved' ? 'background:#dcfce7;color:#166534;' : 'background:#fee2e2;color:#991b1b;' }}">
+                                                {{ ucfirst($ot->accounting_status) }}
+                                            </span>
+                                        </td>
+                                        <td class="py-2 text-gray-400">{{ $ot->accountingApprover?->name ?? '—' }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @endif
+
+                </div>
+            </div>
+
+            {{-- ── PAY-OFF COLUMN ── --}}
+            <div class="s-card overflow-hidden flex flex-col">
+                <div class="s-head flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Accounting Officer</p>
+                        <h2 class="text-base font-black text-gray-800 mt-0.5">Pay-off Applications</h2>
+                    </div>
+                    <span class="badge" style="background:#fef3c7;color:#92400e;">{{ $pendingPayoffs->count() }} pending</span>
+                </div>
+                <div class="s-body flex-1 flex flex-col gap-4">
+
+                    {{-- Pending --}}
+                    @if($pendingPayoffs->isEmpty())
+                        <p class="text-xs text-gray-400 text-center py-3">No pending pay-off applications.</p>
+                    @else
+                        @foreach($pendingPayoffs as $po)
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-2">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <p class="text-sm font-black text-gray-900">{{ $po->user->name }}</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        {{ $po->start_datetime->format('M d, Y') }} · <strong>{{ $po->hours }}h</strong>
+                                    </p>
+                                    @if($po->reason)
+                                    <p class="text-xs text-gray-400 mt-1 italic">{{ $po->reason }}</p>
+                                    @endif
+                                    <p class="text-[10px] text-gray-400 mt-1">HR: {{ $po->hrApprover?->name ?? '—' }}</p>
+                                </div>
+                                <div class="flex gap-2 shrink-0">
+                                    <button @click="open({{ $po->id }}, 'payoff', 'approve')"
+                                        class="rounded-lg px-3 py-1.5 text-xs font-bold text-white brand-bg-t hover:opacity-80 transition">
+                                        Approve
+                                    </button>
+                                    <button @click="open({{ $po->id }}, 'payoff', 'reject')"
+                                        class="rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition">
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    @endif
+
+                    {{-- History --}}
+                    @if($historyPayoffs->isNotEmpty())
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Past Transactions</p>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="text-[10px] uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                                        <th class="pb-2 text-left">Employee</th>
+                                        <th class="pb-2 text-left">Date</th>
+                                        <th class="pb-2 text-right">Hrs</th>
+                                        <th class="pb-2 text-left">Result</th>
+                                        <th class="pb-2 text-left">By</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50">
+                                    @foreach($historyPayoffs as $po)
+                                    <tr>
+                                        <td class="py-2 font-semibold text-gray-700">{{ $po->user->name }}</td>
+                                        <td class="py-2 text-gray-500">{{ $po->start_datetime->format('M d') }}</td>
+                                        <td class="py-2 text-right font-bold brand-primary">{{ $po->hours }}h</td>
+                                        <td class="py-2">
+                                            <span class="badge" style="{{ $po->accounting_status === 'approved' ? 'background:#dcfce7;color:#166534;' : 'background:#fee2e2;color:#991b1b;' }}">
+                                                {{ ucfirst($po->accounting_status) }}
+                                            </span>
+                                        </td>
+                                        <td class="py-2 text-gray-400">{{ $po->accountingApprover?->name ?? '—' }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @endif
+
+                </div>
+            </div>
+
+            {{-- Confirm Modal --}}
+            <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center">
+                <div class="fixed inset-0 bg-gray-900/50" @click="confirmOpen = false"></div>
+                <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 z-10">
+                    <div class="p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                                :class="confirmAction === 'approve' ? 'bg-green-100' : 'bg-red-100'">
+                                <svg class="w-5 h-5" :class="confirmAction === 'approve' ? 'text-green-600' : 'text-red-600'"
+                                    fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path x-show="confirmAction === 'approve'" stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                    <path x-show="confirmAction === 'reject'"  stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-black text-gray-900" x-text="confirmAction === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'"></h3>
+                                <p class="text-xs text-gray-500 mt-0.5"
+                                    x-text="confirmAction === 'approve'
+                                        ? 'This will fully approve the application.'
+                                        : 'This will reject the application.'">
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-3">
+                            <button @click="confirmOpen = false"
+                                class="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                                Cancel
+                            </button>
+                            <button @click="confirm()"
+                                class="px-4 py-2 text-sm font-bold text-white rounded-lg transition"
+                                :class="confirmAction === 'approve' ? 'brand-bg-t hover:opacity-80' : 'bg-red-500 hover:bg-red-600'"
+                                x-text="confirmAction === 'approve' ? 'Yes, Approve' : 'Yes, Reject'">
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
     </div>

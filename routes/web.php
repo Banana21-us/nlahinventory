@@ -142,6 +142,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/nursing/schedule', NurseSchedule::class)->name('nursing.schedule');
     Route::get('/HR/overtime', OvertimeManagement::class)->name('HR.overtime');
     Route::get('/HR/payoff', PayoffManagement::class)->name('HR.payoff');
+    Route::get('/user/overtime', OvertimeManagement::class)->name('users.overtime');
+    Route::get('/user/payoff', PayoffManagement::class)->name('users.payoff');
 });
 
 // Shared dashboard — accessible to both maintenance and verifier roles

@@ -158,41 +158,118 @@
     </div>
 
     {{-- ═══════════════════════════════════════════
-         USER TABLE
+         SEARCH + COUNT BAR
     ═══════════════════════════════════════════ --}}
-    <div class="mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-
-        {{-- Table Header --}}
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="p-2 rounded-lg brand-bg-teal-light">
-                    <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800">User List</h3>
-                <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                    {{ $users->count() }} {{ Str::plural('user', $users->count()) }}
-                </span>
-            </div>
-
-            {{-- Search --}}
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-                    </svg>
-                </div>
-                <input
-                    wire:model.live.debounce.300ms="search"
-                    type="text"
-                    placeholder="Search users…"
-                    class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg transition-all w-56"
-                />
-            </div>
+    <div class="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 mb-4">
+        <div class="flex items-center gap-2 mb-2">
+            <h3 class="text-sm font-bold text-gray-700">User List</h3>
+            <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-medium">
+                {{ $users->count() }} {{ Str::plural('user', $users->count()) }}
+            </span>
         </div>
+        <div class="relative w-full">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                </svg>
+            </div>
+            <input wire:model.live.debounce.300ms="search"
+                   type="text"
+                   placeholder="Search users…"
+                   class="search-focus w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg"/>
+        </div>
+    </div>
 
-        {{-- Table --}}
+    {{-- ═══════════════════════════════════════════
+         MOBILE CARD LIST  (hidden on md+)
+    ═══════════════════════════════════════════ --}}
+    <div class="md:hidden space-y-3">
+        @forelse($users as $user)
+            @php $position = $user->employmentDetail?->position; @endphp
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden {{ $user->is_active ? '' : 'opacity-60' }}">
+
+                {{-- Card Header: avatar + name + status toggle --}}
+                <div class="px-4 pt-4 pb-3 flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 brand-bg-primary">
+                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-sm font-bold text-gray-900 truncate">{{ $user->name }}</p>
+                            {{-- Active toggle --}}
+                            <div wire:ignore>
+                                <button
+                                    x-data="{ on: {{ $user->is_active ? 'true' : 'false' }} }"
+                                    x-on:click="on = !on; $wire.toggleActive({{ $user->id }})"
+                                    :class="on ? 'bg-green-500' : 'bg-red-400'"
+                                    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-300 border-2 border-black focus:outline-none">
+                                    <span :style="on ? 'transform:translateX(1.5rem)' : 'transform:translateX(0.25rem)'"
+                                          style="transition:transform 300ms ease-in-out;"
+                                          class="inline-block h-4 w-4 rounded-full bg-white shadow"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 truncate">{{ $user->username }}</p>
+                    </div>
+                </div>
+
+                {{-- Details grid --}}
+                <div class="px-4 pb-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                        <span class="block text-[10px] font-bold uppercase tracking-wide text-gray-400">Employee #</span>
+                        <span class="text-sm font-mono font-semibold text-gray-700">{{ $user->employee_number ?? '—' }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-bold uppercase tracking-wide text-gray-400">Position</span>
+                        @if($position)
+                            <span class="text-xs font-semibold truncate block" style="color:#015581;">{{ $position }}</span>
+                        @else
+                            <span class="text-xs text-gray-400 italic">Not assigned</span>
+                        @endif
+                    </div>
+                    <div class="col-span-2">
+                        <span class="block text-[10px] font-bold uppercase tracking-wide text-gray-400">Email</span>
+                        <span class="text-xs text-gray-600 truncate block">{{ $user->email }}</span>
+                    </div>
+                </div>
+
+                {{-- Footer: access key + actions --}}
+                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center gap-2">
+                    <select
+                        @change="$wire.confirmAccessKeyChange({{ $user->id }}, parseInt($event.target.value) || null)"
+                        class="brand-focus min-w-0 flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700">
+                        <option value="">— No Key —</option>
+                        @foreach($accessKeys as $key)
+                            <option value="{{ $key->id }}" {{ $user->access_key_id == $key->id ? 'selected' : '' }}>
+                                {{ $key->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <button wire:click="edit({{ $user->id }})"
+                            class="brand-edit-btn rounded-lg px-3 py-1.5 text-xs font-bold shadow-sm shrink-0">
+                        Edit
+                    </button>
+                    <button wire:click="confirmDelete({{ $user->id }})"
+                            class="text-red-500 text-xs font-bold shrink-0 px-2 py-1.5">
+                        Del
+                    </button>
+                </div>
+            </div>
+        @empty
+            <div class="bg-white rounded-xl border border-gray-200 px-6 py-12 text-center text-gray-400">
+                <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <p class="text-sm font-medium">{{ $search ? 'No users match your search.' : 'No users found in the system.' }}</p>
+                <p class="text-xs mt-1">{{ $search ? 'Try a different keyword.' : 'Click "Add New User" above to get started.' }}</p>
+            </div>
+        @endforelse
+    </div>
+
+    {{-- ═══════════════════════════════════════════
+         DESKTOP TABLE  (hidden below md)
+    ═══════════════════════════════════════════ --}}
+    <div class="hidden md:block bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -208,15 +285,9 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     @forelse($users as $user)
-                        @php
-                            $position = $user->employmentDetail?->position;
-                        @endphp
+                        @php $position = $user->employmentDetail?->position; @endphp
                         <tr class="brand-row-hover transition-colors {{ $user->is_active ? '' : 'opacity-60' }}">
-
-                            <td class="px-6 py-4 text-sm font-mono font-semibold text-gray-600">
-                                {{ $user->employee_number }}
-                            </td>
-
+                            <td class="px-6 py-4 text-sm font-mono font-semibold text-gray-600">{{ $user->employee_number }}</td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 brand-bg-primary">
@@ -228,9 +299,7 @@
                                     </div>
                                 </div>
                             </td>
-
                             <td class="px-6 py-4 text-sm text-gray-500">{{ $user->email }}</td>
-
                             <td class="px-6 py-4">
                                 @if($position)
                                     <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
@@ -241,45 +310,32 @@
                                     <span class="text-xs text-gray-400 italic">Not assigned</span>
                                 @endif
                             </td>
-
                             <td class="px-6 py-4">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    {{-- Status Toggle --}}
-                                    <div wire:ignore>
-                                        <button
-                                            x-data="{ on: {{ $user->is_active ? 'true' : 'false' }} }"
-                                            x-on:click="on = !on; $wire.toggleActive({{ $user->id }})"
-                                            :title="on ? 'Click to deactivate' : 'Click to activate'"
-                                            :class="on ? 'bg-green-600' : 'bg-red-600'"
-                                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ease-in-out border-2 border-black focus:outline-none focus:ring-4 focus:ring-yellow-400">
-                                            <span
-                                                :style="on ? 'transform: translateX(1.5rem)' : 'transform: translateX(0.25rem)'"
-                                                style="transition: transform 300ms ease-in-out;"
-                                                class="inline-block h-4 w-4 rounded-full bg-white shadow"></span>
-                                        </button>
-                                    </div>
-
-                                    
+                                <div wire:ignore>
+                                    <button
+                                        x-data="{ on: {{ $user->is_active ? 'true' : 'false' }} }"
+                                        x-on:click="on = !on; $wire.toggleActive({{ $user->id }})"
+                                        :title="on ? 'Click to deactivate' : 'Click to activate'"
+                                        :class="on ? 'bg-green-600' : 'bg-red-600'"
+                                        class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ease-in-out border-2 border-black focus:outline-none focus:ring-4 focus:ring-yellow-400">
+                                        <span :style="on ? 'transform: translateX(1.5rem)' : 'transform: translateX(0.25rem)'"
+                                              style="transition: transform 300ms ease-in-out;"
+                                              class="inline-block h-4 w-4 rounded-full bg-white shadow"></span>
+                                    </button>
                                 </div>
                             </td>
-
-                          <td class="px-6 py-4 text-sm text-gray-400">
-                                {{-- Access Key Selector --}}
-                                    <div>
-                                        <select
-                                            @change="$wire.confirmAccessKeyChange({{ $user->id }}, parseInt($event.target.value) || null)"
-                                            title="Change access key"
-                                            class="brand-focus text-xs border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-700 cursor-pointer max-w-[130px]">
-                                            <option value="">— No Key —</option>
-                                            @foreach($accessKeys as $key)
-                                                <option value="{{ $key->id }}" {{ $user->access_key_id == $key->id ? 'selected' : '' }}>
-                                                    {{ $key->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                            </td> 
-
+                            <td class="px-6 py-4 text-sm text-gray-400">
+                                <select
+                                    @change="$wire.confirmAccessKeyChange({{ $user->id }}, parseInt($event.target.value) || null)"
+                                    class="brand-focus text-xs border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-700 cursor-pointer max-w-[130px]">
+                                    <option value="">— No Key —</option>
+                                    @foreach($accessKeys as $key)
+                                        <option value="{{ $key->id }}" {{ $user->access_key_id == $key->id ? 'selected' : '' }}>
+                                            {{ $key->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </td>
                             <td class="px-6 py-4 text-right text-sm font-medium space-x-2">
                                 <button wire:click="edit({{ $user->id }})"
                                     class="brand-edit-btn rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors">
@@ -298,12 +354,8 @@
                                     <svg class="w-10 h-10 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     </svg>
-                                    <p class="text-sm font-medium">
-                                        {{ $search ? 'No users match your search.' : 'No users found in the system.' }}
-                                    </p>
-                                    <p class="text-xs mt-1">
-                                        {{ $search ? 'Try a different keyword.' : 'Click "Add New User" above to get started.' }}
-                                    </p>
+                                    <p class="text-sm font-medium">{{ $search ? 'No users match your search.' : 'No users found in the system.' }}</p>
+                                    <p class="text-xs mt-1">{{ $search ? 'Try a different keyword.' : 'Click "Add New User" above to get started.' }}</p>
                                 </div>
                             </td>
                         </tr>

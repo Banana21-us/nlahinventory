@@ -2,8 +2,11 @@
 
 namespace App\Livewire;
 
+use App\Models\OvertimeApplication;
+use App\Models\PayoffApplication;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -94,6 +97,56 @@ class PayrollCompliance extends Component
           + (($this->overtimeHours - $ndOtHours) * $rate * $multipliers['ot']), 2);
     }
 
+    // ─── Accounting Approval ──────────────────────────────────────────────
+
+    public function approveOvertimeAccounting(int $id): void
+    {
+        OvertimeApplication::where('status', 'hr_approved')
+            ->findOrFail($id)
+            ->update([
+                'accounting_status' => 'approved',
+                'accounting_approved_by' => Auth::id(),
+                'status' => 'approved',
+            ]);
+        session()->flash('message', 'Overtime fully approved.');
+    }
+
+    public function rejectOvertimeAccounting(int $id): void
+    {
+        OvertimeApplication::where('status', 'hr_approved')
+            ->findOrFail($id)
+            ->update([
+                'accounting_status' => 'rejected',
+                'accounting_approved_by' => Auth::id(),
+                'status' => 'rejected',
+            ]);
+        session()->flash('message', 'Overtime rejected by Accounting.');
+    }
+
+    public function approvePayoffAccounting(int $id): void
+    {
+        PayoffApplication::where('status', 'hr_approved')
+            ->findOrFail($id)
+            ->update([
+                'accounting_status' => 'approved',
+                'accounting_approved_by' => Auth::id(),
+                'status' => 'approved',
+            ]);
+        session()->flash('message', 'Pay-off fully approved.');
+    }
+
+    public function rejectPayoffAccounting(int $id): void
+    {
+        PayoffApplication::where('status', 'hr_approved')
+            ->findOrFail($id)
+            ->update([
+                'accounting_status' => 'rejected',
+                'accounting_approved_by' => Auth::id(),
+                'status' => 'rejected',
+            ]);
+        session()->flash('message', 'Pay-off rejected by Accounting.');
+    }
+
     // ─── Dashboard Data ────────────────────────────────────────────────────
 
     private function getGovernmentContributions(): array
@@ -178,11 +231,37 @@ class PayrollCompliance extends Component
     {
         $this->calculateShift();
 
+        $pendingOvertimes = OvertimeApplication::with('user', 'hrApprover')
+            ->where('status', 'hr_approved')
+            ->orderByDesc('start_datetime')
+            ->get();
+
+        $historyOvertimes = OvertimeApplication::with('user', 'hrApprover', 'accountingApprover')
+            ->whereNotNull('accounting_approved_by')
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $pendingPayoffs = PayoffApplication::with('user', 'hrApprover')
+            ->where('status', 'hr_approved')
+            ->where('redemption_type', 'cash')
+            ->orderByDesc('start_datetime')
+            ->get();
+
+        $historyPayoffs = PayoffApplication::with('user', 'hrApprover', 'accountingApprover')
+            ->where('redemption_type', 'cash')
+            ->whereNotNull('accounting_approved_by')
+            ->orderByDesc('updated_at')
+            ->get();
+
         return view('pages.HR.payroll-compliance', [
             'contributions' => $this->getGovernmentContributions(),
             'otBurnRate' => $this->getOTBurnRate(),
             'thirteenthMonth' => $this->get13thMonthAccrual(),
             'topNDWorkers' => $this->getTopNightDiffWorkers(),
+            'pendingOvertimes' => $pendingOvertimes,
+            'historyOvertimes' => $historyOvertimes,
+            'pendingPayoffs' => $pendingPayoffs,
+            'historyPayoffs' => $historyPayoffs,
         ])->layout('layouts.app');
     }
 }

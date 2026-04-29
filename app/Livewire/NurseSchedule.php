@@ -43,34 +43,46 @@ class NurseSchedule extends Component
 
         NurseScheduleEntry::with('employee')
             ->where('schedule_date', $this->selectedDate)
+            ->orderBy('slot')
             ->get()
             ->each(function ($entry) {
                 $name = $entry->employee
                     ? trim($entry->employee->first_name.' '.$entry->employee->last_name)
                     : $entry->custom_name;
 
-                $this->schedule[$entry->section][$entry->period] = [
+                $this->schedule[$entry->section][$entry->period][] = [
                     'id' => $entry->id,
                     'employee_id' => $entry->employee_id,
                     'name' => $name,
+                    'slot' => $entry->slot,
                 ];
             });
     }
 
+    // Sections that allow more than one nurse per period (section => max count)
+    private const MULTI_NURSE = ['or' => 2];
+
     public function assignEmployee(int $employeeId, string $section, string $period): void
     {
         $employee = Employee::findOrFail($employeeId);
+        $slot = $this->resolveSlot($section, $period);
+        if ($slot === false) {
+            $this->dispatch('show-toast', message: 'Maximum nurses already assigned for this slot.');
+            return;
+        }
 
-        NurseScheduleEntry::where('schedule_date', $this->selectedDate)
-            ->where('section', $section)
-            ->where('period', $period)
-            ->delete();
+        if ($slot === null) {
+            NurseScheduleEntry::where('schedule_date', $this->selectedDate)
+                ->where('section', $section)
+                ->where('period', $period)
+                ->delete();
+        }
 
         NurseScheduleEntry::create([
             'schedule_date' => $this->selectedDate,
             'section' => $section,
             'period' => $period,
-            'slot' => null,
+            'slot' => $slot,
             'employee_id' => $employeeId,
             'custom_name' => null,
         ]);
@@ -87,22 +99,55 @@ class NurseSchedule extends Component
             return;
         }
 
-        NurseScheduleEntry::where('schedule_date', $this->selectedDate)
-            ->where('section', $section)
-            ->where('period', $period)
-            ->delete();
+        $slot = $this->resolveSlot($section, $period);
+        if ($slot === false) {
+            $this->dispatch('show-toast', message: 'Maximum nurses already assigned for this slot.');
+            return;
+        }
+
+        if ($slot === null) {
+            NurseScheduleEntry::where('schedule_date', $this->selectedDate)
+                ->where('section', $section)
+                ->where('period', $period)
+                ->delete();
+        }
 
         NurseScheduleEntry::create([
             'schedule_date' => $this->selectedDate,
             'section' => $section,
             'period' => $period,
-            'slot' => null,
+            'slot' => $slot,
             'employee_id' => null,
             'custom_name' => $customName,
         ]);
 
         $this->loadSchedule();
         $this->dispatch('show-toast', message: "{$customName} assigned successfully.");
+    }
+
+    /**
+     * Returns the slot value to use for a new entry.
+     * null  → single-nurse section (caller should delete existing first)
+     * int   → next available slot number for multi-nurse sections
+     * false → section is full, reject the assignment
+     */
+    private function resolveSlot(string $section, string $period): int|null|false
+    {
+        $max = self::MULTI_NURSE[$section] ?? null;
+        if ($max === null) {
+            return null;
+        }
+
+        $existing = NurseScheduleEntry::where('schedule_date', $this->selectedDate)
+            ->where('section', $section)
+            ->where('period', $period)
+            ->count();
+
+        if ($existing >= $max) {
+            return false;
+        }
+
+        return $existing + 1;
     }
 
     public function loadPreviewRange(string $from, string $to): void
@@ -120,13 +165,18 @@ class NurseSchedule extends Component
         NurseScheduleEntry::with('employee')
             ->whereBetween('schedule_date', [$from, $to])
             ->orderBy('schedule_date')
+            ->orderBy('slot')
             ->get()
             ->each(function ($entry) use (&$data) {
                 $name = $entry->employee
                     ? trim($entry->employee->first_name.' '.$entry->employee->last_name)
                     : $entry->custom_name;
                 $date = $entry->schedule_date->toDateString();
-                $data[$entry->section][$entry->period][$date] = $name;
+                if (isset($data[$entry->section][$entry->period][$date])) {
+                    $data[$entry->section][$entry->period][$date] .= ' / '.$name;
+                } else {
+                    $data[$entry->section][$entry->period][$date] = $name;
+                }
             });
 
         $this->previewData = $data;
@@ -337,27 +387,34 @@ class NurseSchedule extends Component
                 $lastShiftSnap = $lastShift;
                 $lastDateSnap = $lastShiftDate;
 
-                $available = array_values(array_filter(
-                    $nurses,
-                    function ($n) use ($dateStr, $shift, $leaveDays, $lastShiftSnap, $lastDateSnap) {
-                        // Skip if on approved leave
-                        if (isset($leaveDays[$n['id']][$dateStr])) {
-                            return false;
-                        }
+                // Track which nurses are already assigned a shift today
+                $assignedToday = array_column(
+                    array_filter($entries, fn ($e) => $e['schedule_date'] === $dateStr),
+                    'employee_id'
+                );
 
-                        // Fatigue rule: no NOC → AM on the following day
-                        if (
-                            $lastShiftSnap[$n['id']] === 'noc'
-                            && $shift === 'am'
-                            && $lastDateSnap[$n['id']] !== null
-                            && Carbon::parse($lastDateSnap[$n['id']])->addDay()->toDateString() === $dateStr
-                        ) {
-                            return false;
-                        }
+                $baseFilter = function ($n) use ($dateStr, $shift, $leaveDays, $lastShiftSnap, $lastDateSnap, $assignedToday) {
+                    if (isset($leaveDays[$n['id']][$dateStr])) return false;
+                    if (in_array($n['id'], $assignedToday)) return false;
+                    if (
+                        $lastShiftSnap[$n['id']] === 'noc'
+                        && $shift === 'am'
+                        && $lastDateSnap[$n['id']] !== null
+                        && Carbon::parse($lastDateSnap[$n['id']])->addDay()->toDateString() === $dateStr
+                    ) return false;
+                    return true;
+                };
 
-                        return true;
-                    }
+                // Nurses who pass base rules AND are under the 80h cap
+                $underCap = array_values(array_filter(
+                    array_filter($nurses, $baseFilter),
+                    fn ($n) => $hoursSnap[$n['id']] < 80
                 ));
+
+                // If all eligible nurses have hit 80h (e.g. leave coverage), allow over-cap
+                $available = !empty($underCap)
+                    ? $underCap
+                    : array_values(array_filter($nurses, $baseFilter));
 
                 if (empty($available)) {
                     continue;
@@ -430,6 +487,50 @@ class NurseSchedule extends Component
         }
     }
 
+    private function getNurseHoursByBlock(): array
+    {
+        $base = Carbon::parse($this->selectedDate);
+        $year = $base->year;
+        $month = $base->month;
+
+        // Block A: 11th–25th of current month
+        $blockA = [
+            Carbon::createFromDate($year, $month, 11)->toDateString(),
+            Carbon::createFromDate($year, $month, 25)->toDateString(),
+        ];
+
+        // Block B: 26th of current month – 10th of next month
+        $blockBStart = Carbon::createFromDate($year, $month, 26);
+        $blockB = [
+            $blockBStart->toDateString(),
+            $blockBStart->copy()->addDays(14)->toDateString(),
+        ];
+
+        $result = ['A' => [], 'B' => []];
+
+        foreach (['A' => $blockA, 'B' => $blockB] as $label => [$start, $end]) {
+            $rows = NurseScheduleEntry::whereBetween('schedule_date', [$start, $end])
+                ->whereNotNull('employee_id')
+                ->select('employee_id', DB::raw('COUNT(*) as shifts'))
+                ->groupBy('employee_id')
+                ->get();
+
+            foreach ($rows as $row) {
+                $emp = Employee::find($row->employee_id);
+                $result[$label][] = [
+                    'name' => $emp ? trim($emp->first_name.' '.$emp->last_name) : 'Unknown',
+                    'shifts' => $row->shifts,
+                    'hours' => $row->shifts * 8,
+                    'over_cap' => ($row->shifts * 8) > 80,
+                ];
+            }
+
+            usort($result[$label], fn ($a, $b) => $b['hours'] <=> $a['hours']);
+        }
+
+        return $result;
+    }
+
     public function render()
     {
         $nurses = Employee::with('employmentDetail')
@@ -442,7 +543,8 @@ class NurseSchedule extends Component
                 'emp_no' => $e->employee_number ?? '',
             ]);
 
-        $isOpdClosed = Carbon::parse($this->selectedDate)->isWeekend();
+        $isWeekend = Carbon::parse($this->selectedDate)->isWeekend();
+        $isOpdClosed = $isWeekend;
 
         $previewDates = [];
         if ($this->previewFrom && $this->previewTo) {
@@ -461,11 +563,13 @@ class NurseSchedule extends Component
             'nurses' => $nurses,
             'schedule' => $this->schedule,
             'isOpdClosed' => $isOpdClosed,
+            'isWeekend' => $isWeekend,
             'previewData' => $this->previewData,
             'previewDates' => $previewDates,
             'previewFrom' => $this->previewFrom,
             'previewTo' => $this->previewTo,
             'monthNames' => $monthNames,
+            'nurseHoursByBlock' => $this->getNurseHoursByBlock(),
         ])->layout('layouts.app');
     }
 }

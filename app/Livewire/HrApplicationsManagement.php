@@ -40,6 +40,8 @@ class HrApplicationsManagement extends Component
 
     public $po_user_id;
 
+    public $po_redemption_type = 'cash';
+
     public $po_start_datetime;
 
     public $po_end_datetime;
@@ -65,6 +67,8 @@ class HrApplicationsManagement extends Component
 
     // ── My payoff creation ────────────────────────────────────
     public bool $myPoForm = false;
+
+    public $myPo_redemption_type = 'cash';
 
     public $myPo_start_datetime;
 
@@ -159,17 +163,19 @@ class HrApplicationsManagement extends Component
     public function approveOvertime(int $id): void
     {
         OvertimeApplication::findOrFail($id)->update([
-            'status' => 'approved',
-            'approved_by' => Auth::id(),
+            'hr_status' => 'approved',
+            'hr_approved_by' => Auth::id(),
+            'status' => 'hr_approved',
         ]);
-        session()->flash('message', 'Overtime approved.');
+        session()->flash('message', 'Overtime approved by HR — forwarded to Accounting.');
     }
 
     public function rejectOvertime(int $id): void
     {
         OvertimeApplication::findOrFail($id)->update([
+            'hr_status' => 'rejected',
+            'hr_approved_by' => Auth::id(),
             'status' => 'rejected',
-            'approved_by' => Auth::id(),
         ]);
         session()->flash('message', 'Overtime rejected.');
     }
@@ -197,7 +203,7 @@ class HrApplicationsManagement extends Component
             'ot_end_datetime' => ['required', 'date', 'after:ot_start_datetime'],
             'ot_hours' => ['required', 'numeric', 'min:0.01'],
             'ot_reason' => ['nullable', 'string', 'max:1000'],
-            'ot_status' => ['required', 'in:pending,approved,rejected'],
+            'ot_status' => ['required', 'in:pending,hr_approved,approved,rejected'],
         ]);
 
         OvertimeApplication::findOrFail($this->overtimeId)->update([
@@ -226,18 +232,28 @@ class HrApplicationsManagement extends Component
 
     public function approvePayoff(int $id): void
     {
-        PayoffApplication::findOrFail($id)->update([
-            'status' => 'approved',
-            'approved_by' => Auth::id(),
+        $app = PayoffApplication::where('status', 'dept_approved')->findOrFail($id);
+
+        // Cash type forwards to Accounting; leave type is fully approved here
+        $newStatus = $app->redemption_type === 'cash' ? 'hr_approved' : 'approved';
+        $flashMsg = $app->redemption_type === 'cash'
+            ? 'Pay-off approved by HR — forwarded to Accounting.'
+            : 'Pay-off (Leave) approved by HR.';
+
+        $app->update([
+            'hr_status' => 'approved',
+            'hr_approved_by' => Auth::id(),
+            'status' => $newStatus,
         ]);
-        session()->flash('message', 'Pay-off approved.');
+        session()->flash('message', $flashMsg);
     }
 
     public function rejectPayoff(int $id): void
     {
-        PayoffApplication::findOrFail($id)->update([
+        PayoffApplication::where('status', 'dept_approved')->findOrFail($id)->update([
+            'hr_status' => 'rejected',
+            'hr_approved_by' => Auth::id(),
             'status' => 'rejected',
-            'approved_by' => Auth::id(),
         ]);
         session()->flash('message', 'Pay-off rejected.');
     }
@@ -247,6 +263,7 @@ class HrApplicationsManagement extends Component
         $app = PayoffApplication::findOrFail($id);
         $this->payoffId = $app->id;
         $this->po_user_id = $app->user_id;
+        $this->po_redemption_type = $app->redemption_type;
         $this->po_start_datetime = $app->start_datetime->format('Y-m-d\TH:i');
         $this->po_end_datetime = $app->end_datetime->format('Y-m-d\TH:i');
         $this->po_hours = $app->hours;
@@ -259,15 +276,17 @@ class HrApplicationsManagement extends Component
     {
         $this->validate([
             'po_user_id' => ['required', 'integer', 'exists:users,id'],
+            'po_redemption_type' => ['required', 'in:cash,leave'],
             'po_start_datetime' => ['required', 'date'],
             'po_end_datetime' => ['required', 'date', 'after:po_start_datetime'],
             'po_hours' => ['required', 'numeric', 'min:0.01'],
             'po_reason' => ['nullable', 'string', 'max:1000'],
-            'po_status' => ['required', 'in:pending,approved,rejected'],
+            'po_status' => ['required', 'in:pending,dept_approved,hr_approved,approved,rejected'],
         ]);
 
         PayoffApplication::findOrFail($this->payoffId)->update([
             'user_id' => $this->po_user_id,
+            'redemption_type' => $this->po_redemption_type,
             'start_datetime' => $this->po_start_datetime,
             'end_datetime' => $this->po_end_datetime,
             'hours' => $this->po_hours,
@@ -276,7 +295,7 @@ class HrApplicationsManagement extends Component
             'approved_by' => $this->po_status !== 'pending' ? Auth::id() : null,
         ]);
 
-        $this->reset(['payoffId', 'po_user_id', 'po_start_datetime', 'po_end_datetime', 'po_hours', 'po_reason', 'editingPayoff']);
+        $this->reset(['payoffId', 'po_user_id', 'po_redemption_type', 'po_start_datetime', 'po_end_datetime', 'po_hours', 'po_reason', 'editingPayoff']);
         $this->po_status = 'pending';
         session()->flash('message', 'Pay-off updated.');
     }
@@ -317,6 +336,7 @@ class HrApplicationsManagement extends Component
     public function saveMyPayoff(): void
     {
         $this->validate([
+            'myPo_redemption_type' => ['required', 'in:cash,leave'],
             'myPo_start_datetime' => ['required', 'date'],
             'myPo_end_datetime' => ['required', 'date', 'after:myPo_start_datetime'],
             'myPo_hours' => ['required', 'numeric', 'min:0.01'],
@@ -325,6 +345,7 @@ class HrApplicationsManagement extends Component
 
         PayoffApplication::create([
             'user_id' => Auth::id(),
+            'redemption_type' => $this->myPo_redemption_type,
             'start_datetime' => $this->myPo_start_datetime,
             'end_datetime' => $this->myPo_end_datetime,
             'hours' => $this->myPo_hours,
@@ -332,7 +353,8 @@ class HrApplicationsManagement extends Component
             'status' => 'pending',
         ]);
 
-        $this->reset(['myPo_start_datetime', 'myPo_end_datetime', 'myPo_hours', 'myPo_reason', 'myPoForm']);
+        $this->reset(['myPo_redemption_type', 'myPo_start_datetime', 'myPo_end_datetime', 'myPo_hours', 'myPo_reason', 'myPoForm']);
+        $this->myPo_redemption_type = 'cash';
         session()->flash('message', 'Pay-off application submitted.');
     }
 
@@ -357,27 +379,27 @@ class HrApplicationsManagement extends Component
     public function render()
     {
         $overtimes = OvertimeApplication::query()
-            ->with('user', 'approver')
+            ->with('user', 'hrApprover', 'accountingApprover')
             ->when($this->search, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$this->search}%")))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->orderByDesc('start_datetime')
             ->get();
 
         $payoffs = PayoffApplication::query()
-            ->with('user', 'approver')
+            ->with('user', 'deptHeadApprover', 'hrApprover')
             ->when($this->search, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$this->search}%")))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->orderByDesc('start_datetime')
             ->get();
 
         $myOvertimes = OvertimeApplication::query()
-            ->with('approver')
+            ->with('hrApprover', 'accountingApprover')
             ->where('user_id', Auth::id())
             ->orderByDesc('start_datetime')
             ->get();
 
         $myPayoffs = PayoffApplication::query()
-            ->with('approver')
+            ->with('deptHeadApprover', 'hrApprover', 'accountingApprover')
             ->where('user_id', Auth::id())
             ->orderByDesc('start_datetime')
             ->get();

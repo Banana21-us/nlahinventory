@@ -38,7 +38,21 @@
 
     {{-- TABS --}}
     <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200"
-         x-data="{ activeTab: 'overtime' }">
+         x-data="{
+             activeTab: 'overtime',
+             confirmOpen: false,
+             confirmId: null,
+             confirmType: '',
+             confirmAction: '',
+             openConfirm(id, type, action) { this.confirmId = id; this.confirmType = type; this.confirmAction = action; this.confirmOpen = true; },
+             doConfirm() {
+                 if (this.confirmAction === 'approve' && this.confirmType === 'overtime') @this.call('approveOvertime', this.confirmId);
+                 else if (this.confirmAction === 'reject'  && this.confirmType === 'overtime') @this.call('rejectOvertime',  this.confirmId);
+                 else if (this.confirmAction === 'approve' && this.confirmType === 'payoff')   @this.call('approvePayoff',   this.confirmId);
+                 else if (this.confirmAction === 'reject'  && this.confirmType === 'payoff')   @this.call('rejectPayoff',    this.confirmId);
+                 this.confirmOpen = false;
+             }
+         }">
 
         {{-- Tab Headers --}}
         <div class="border-b border-gray-200 bg-gray-50 px-6 pt-2 flex gap-6">
@@ -69,7 +83,9 @@
             <div class="flex items-center gap-3">
                 <select wire:model.live="filterStatus" class="search-focus text-sm bg-white border border-gray-200 rounded-lg py-2 px-3">
                     <option value="">All Statuses</option>
-                    <option value="pending">Pending</option>
+                    <option value="pending">Pending (Dept Head)</option>
+                    <option value="dept_approved">Pending HR</option>
+                    <option value="hr_approved">Pending Accounting</option>
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
                 </select>
@@ -87,7 +103,62 @@
 
         {{-- ── OVERTIME TAB ── --}}
         <div x-show="activeTab === 'overtime'" x-cloak>
-            <div class="overflow-x-auto">
+            {{-- Mobile Cards --}}
+            <div class="md:hidden divide-y divide-gray-100">
+                @forelse($overtimes as $app)
+                    @php
+                        $badge = match($app->status) {
+                            'approved'    => 'bg-green-100 text-green-700',
+                            'rejected'    => 'bg-red-100 text-red-700',
+                            'hr_approved' => 'bg-blue-100 text-blue-700',
+                            default       => 'bg-yellow-100 text-yellow-700',
+                        };
+                        $statusLabel = match($app->status) {
+                            'hr_approved' => 'HR Approved',
+                            default       => ucfirst($app->status),
+                        };
+                    @endphp
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-bold text-gray-900">{{ $app->user->name }}</p>
+                                <p class="text-xs text-gray-400">{{ $app->user->employee_number }}</p>
+                            </div>
+                            <span class="flex-shrink-0 px-2.5 py-0.5 text-xs font-bold rounded-full {{ $badge }}">{{ $statusLabel }}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 mb-2">
+                            <div><span class="font-medium text-gray-400">Type:</span>
+                                <span class="ml-1 px-1.5 py-0.5 rounded-full font-bold {{ $app->type === 'overtime' ? 'bg-blue-100 text-blue-700' : 'bg-indigo-100 text-indigo-700' }}">
+                                    {{ $app->type === 'overtime' ? 'Overtime' : 'On Call' }}
+                                </span>
+                            </div>
+                            <div><span class="font-medium text-gray-400">Hours:</span> <span class="font-semibold brand-text-teal">{{ $app->hours }}h</span></div>
+                            <div class="col-span-2"><span class="font-medium text-gray-400">From:</span> {{ $app->start_datetime->format('M d, Y h:i A') }}</div>
+                            <div class="col-span-2"><span class="font-medium text-gray-400">To:</span> {{ $app->end_datetime->format('M d, Y h:i A') }}</div>
+                            @if($app->reason)
+                                <div class="col-span-2 italic text-gray-500">{{ $app->reason }}</div>
+                            @endif
+                        </div>
+                        @if($app->status === 'pending')
+                            <div class="flex gap-2 mt-2">
+                                <button @click="openConfirm({{ $app->id }}, 'overtime', 'approve')"
+                                    class="flex-1 rounded-lg py-2 text-xs font-bold text-white brand-bg-teal hover:opacity-80 transition">Approve</button>
+                                <button @click="openConfirm({{ $app->id }}, 'overtime', 'reject')"
+                                    class="flex-1 rounded-lg py-2 text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition">Reject</button>
+                            </div>
+                        @endif
+                    </div>
+                @empty
+                    <div class="p-10 text-center text-gray-400">
+                        <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-sm font-medium">No overtime applications found.</p>
+                    </div>
+                @endforelse
+            </div>
+            {{-- Desktop Table --}}
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -98,16 +169,21 @@
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hours</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-100">
                         @forelse($overtimes as $app)
                             @php
                                 $badge = match($app->status) {
-                                    'approved' => 'bg-green-100 text-green-700',
-                                    'rejected' => 'bg-red-100 text-red-700',
-                                    default    => 'bg-yellow-100 text-yellow-700',
+                                    'approved'    => 'bg-green-100 text-green-700',
+                                    'rejected'    => 'bg-red-100 text-red-700',
+                                    'hr_approved' => 'bg-blue-100 text-blue-700',
+                                    default       => 'bg-yellow-100 text-yellow-700',
+                                };
+                                $statusLabel = match($app->status) {
+                                    'hr_approved' => 'HR Approved',
+                                    default       => ucfirst($app->status),
                                 };
                             @endphp
                             <tr class="brand-row-hover transition-colors">
@@ -127,21 +203,26 @@
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{{ $app->reason ?? '—' }}</td>
                                 <td class="px-6 py-4">
-                                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full {{ $badge }} capitalize">
-                                        {{ $app->status }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-right text-sm font-medium">
-                                    <div class="flex items-center justify-end gap-2">
-                                        @if($app->status === 'pending')
-                                            <button wire:click="approveOvertime({{ $app->id }})"
-                                                class="text-green-600 hover:text-green-800 font-semibold transition-colors text-xs">Approve</button>
-                                            <button wire:click="rejectOvertime({{ $app->id }})"
-                                                class="text-red-500 hover:text-red-700 font-semibold transition-colors text-xs">Reject</button>
+                                    <div class="flex flex-col gap-0.5">
+                                        <span class="px-2.5 py-0.5 text-xs font-bold rounded-full {{ $badge }} w-fit">
+                                            {{ $statusLabel }}
+                                        </span>
+                                        @if($app->status === 'hr_approved')
+                                            <span class="text-[10px] text-gray-400">Pending Accounting</span>
                                         @endif
-                                        <button wire:click="editOvertime({{ $app->id }})" class="brand-edit-btn rounded-md px-2.5 py-1.5 text-xs font-semibold shadow-sm transition-colors">Edit</button>
-                                        <button wire:click="deleteOvertime({{ $app->id }})" class="text-red-500 hover:text-red-700 font-semibold transition-colors text-xs">Delete</button>
                                     </div>
+                                </td>
+                                <td class="px-6 py-4 text-center text-sm font-medium">
+                                    @if($app->status === 'pending')
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button @click="openConfirm({{ $app->id }}, 'overtime', 'approve')"
+                                            class="rounded-lg px-3 py-1.5 text-xs font-bold text-white brand-bg-teal hover:opacity-80 transition">Approve</button>
+                                        <button @click="openConfirm({{ $app->id }}, 'overtime', 'reject')"
+                                            class="rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition">Reject</button>
+                                    </div>
+                                    @else
+                                        <span class="text-xs text-gray-300">—</span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -163,7 +244,63 @@
 
         {{-- ── PAY-OFF TAB ── --}}
         <div x-show="activeTab === 'payoff'" x-cloak>
-            <div class="overflow-x-auto">
+            {{-- Mobile Cards --}}
+            <div class="md:hidden divide-y divide-gray-100">
+                @forelse($payoffs as $app)
+                    @php
+                        $badge = match($app->status) {
+                            'approved'      => 'bg-green-100 text-green-700',
+                            'rejected'      => 'bg-red-100 text-red-700',
+                            'hr_approved'   => 'bg-blue-100 text-blue-700',
+                            'dept_approved' => 'bg-violet-100 text-violet-700',
+                            default         => 'bg-yellow-100 text-yellow-700',
+                        };
+                        $statusLabel = match($app->status) {
+                            'dept_approved' => 'Pending HR',
+                            'hr_approved'   => 'Pending Accounting',
+                            default         => ucfirst($app->status),
+                        };
+                    @endphp
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-bold text-gray-900">{{ $app->user->name }}</p>
+                                <p class="text-xs text-gray-400">{{ $app->user->employee_number }}</p>
+                            </div>
+                            <span class="flex-shrink-0 px-2.5 py-0.5 text-xs font-bold rounded-full {{ $badge }}">{{ $statusLabel }}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 mb-2">
+                            <div><span class="font-medium text-gray-400">Redemption:</span>
+                                @if($app->redemption_type === 'cash')
+                                    <span class="ml-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">Cash</span>
+                                @else
+                                    <span class="ml-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">Leave</span>
+                                @endif
+                            </div>
+                            <div><span class="font-medium text-gray-400">Hours:</span> <span class="font-semibold brand-text-teal">{{ $app->hours }}h</span></div>
+                            <div class="col-span-2"><span class="font-medium text-gray-400">From:</span> {{ $app->start_datetime->format('M d, Y h:i A') }}</div>
+                            <div class="col-span-2"><span class="font-medium text-gray-400">To:</span> {{ $app->end_datetime->format('M d, Y h:i A') }}</div>
+                        </div>
+                        @if($app->status === 'dept_approved')
+                            <div class="flex gap-2 mt-2">
+                                <button @click="openConfirm({{ $app->id }}, 'payoff', 'approve')"
+                                    class="flex-1 rounded-lg py-2 text-xs font-bold text-white brand-bg-teal hover:opacity-80 transition">Approve</button>
+                                <button @click="openConfirm({{ $app->id }}, 'payoff', 'reject')"
+                                    class="flex-1 rounded-lg py-2 text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition">Reject</button>
+                            </div>
+                        @endif
+                    </div>
+                @empty
+                    <div class="p-10 text-center text-gray-400">
+                        <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        <p class="text-sm font-medium">No pay-off applications found.</p>
+                    </div>
+                @endforelse
+            </div>
+            {{-- Desktop Table --}}
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -171,18 +308,25 @@
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Start</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">End</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hours</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-100">
                         @forelse($payoffs as $app)
                             @php
                                 $badge = match($app->status) {
-                                    'approved' => 'bg-green-100 text-green-700',
-                                    'rejected' => 'bg-red-100 text-red-700',
-                                    default    => 'bg-yellow-100 text-yellow-700',
+                                    'approved'      => 'bg-green-100 text-green-700',
+                                    'rejected'      => 'bg-red-100 text-red-700',
+                                    'hr_approved'   => 'bg-blue-100 text-blue-700',
+                                    'dept_approved' => 'bg-violet-100 text-violet-700',
+                                    default         => 'bg-yellow-100 text-yellow-700',
+                                };
+                                $statusLabel = match($app->status) {
+                                    'dept_approved' => 'Pending HR',
+                                    'hr_approved'   => 'Pending Accounting',
+                                    default         => ucfirst($app->status),
                                 };
                             @endphp
                             <tr class="brand-row-hover transition-colors">
@@ -195,28 +339,34 @@
                                 <td class="px-6 py-4">
                                     <span class="text-sm font-semibold brand-text-teal">{{ $app->hours }}h</span>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{{ $app->reason ?? '—' }}</td>
                                 <td class="px-6 py-4">
-                                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full {{ $badge }} capitalize">
-                                        {{ $app->status }}
+                                    @if($app->redemption_type === 'cash')
+                                        <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Cash</span>
+                                    @else
+                                        <span class="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Leave</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full {{ $badge }} w-fit">
+                                        {{ $statusLabel }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-right text-sm font-medium">
-                                    <div class="flex items-center justify-end gap-2">
-                                        @if($app->status === 'pending')
-                                            <button wire:click="approvePayoff({{ $app->id }})"
-                                                class="text-green-600 hover:text-green-800 font-semibold transition-colors text-xs">Approve</button>
-                                            <button wire:click="rejectPayoff({{ $app->id }})"
-                                                class="text-red-500 hover:text-red-700 font-semibold transition-colors text-xs">Reject</button>
-                                        @endif
-                                        <button wire:click="editPayoff({{ $app->id }})" class="brand-edit-btn rounded-md px-2.5 py-1.5 text-xs font-semibold shadow-sm transition-colors">Edit</button>
-                                        <button wire:click="deletePayoff({{ $app->id }})" class="text-red-500 hover:text-red-700 font-semibold transition-colors text-xs">Delete</button>
+                                <td class="px-6 py-4 text-center text-sm font-medium">
+                                    @if($app->status === 'dept_approved')
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button @click="openConfirm({{ $app->id }}, 'payoff', 'approve')"
+                                            class="rounded-lg px-3 py-1.5 text-xs font-bold text-white brand-bg-teal hover:opacity-80 transition">Approve</button>
+                                        <button @click="openConfirm({{ $app->id }}, 'payoff', 'reject')"
+                                            class="rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition">Reject</button>
                                     </div>
+                                    @else
+                                        <span class="text-xs text-gray-300">—</span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-14 text-center">
+                                <td colspan="8" class="px-6 py-14 text-center">
                                     <div class="flex flex-col items-center text-gray-400">
                                         <svg class="w-10 h-10 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -312,6 +462,20 @@
                 </button>
                 <div x-show="open" x-collapse class="px-5 pb-5 border-t border-gray-200 pt-4 bg-white">
                     <form wire:submit.prevent="saveMyPayoff">
+                        <div class="mb-3">
+                            <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Redemption Type *</label>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" wire:model="myPo_redemption_type" value="cash" class="w-4 h-4 accent-[#015581]"/>
+                                    <span class="text-sm font-semibold text-gray-700">Cash</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" wire:model="myPo_redemption_type" value="leave" class="w-4 h-4 accent-[#015581]"/>
+                                    <span class="text-sm font-semibold text-gray-700">Vacation Leave</span>
+                                </label>
+                            </div>
+                            @error('myPo_redemption_type') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Start *</label>
@@ -403,21 +567,40 @@
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Start</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">End</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Hours</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Reason</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                                 <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach($myPayoffs as $app)
-                                @php $badge = match($app->status) { 'approved' => 'bg-green-100 text-green-700', 'rejected' => 'bg-red-100 text-red-700', default => 'bg-yellow-100 text-yellow-700' }; @endphp
+                                @php
+                                    $badge = match($app->status) {
+                                        'approved'      => 'bg-green-100 text-green-700',
+                                        'rejected'      => 'bg-red-100 text-red-700',
+                                        'hr_approved'   => 'bg-blue-100 text-blue-700',
+                                        'dept_approved' => 'bg-violet-100 text-violet-700',
+                                        default         => 'bg-yellow-100 text-yellow-700',
+                                    };
+                                    $poLabel = match($app->status) {
+                                        'dept_approved' => 'Pending HR',
+                                        'hr_approved'   => 'Pending Accounting',
+                                        default         => ucfirst($app->status),
+                                    };
+                                @endphp
                                 <tr class="brand-row-hover">
                                     <td class="px-4 py-3 text-gray-700">{{ $app->start_datetime->format('M d, Y h:i A') }}</td>
                                     <td class="px-4 py-3 text-gray-700">{{ $app->end_datetime->format('M d, Y h:i A') }}</td>
                                     <td class="px-4 py-3 font-semibold brand-text-teal">{{ $app->hours }}h</td>
-                                    <td class="px-4 py-3 text-gray-600 max-w-xs truncate">{{ $app->reason ?? '—' }}</td>
                                     <td class="px-4 py-3">
-                                        <span class="px-2 py-0.5 text-xs font-bold rounded-full {{ $badge }} capitalize">{{ $app->status }}</span>
+                                        @if($app->redemption_type === 'cash')
+                                            <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Cash</span>
+                                        @else
+                                            <span class="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Leave</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-0.5 text-xs font-bold rounded-full {{ $badge }}">{{ $poLabel }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         @if($app->status === 'pending')
@@ -549,9 +732,24 @@
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Status</label>
                                     <select wire:model="po_status" class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2">
                                         <option value="pending">Pending</option>
+                                        <option value="dept_approved">Dept Approved</option>
+                                        <option value="hr_approved">HR Approved</option>
                                         <option value="approved">Approved</option>
                                         <option value="rejected">Rejected</option>
                                     </select>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Redemption Type *</label>
+                                    <div class="flex gap-4">
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" wire:model="po_redemption_type" value="cash" class="w-4 h-4 accent-[#015581]"/>
+                                            <span class="text-sm font-semibold text-gray-700">Cash</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" wire:model="po_redemption_type" value="leave" class="w-4 h-4 accent-[#015581]"/>
+                                            <span class="text-sm font-semibold text-gray-700">Vacation Leave</span>
+                                        </label>
+                                    </div>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Start Date & Time *</label>
@@ -583,6 +781,45 @@
             </div>
         </div>
     @endif
+
+    {{-- CONFIRM MODAL --}}
+    <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="fixed inset-0 bg-gray-900/50" @click="confirmOpen = false"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 z-10">
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                        :class="confirmAction === 'approve' ? 'bg-green-100' : 'bg-red-100'">
+                        <svg class="w-5 h-5" :class="confirmAction === 'approve' ? 'text-green-600' : 'text-red-600'"
+                            fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path x-show="confirmAction === 'approve'" stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                            <path x-show="confirmAction === 'reject'"  stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-gray-900"
+                            x-text="confirmAction === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'"></h3>
+                        <p class="text-xs text-gray-500 mt-0.5"
+                            x-text="confirmAction === 'approve'
+                                ? 'Forward to Accounting for final approval.'
+                                : 'This will reject the application.'">
+                        </p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button @click="confirmOpen = false"
+                        class="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button @click="doConfirm()"
+                        class="px-4 py-2 text-sm font-bold text-white rounded-lg transition"
+                        :class="confirmAction === 'approve' ? 'brand-bg-teal hover:opacity-80' : 'bg-red-500 hover:bg-red-600'"
+                        x-text="confirmAction === 'approve' ? 'Yes, Approve' : 'Yes, Reject'">
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {{-- TOAST --}}
     @if (session()->has('message'))

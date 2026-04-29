@@ -13,8 +13,15 @@ class PayoffApplication extends Model
         'end_datetime',
         'hours',
         'reason',
+        'redemption_type',
         'status',
         'approved_by',
+        'dept_head_status',
+        'dept_head_approved_by',
+        'hr_status',
+        'hr_approved_by',
+        'accounting_status',
+        'accounting_approved_by',
     ];
 
     protected $casts = [
@@ -31,5 +38,20 @@ class PayoffApplication extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function deptHeadApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dept_head_approved_by');
+    }
+
+    public function hrApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'hr_approved_by');
+    }
+
+    public function accountingApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'accounting_approved_by');
     }
 }

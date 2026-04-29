@@ -126,31 +126,81 @@
         </div>
     </div>
 
-    {{-- TABLE --}}
-    <div class="mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="p-2 rounded-lg brand-bg-teal-light">
-                    <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800">Leave Type List</h3>
-                <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                    {{ $leaveTypes->count() }} types
-                </span>
+    {{-- SEARCH BAR --}}
+    <div class="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3">
+        <div class="relative flex-1 min-w-0">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                </svg>
             </div>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-                    </svg>
-                </div>
-                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search leave types…"
-                    class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg transition-all w-56"/>
-            </div>
+            <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search leave types…"
+                class="search-focus pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg w-full transition-all"/>
         </div>
+        <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0">
+            {{ $leaveTypes->count() }} types
+        </span>
+    </div>
 
+    {{-- MOBILE CARD LIST --}}
+    <div class="md:hidden mt-4 space-y-3">
+        @forelse($leaveTypes as $lt)
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-4 py-3">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="flex-shrink-0 px-2.5 py-0.5 text-xs leading-5 font-bold rounded-full"
+                              style="background-color:#fef8e7;color:#b45309;border:1px solid #fde68a;">
+                            {{ $lt->code }}
+                        </span>
+                        <p class="text-sm font-bold text-gray-900 min-w-0 flex-1">{{ $lt->label }}</p>
+                        @if($lt->is_active)
+                            <span class="flex-shrink-0 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 font-semibold">Active</span>
+                        @else
+                            <span class="flex-shrink-0 px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500 font-semibold">Inactive</span>
+                        @endif
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500 mb-2">
+                        <div><span class="font-medium text-gray-400">Days:</span> {{ $lt->annual_days ?? '—' }}</div>
+                        <div><span class="font-medium text-gray-400">Reset:</span> {{ ucwords(str_replace('_', ' ', $lt->reset_type)) }}</div>
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                        @if($lt->is_paid) <span class="px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700">Paid</span> @endif
+                        @if($lt->requires_attachment) <span class="px-1.5 py-0.5 text-xs rounded bg-yellow-100 text-yellow-700">Attachment</span> @endif
+                        @if($lt->solo_parent_only) <span class="px-1.5 py-0.5 text-xs rounded bg-pink-100 text-pink-700">Solo Parent</span> @endif
+                        @if($lt->requires_admin_approval) <span class="px-1.5 py-0.5 text-xs rounded bg-purple-100 text-purple-700">Admin Approval</span> @endif
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-2.5 flex justify-end gap-3 border-t border-gray-100">
+                    <button wire:click="edit({{ $lt->id }})"
+                        class="brand-edit-btn rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors">
+                        Edit
+                    </button>
+                    <button wire:click="confirmDelete({{ $lt->id }})"
+                        class="text-red-500 hover:text-red-700 text-xs font-semibold transition-colors px-1.5 py-1.5">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-12 text-gray-400">
+                <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-sm font-medium">{{ $search ? 'No leave types match your search.' : 'No leave types found.' }}</p>
+            </div>
+        @endforelse
+    </div>
+
+    {{-- DESKTOP TABLE --}}
+    <div class="hidden md:block mt-8 bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+            <div class="p-2 rounded-lg brand-bg-teal-light">
+                <svg class="w-4 h-4 brand-text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800">Leave Type List</h3>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">

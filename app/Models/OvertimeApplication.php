@@ -16,6 +16,10 @@ class OvertimeApplication extends Model
         'reason',
         'status',
         'approved_by',
+        'hr_status',
+        'hr_approved_by',
+        'accounting_status',
+        'accounting_approved_by',
     ];
 
     protected $casts = [
@@ -31,5 +35,15 @@ class OvertimeApplication extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function hrApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'hr_approved_by');
+    }
+
+    public function accountingApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'accounting_approved_by');
     }
 }
