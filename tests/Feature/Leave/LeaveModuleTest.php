@@ -598,11 +598,13 @@ class LeaveModuleTest extends TestCase
         Livewire::actingAs($staff)
             ->test(LeaveForm::class)
             ->call('requestCancellation', $leave->id);
-            
 
+        // No dept head configured on this test staff → skips straight to HR (dhead_approved)
         $this->assertDatabaseHas('leaves', [
-            'id'        => $leave->id,
-            'hr_status' => 'cancellation_requested',
+            'id'                  => $leave->id,
+            'cancellation_status' => 'dhead_approved',
+            'dept_head_status'    => 'approved',
+            'hr_status'           => 'approved',
         ]);
     }
 
@@ -760,9 +762,9 @@ class LeaveModuleTest extends TestCase
         $dhead = $this->makeDeptHead($dept);
         $staff = $this->makeStaff();
         $leave = $this->makeLeave($staff, [
-            'dept_head_status'        => 'approved',
-            'hr_status'               => 'cancellation_requested',
-            'cancellation_dhead_status' => 'pending',
+            'dept_head_status'    => 'approved',
+            'hr_status'           => 'approved',
+            'cancellation_status' => 'pending',
         ]);
 
         Livewire::actingAs($dhead)
@@ -770,8 +772,10 @@ class LeaveModuleTest extends TestCase
             ->call('approveCancellationRequest', $leave->id);
 
         $this->assertDatabaseHas('leaves', [
-            'id'                        => $leave->id,
-            'cancellation_dhead_status' => 'approved',
+            'id'                  => $leave->id,
+            'cancellation_status' => 'dhead_approved',
+            'dept_head_status'    => 'approved',
+            'hr_status'           => 'approved',
         ]);
     }
 
@@ -782,9 +786,9 @@ class LeaveModuleTest extends TestCase
         $dhead = $this->makeDeptHead($dept);
         $staff = $this->makeStaff();
         $leave = $this->makeLeave($staff, [
-            'dept_head_status'          => 'approved',
-            'hr_status'                 => 'cancellation_requested',
-            'cancellation_dhead_status' => 'pending',
+            'dept_head_status'    => 'approved',
+            'hr_status'           => 'approved',
+            'cancellation_status' => 'pending',
         ]);
 
         Livewire::actingAs($dhead)
@@ -792,8 +796,10 @@ class LeaveModuleTest extends TestCase
             ->call('rejectCancellationRequest', $leave->id);
 
         $this->assertDatabaseHas('leaves', [
-            'id'        => $leave->id,
-            'hr_status' => 'approved',
+            'id'                  => $leave->id,
+            'cancellation_status' => 'dhead_rejected',
+            'dept_head_status'    => 'approved',
+            'hr_status'           => 'approved',
         ]);
     }
 
@@ -919,11 +925,11 @@ class LeaveModuleTest extends TestCase
         $staff = $this->makeStaff();
         $vl    = $this->giveBalance($staff, 'VL', 10, 3);
         $leave = $this->makeLeave($staff, [
-            'leave_type'                => 'VL',
-            'total_days'                => 3,
-            'dept_head_status'          => 'approved',
-            'hr_status'                 => 'cancellation_requested',
-            'cancellation_dhead_status' => 'approved',
+            'leave_type'          => 'VL',
+            'total_days'          => 3,
+            'dept_head_status'    => 'approved',
+            'hr_status'           => 'approved',
+            'cancellation_status' => 'dhead_approved',
         ]);
 
         Livewire::actingAs($hr)
@@ -931,7 +937,12 @@ class LeaveModuleTest extends TestCase
             ->call('viewDetails', $leave->id)
             ->call('approveCancellation');
 
-        $this->assertDatabaseHas('leaves', ['id' => $leave->id, 'hr_status' => 'cancelled']);
+        $this->assertDatabaseHas('leaves', [
+            'id'                  => $leave->id,
+            'cancellation_status' => 'cancelled',
+            'dept_head_status'    => 'cancelled',
+            'hr_status'           => 'cancelled',
+        ]);
         $vl->refresh();
         $this->assertEquals(0.0, (float) $vl->consumed, 'Balance should be restored after cancellation approval');
     }
@@ -942,9 +953,9 @@ class LeaveModuleTest extends TestCase
         $hr    = $this->makeHR();
         $staff = $this->makeStaff();
         $leave = $this->makeLeave($staff, [
-            'dept_head_status'          => 'approved',
-            'hr_status'                 => 'cancellation_requested',
-            'cancellation_dhead_status' => 'approved',
+            'dept_head_status'    => 'approved',
+            'hr_status'           => 'approved',
+            'cancellation_status' => 'dhead_approved',
         ]);
 
         Livewire::actingAs($hr)
@@ -953,7 +964,11 @@ class LeaveModuleTest extends TestCase
             ->set('hrRemarks', 'Cancellation denied, still needed on duty.')
             ->call('rejectCancellation');
 
-        $this->assertDatabaseHas('leaves', ['id' => $leave->id, 'hr_status' => 'approved']);
+        $this->assertDatabaseHas('leaves', [
+            'id'                  => $leave->id,
+            'cancellation_status' => 'hr_rejected',
+            'hr_status'           => 'approved',
+        ]);
     }
 
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -1069,7 +1084,7 @@ class LeaveModuleTest extends TestCase
             ->set('reason', 'Personal vacation')
             ->call('save');
 
-        Mail::assertSent(\App\Mail\LeaveRequestMail::class, fn ($m) => $m->hasTo($dhead->email));
+        Mail::assertQueued(\App\Mail\LeaveRequestMail::class, fn ($m) => $m->hasTo($dhead->email));
     }
 
     /** @test */
@@ -1088,7 +1103,7 @@ class LeaveModuleTest extends TestCase
             ->set('reason', 'Vacation leave request')
             ->call('save');
 
-        Mail::assertSent(\App\Mail\LeaveHRNotificationMail::class, fn ($m) => $m->hasTo($hr->email));
+        Mail::assertQueued(\App\Mail\LeaveHRNotificationMail::class, fn ($m) => $m->hasTo($hr->email));
     }
 
     /** @test */
@@ -1103,7 +1118,7 @@ class LeaveModuleTest extends TestCase
             ->call('viewDetails', $leave->id)
             ->call('approve');
 
-        Mail::assertSent(\App\Mail\LeaveStatusUpdateMail::class, fn ($m) => $m->hasTo($staff->email));
+        Mail::assertQueued(\App\Mail\LeaveStatusUpdateMail::class, fn ($m) => $m->hasTo($staff->email));
     }
 
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•

@@ -28,7 +28,7 @@ return new class extends Migration
             $table->date('date_requested')->useCurrent();
 
             // Step 1: Department Head Approval
-            $table->enum('dept_head_status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->enum('dept_head_status', ['pending', 'approved', 'rejected', 'cancellation_requested', 'cancellation_approved', 'cancellation_rejected', 'cancelled'])->default('pending');
             $table->timestamp('dept_head_approved_at')->nullable();
             $table->unsignedBigInteger('dept_head_id')->nullable(); // Who signed off first
 

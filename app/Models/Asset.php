@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Asset extends Model
 {
     protected $table = 'assets';
-    
+
     protected $fillable = [
         'asset_code',
         'name',
@@ -49,5 +50,15 @@ class Asset extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    public function movements(): HasMany
+    {
+        return $this->hasMany(AssetMovement::class, 'asset_id');
+    }
+
+    public function maintenanceRecords(): HasMany
+    {
+        return $this->hasMany(AssetMaintenance::class, 'asset_id');
     }
 }

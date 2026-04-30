@@ -3,24 +3,33 @@
 namespace App\Livewire;
 
 use App\Models\Asset;
-use App\Models\Location;
-use App\Models\Department;
 use App\Models\AssetMovement;
-use Livewire\Component;
+use App\Models\Department;
+use App\Models\Location;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Computed;
+use Livewire\Component;
 
 class AssignAsset extends Component
 {
     public $selectedAsset = null;
+
     public $asset_id;
+
     public $to_department_id;
+
     public $to_location_id;
+
     public $remarks;
+
     public $showModal = false;
+
     public $showTransferModal = false;
+
     public $showUnassignModal = false;
+
     public $search = '';
+
     public $filter = 'all';
 
     protected $rules = [
@@ -36,6 +45,7 @@ class AssignAsset extends Component
         'to_location_id.required' => 'Please select a location.',
     ];
 
+    #[Computed]
     public function getAllAssetsProperty()
     {
         $query = Asset::query()
@@ -43,10 +53,10 @@ class AssignAsset extends Component
             // REMOVED the filter that excluded disposed/lost assets
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('asset_code', 'like', '%' . $this->search . '%')
-                        ->orWhere('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('brand', 'like', '%' . $this->search . '%')
-                        ->orWhere('serial_number', 'like', '%' . $this->search . '%');
+                    $q->where('asset_code', 'like', '%'.$this->search.'%')
+                        ->orWhere('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('brand', 'like', '%'.$this->search.'%')
+                        ->orWhere('serial_number', 'like', '%'.$this->search.'%');
                 });
             });
 
@@ -59,11 +69,13 @@ class AssignAsset extends Component
         return $query->orderBy('created_at', 'desc')->get();
     }
 
+    #[Computed]
     public function getDepartmentsProperty()
     {
         return Department::orderBy('name')->get();
     }
 
+    #[Computed]
     public function getLocationsProperty()
     {
         return Location::orderBy('name')->get();
@@ -89,16 +101,16 @@ class AssignAsset extends Component
         $this->validate();
 
         $asset = Asset::findOrFail($this->asset_id);
-        
+
         $from_department_id = $asset->department_id;
         $from_location_id = $asset->location_id;
-        
+
         $asset->update([
             'department_id' => $this->to_department_id,
             'location_id' => $this->to_location_id,
             'status' => 'in_use',
         ]);
-        
+
         AssetMovement::create([
             'asset_id' => $this->asset_id,
             'from_department_id' => $from_department_id,
@@ -108,7 +120,7 @@ class AssignAsset extends Component
             'moved_by' => Auth::id(),
             'remarks' => $this->remarks,
         ]);
-        
+
         session()->flash('message', 'Asset assigned successfully!');
         $this->closeModal();
     }
@@ -131,18 +143,18 @@ class AssignAsset extends Component
     public function transferAsset()
     {
         $this->validate();
-        
+
         $asset = Asset::findOrFail($this->asset_id);
-        
+
         $from_department_id = $asset->department_id;
         $from_location_id = $asset->location_id;
-        
+
         $asset->update([
             'department_id' => $this->to_department_id,
             'location_id' => $this->to_location_id,
             'status' => 'in_use',
         ]);
-        
+
         AssetMovement::create([
             'asset_id' => $this->asset_id,
             'from_department_id' => $from_department_id,
@@ -152,7 +164,7 @@ class AssignAsset extends Component
             'moved_by' => Auth::id(),
             'remarks' => $this->remarks,
         ]);
-        
+
         session()->flash('message', 'Asset transferred successfully!');
         $this->closeTransferModal();
     }
@@ -174,16 +186,16 @@ class AssignAsset extends Component
     public function unassignAsset()
     {
         $asset = Asset::findOrFail($this->asset_id);
-        
+
         $from_department_id = $asset->department_id;
         $from_location_id = $asset->location_id;
-        
+
         $asset->update([
             'department_id' => null,
             'location_id' => null,
             'status' => 'available',
         ]);
-        
+
         AssetMovement::create([
             'asset_id' => $this->asset_id,
             'from_department_id' => $from_department_id,
@@ -193,7 +205,7 @@ class AssignAsset extends Component
             'moved_by' => Auth::id(),
             'remarks' => 'Asset unassigned from department and location',
         ]);
-        
+
         session()->flash('message', 'Asset unassigned successfully!');
         $this->closeUnassignModal();
     }

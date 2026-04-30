@@ -119,6 +119,15 @@
             {{-- 3. DEPARTMENT HEAD — only for pure dept heads with no other role --}}
             @can('access-dept-head') @cannot('access-maintenance') @cannot('access-verify')
             @cannot('access-hr-only')
+            @if($canAccessNursing ?? false)
+            <flux:sidebar.item
+                icon="clipboard-document-list"
+                :href="route('nursing.schedule')"
+                :current="request()->routeIs('nursing.schedule')"
+                wire:navigate="wire:navigate">
+                {{ __('Nursing Schedule') }}
+            </flux:sidebar.item>
+            @endif
             <flux:sidebar.item
                 icon="calendar-days"
                 :href="route('users.dhead-leaveform')"
@@ -426,15 +435,17 @@
             </flux:sidebar.item>
             @endcan @endcan
 
+            @cannot('access-dept-head')
             @if(($canAccessNursing ?? false))
             <flux:sidebar.item
-                icon="calendar-days"
+                icon="clipboard-document-list"
                 :href="route('nursing.schedule')"
                 :current="request()->routeIs('nursing.schedule')"
                 wire:navigate="wire:navigate">
                 {{ __('Nursing') }}
             </flux:sidebar.item>
             @endif
+            @endcannot
 
             {{-- Overtime & Pay-off — visible to all staff except HR (HR uses management pages) --}}
             @cannot('access-hr-only')

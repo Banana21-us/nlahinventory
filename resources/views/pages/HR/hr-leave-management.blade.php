@@ -177,32 +177,47 @@
                 </div>
 
                 {{-- Footer: status pills + review button --}}
-                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center gap-2">
-                    {{-- DH Status --}}
-                    @if($leave->dept_head_status === 'approved')
-                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                            <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                            </svg>
-                            DH Cleared
-                        </span>
+                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center gap-2 flex-wrap">
+                    {{-- DH pill: always shows DHead's own role --}}
+                    @if($leave->cancellation_status === 'cancelled')
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-300 px-2 py-0.5 rounded-full">DH: Cancelled</span>
+                    @elseif($leave->cancellation_status === 'dhead_approved')
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full">DH: Fwd. to HR</span>
+                    @elseif($leave->dept_head_status === 'approved')
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">DH: Cleared</span>
                     @else
-                        <span class="inline-flex items-center text-[10px] font-bold brand-text-accent brand-bg-accent-light border border-yellow-200 px-2 py-0.5 rounded-full">
-                            Await DH
+                        <span class="inline-flex items-center text-[10px] font-bold brand-text-accent brand-bg-accent-light border border-yellow-200 px-2 py-0.5 rounded-full">DH: Pending</span>
+                    @endif
+
+                    {{-- HR pill: reflects HR's decision including cancellation outcomes --}}
+                    @if($leave->cancellation_status === 'cancelled')
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-300 px-2 py-0.5 rounded-full">HR: Cancelled</span>
+                    @elseif($leave->cancellation_status === 'hr_rejected')
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">HR: Cancel Denied</span>
+                    @elseif($leave->cancellation_status === 'dhead_approved')
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-full">HR: Action Needed</span>
+                    @elseif($leave->cancellation_status === 'dhead_rejected')
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">HR: Approved</span>
+                    @else
+                        <span class="inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              style="{{ $hrStyles[$leave->hr_status] ?? $hrStyles['pending'] }}">
+                            {{ $hrLabel[$leave->hr_status] ?? ucfirst($leave->hr_status) }}
                         </span>
                     @endif
 
-                    {{-- HR Status --}}
-                    <span class="inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full"
-                          style="{{ $hrStyles[$leave->hr_status] ?? $hrStyles['pending'] }}">
-                        {{ $hrLabel[$leave->hr_status] ?? ucfirst($leave->hr_status) }}
-                    </span>
-
-                    <button wire:click="viewDetails({{ $leave->id }})"
-                            class="ml-auto px-4 py-2 text-xs font-bold rounded-lg active:scale-95 transition-all"
-                            style="background-color:#e6f4f5;color:#027c8b;">
-                        Review
-                    </button>
+                    @if($leave->cancellation_status === 'dhead_approved')
+                        <button wire:click="viewDetails({{ $leave->id }})"
+                                class="ml-auto inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg active:scale-95 transition-all bg-amber-500 hover:bg-amber-600 text-white">
+                            <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                            Review Cancel
+                        </button>
+                    @else
+                        <button wire:click="viewDetails({{ $leave->id }})"
+                                class="ml-auto px-4 py-2 text-xs font-bold rounded-lg active:scale-95 transition-all"
+                                style="background-color:#e6f4f5;color:#027c8b;">
+                            Review
+                        </button>
+                    @endif
                 </div>
             </div>
         @empty
@@ -235,7 +250,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     @forelse($this->leaves as $leave)
-                        <tr class="brand-row-hover transition-colors">
+                        <tr class="brand-row-hover transition-colors {{ $leave->cancellation_status === 'dhead_approved' ? 'bg-amber-50/40' : '' }}">
                             <td class="px-6 py-4">
                                 <button wire:click="openBalanceModal({{ $leave->user_id }}, '{{ addslashes($leave->user?->username ?? '') }}')"
                                         class="flex items-center gap-3 text-left group w-full">
@@ -247,6 +262,12 @@
                                         <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
                                             {{ $leave->user?->employmentDetail?->department?->name ?? 'General' }}
                                         </div>
+                                        @if($leave->cancellation_status === 'dhead_approved')
+                                            <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 border border-amber-300">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span>
+                                                Cancel Review Needed
+                                            </span>
+                                        @endif
                                     </div>
                                 </button>
                             </td>
@@ -263,33 +284,90 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                @if($leave->dept_head_status === 'approved')
+                                @if($leave->cancellation_status === 'cancelled')
+                                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                        DH: Cancelled
+                                    </span>
+                                @elseif($leave->cancellation_status === 'dhead_approved')
+                                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        DH: Fwd. to HR
+                                    </span>
+                                @elseif($leave->cancellation_status === 'hr_rejected')
+                                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        DH: Cleared
+                                    </span>
+                                @elseif($leave->cancellation_status === 'dhead_rejected')
+                                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                        DH: Denied Cancel.
+                                    </span>
+                                @elseif($leave->cancellation_status === 'pending')
+                                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-yellow-700 bg-yellow-50 border border-yellow-200 px-2.5 py-0.5 rounded-full">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        DH: Reviewing...
+                                    </span>
+                                @elseif($leave->dept_head_status === 'approved')
                                     <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-0.5 rounded-full">
                                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                         </svg>
-                                        Cleared
+                                        DH: Cleared
                                     </span>
                                 @else
                                     <span class="inline-flex items-center gap-1 text-xs font-semibold brand-text-accent brand-bg-accent-light border border-yellow-200 px-2.5 py-0.5 rounded-full">
-                                        Awaiting DH
+                                        DH: Pending
                                     </span>
                                 @endif
                             </td>
                             <td class="px-6 py-4">
-                                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                      style="{{ $hrStyles[$leave->hr_status] ?? $hrStyles['pending'] }}">
-                                    {{ $hrLabel[$leave->hr_status] ?? ucfirst($leave->hr_status) }}
-                                </span>
+                                @if($leave->cancellation_status === 'cancelled')
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full text-red-700 bg-red-50 border border-red-200">
+                                        HR: Cancelled
+                                    </span>
+                                @elseif($leave->cancellation_status === 'hr_rejected')
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full text-orange-700 bg-orange-50 border border-orange-200">
+                                        HR: Cancel Denied
+                                    </span>
+                                @elseif($leave->cancellation_status === 'dhead_approved')
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full text-amber-700 bg-amber-50 border border-amber-200">
+                                        HR: Action Needed
+                                    </span>
+                                @else
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                          style="{{ $hrStyles[$leave->hr_status] ?? $hrStyles['pending'] }}">
+                                        {{ $hrLabel[$leave->hr_status] ?? ucfirst($leave->hr_status) }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <button wire:click="viewDetails({{ $leave->id }})"
-                                    class="rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors"
-                                    style="background-color:#e6f4f5;color:#027c8b;"
-                                    onmouseover="this.style.backgroundColor='#cde9ec'"
-                                    onmouseout="this.style.backgroundColor='#e6f4f5'">
-                                    Review
-                                </button>
+                                @if($leave->cancellation_status === 'dhead_approved')
+                                    <button wire:click="viewDetails({{ $leave->id }})"
+                                        class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-bold shadow-sm transition-colors bg-amber-500 hover:bg-amber-600 text-white">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                        Review Cancel
+                                    </button>
+                                @else
+                                    <button wire:click="viewDetails({{ $leave->id }})"
+                                        class="rounded-md px-2.5 py-1.5 text-sm font-semibold shadow-sm transition-colors"
+                                        style="background-color:#e6f4f5;color:#027c8b;"
+                                        onmouseover="this.style.backgroundColor='#cde9ec'"
+                                        onmouseout="this.style.backgroundColor='#e6f4f5'">
+                                        Review
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @empty
@@ -464,6 +542,14 @@
                             <p class="text-xs opacity-60 mt-0.5">Application #{{ $this->selectedLeave->id }}</p>
                         </div>
 
+                        {{-- Cancellation action banner --}}
+                        @if($this->selectedLeave->cancellation_status === 'dhead_approved')
+                            <div class="px-6 py-3 bg-amber-500 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-white animate-pulse shrink-0"></span>
+                                <p class="text-xs font-bold text-white uppercase tracking-wide">Cancellation Request — Awaiting HR Decision</p>
+                            </div>
+                        @endif
+
                         {{-- Scrollable Body --}}
                         <div class="flex-1 overflow-y-auto p-6 space-y-6">
 
@@ -513,7 +599,42 @@
                             {{-- Dept Head Status --}}
                             <div>
                                 <label class="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Department Head Status</label>
-                                @if($this->selectedLeave->dept_head_status === 'approved')
+                                @if($this->selectedLeave->cancellation_status === 'cancelled')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Cancelled
+                                    </span>
+                                @elseif($this->selectedLeave->cancellation_status === 'dhead_approved')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        DH: Fwd. to HR
+                                    </span>
+                                @elseif($this->selectedLeave->cancellation_status === 'hr_rejected')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Cleared — Fwd. to HR
+                                    </span>
+                                @elseif($this->selectedLeave->cancellation_status === 'dhead_rejected')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                        DH Denied Cancellation
+                                    </span>
+                                @elseif($this->selectedLeave->cancellation_status === 'pending')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-yellow-700 bg-yellow-50 border border-yellow-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Cancellation Requested (Awaiting DHead)
+                                    </span>
+                                @elseif($this->selectedLeave->dept_head_status === 'approved')
                                     <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-full">
                                         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
@@ -523,6 +644,39 @@
                                 @else
                                     <span class="inline-flex items-center gap-1.5 text-xs font-semibold brand-text-accent brand-bg-accent-light border border-yellow-200 px-3 py-1.5 rounded-full">
                                         Awaiting Department Head
+                                    </span>
+                                @endif
+                            </div>
+
+                            {{-- HR Status --}}
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">HR Status</label>
+                                @if($this->selectedLeave->cancellation_status === 'cancelled')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                        HR: Approved Cancellation
+                                    </span>
+                                @elseif($this->selectedLeave->cancellation_status === 'hr_rejected')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                        HR: Denied Cancellation
+                                    </span>
+                                @elseif($this->selectedLeave->cancellation_status === 'dhead_approved')
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        HR: Action Needed
+                                    </span>
+                                @else
+                                    @php $s = $this->selectedLeave->hr_status; @endphp
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+                                          style="{{ $hrStyles[$s] ?? $hrStyles['pending'] }}">
+                                        {{ $hrLabel[$s] ?? ucfirst($s) }}
                                     </span>
                                 @endif
                             </div>
@@ -539,7 +693,7 @@
 
                         {{-- Action Footer --}}
                         <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 space-y-3">
-                            @if($this->selectedLeave->hr_status === 'cancellation_requested')
+                            @if($this->selectedLeave->cancellation_status === 'dhead_approved')
                                 {{-- Cancellation request: approve or deny --}}
                                 <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 font-medium">
                                     This employee has requested to cancel an approved leave. Approving will restore their credits.
@@ -555,7 +709,8 @@
                                     </button>
                                     <button wire:click="rejectCancellation" wire:loading.attr="disabled"
                                         class="inline-flex justify-center items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors active:scale-95">
-                                        Deny Cancellation
+                                        <span wire:loading.remove wire:target="rejectCancellation">Deny Cancellation</span>
+                                        <span wire:loading wire:target="rejectCancellation">Saving…</span>
                                     </button>
                                 </div>
                             @else

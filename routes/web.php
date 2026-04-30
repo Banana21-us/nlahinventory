@@ -221,11 +221,13 @@ Route::middleware(['auth', 'can:access-dept-head'])->group(function () {
 Route::get('/LeaveForm/leave', LeaveForm::class)->name('users.leaveform');
 Route::get('/waiting', fn () => view('pages.users.waiting-area'))->middleware('auth')->name('users.waiting');
 
-Route::get('/Assetsmanagement', AssetManagement::class)->name('Assetsmanagement.management');
-Route::get('/Assetsmanagement/assets', Assets::class)->name('Assetsmanagement.assets');
-Route::get('/Assetsmanagement/assign-asset', AssignAsset::class)->name('Assetsmanagement.assign-asset');
-Route::get('/Assetsmanagement/dept-asset', DeptAsset::class)->name('Assetsmanagement.dept-asset');
-Route::get('/Assetsmanagement/repair', Repair::class)->name('Assetsmanagement.repair');
+Route::middleware('auth')->group(function () {
+    Route::get('/Assetsmanagement', AssetManagement::class)->name('Assetsmanagement.management');
+    Route::get('/Assetsmanagement/assets', Assets::class)->name('Assetsmanagement.assets');
+    Route::get('/Assetsmanagement/assign-asset', AssignAsset::class)->name('Assetsmanagement.assign-asset');
+    Route::get('/Assetsmanagement/dept-asset', DeptAsset::class)->name('Assetsmanagement.dept-asset');
+    Route::get('/Assetsmanagement/repair', Repair::class)->name('Assetsmanagement.repair');
+});
 
 Route::post('/nlah/chat', function (Request $request) {
     $messagesInput = $request->input('messages');

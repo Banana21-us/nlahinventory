@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AssetMaintenance extends Model
 {
     protected $table = 'asset_maintenance';
-    
+
     protected $fillable = [
         'asset_id',
         'issue_description',

@@ -133,27 +133,27 @@ class EmployeeManagement extends Component
 
     public $vl_consumed;
 
-    public $sl_total;
+    public $sl_total = 5;
 
     public $sl_consumed;
 
-    public $spl_total;
+    public $spl_total = 7;
 
     public $spl_consumed;
 
-    public $bl_total;
+    public $bl_total = 1;
 
     public $bl_consumed;
 
-    public $syl_total;
+    public $syl_total = 3;
 
     public $syl_consumed;
 
-    public $ml_total;
+    public $ml_total = 105;
 
     public $ml_consumed;
 
-    public $pl_total;
+    public $pl_total = 7;
 
     public $pl_consumed;
 
@@ -634,10 +634,20 @@ class EmployeeManagement extends Component
         $accessKeys = AccessKey::orderBy('name')->get(['id', 'name', 'description']);
 
         $viewEmployee = $this->isViewing && $this->selectedId
-            ? Employee::with(['employmentDetail.department'])->find($this->selectedId)
+            ? Employee::with(['employmentDetail.department', 'payrollLeave', 'dependencies'])->find($this->selectedId)
             : null;
 
-        return view('pages.HR.employee-management', compact('employees', 'users', 'departments', 'positions', 'accessKeys', 'viewEmployee'))
+        $viewLeaveBalances = $viewEmployee?->user_id
+            ? LeaveBalance::where('user_id', $viewEmployee->user_id)
+                ->with('leaveType')
+                ->whereNull('deleted_at')
+                ->get()
+                ->filter(fn ($b) => $b->leaveType !== null)
+                ->sortBy(fn ($b) => $b->leaveType->code)
+                ->values()
+            : collect();
+
+        return view('pages.HR.employee-management', compact('employees', 'users', 'departments', 'positions', 'accessKeys', 'viewEmployee', 'viewLeaveBalances'))
             ->layout('layouts.app');
     }
 }

@@ -72,10 +72,7 @@ class HrLeaveManagement extends Component
     #[Computed]
     public function cancellationCount()
     {
-        // Only show cancellations that have passed the dept head stage
-        return Leave::where('hr_status', 'cancellation_requested')
-            ->where('cancellation_dhead_status', 'approved')
-            ->count();
+        return Leave::where('cancellation_status', 'dhead_approved')->count();
     }
 
     #[Computed]
@@ -233,7 +230,9 @@ class HrLeaveManagement extends Component
 
         DB::transaction(function () use ($leave) {
             $leave->update([
+                'cancellation_status' => 'cancelled',
                 'hr_status' => 'cancelled',
+                'dept_head_status' => 'cancelled',
                 'remarks' => $this->hrRemarks ?: 'Cancellation approved by HR.',
                 'approved_by' => Auth::id(),
             ]);
@@ -304,16 +303,14 @@ class HrLeaveManagement extends Component
     public function rejectCancellation()
     {
         $this->validate([
-            'hrRemarks' => 'required|min:5',
-        ], [
-            'hrRemarks.required' => 'Please explain why the cancellation is denied.',
+            'hrRemarks' => 'nullable|string',
         ]);
 
         $leave = Leave::findOrFail($this->selectedLeaveId);
 
         $leave->update([
-            'hr_status' => 'approved',
-            'remarks' => $this->hrRemarks,
+            'cancellation_status' => 'hr_rejected',
+            'remarks' => $this->hrRemarks ?: 'Cancellation denied by HR.',
         ]);
 
         $fresh = $leave->fresh(['user.employmentDetail.department', 'deptHead']);
@@ -329,7 +326,7 @@ class HrLeaveManagement extends Component
         $staffEmail = $leave->user?->email;
         if ($staffEmail) {
             try {
-                Mail::to($staffEmail)->send(new LeaveCancellationResultMail($leave, 'staff'));
+                Mail::to($staffEmail)->queue(new LeaveCancellationResultMail($leave, 'staff'));
             } catch (\Exception $e) {
                 Log::error('LeaveCancellationResultMail (staff) failed', [
                     'leave_id' => $leave->id,
@@ -343,7 +340,7 @@ class HrLeaveManagement extends Component
         $deptHeadEmail = $leave->deptHead?->email;
         if ($deptHeadEmail && $deptHeadEmail !== $staffEmail) {
             try {
-                Mail::to($deptHeadEmail)->send(new LeaveCancellationResultMail($leave, 'dhead'));
+                Mail::to($deptHeadEmail)->queue(new LeaveCancellationResultMail($leave, 'dhead'));
             } catch (\Exception $e) {
                 Log::error('LeaveCancellationResultMail (dhead) failed', [
                     'leave_id' => $leave->id,
@@ -365,7 +362,7 @@ class HrLeaveManagement extends Component
         }
 
         try {
-            Mail::to($email)->send(new LeaveStatusUpdateMail($leave));
+            Mail::to($email)->queue(new LeaveStatusUpdateMail($leave));
 
             return true;
         } catch (\Exception $e) {
@@ -389,7 +386,7 @@ class HrLeaveManagement extends Component
         }
 
         try {
-            Mail::to($email)->send(new LeaveHRResultMail($leave));
+            Mail::to($email)->queue(new LeaveHRResultMail($leave));
 
             return true;
         } catch (\Exception $e) {

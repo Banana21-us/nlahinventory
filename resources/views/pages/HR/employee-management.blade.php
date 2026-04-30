@@ -128,17 +128,8 @@
                         @error('employee_number') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Link to System User</label>
-                        <select wire:model="user_id"
-                            class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
-                            <option value="">— None —</option>
-                            @foreach($users as $u)
-                                <option value="{{ $u->id }}">{{ $u->name }} {{ $u->employee_number ? "({$u->employee_number})" : '' }}</option>
-                            @endforeach
-                        </select>
-                        @error('user_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+
+                    
 
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Biometric ID</label>
@@ -1034,12 +1025,91 @@
 
                             {{-- Government IDs --}}
                             <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Government IDs</p>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm mb-6">
                                 <div><span class="block text-xs text-gray-400 font-semibold">PhilHealth No.</span>{{ $detail->philhealth_no ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">Pag-IBIG No.</span>{{ $detail->pagibig_no ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">TIN No.</span>{{ $detail->tin_no ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">SSS No.</span>{{ $detail->sss_no ?? '—' }}</div>
                                 <div><span class="block text-xs text-gray-400 font-semibold">GSIS No.</span>{{ $detail->gsis_no ?? '—' }}</div>
+                            </div>
+                        @endif
+
+                        {{-- Finance --}}
+                        @php $payroll = $viewEmployee->payrollLeave; @endphp
+                        @if($payroll)
+                            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Finance</p>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm mb-6">
+                                <div><span class="block text-xs text-gray-400 font-semibold">Salary Rate (%)</span>{{ $payroll->salary_rate ? number_format($payroll->salary_rate, 2).'%' : '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">Wage Factor</span>{{ $payroll->wage_factor ? '₱'.number_format($payroll->wage_factor, 2) : '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">Monthly Rate</span>{{ $payroll->monthly_rate ? '₱'.number_format($payroll->monthly_rate, 2) : '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">Daily Rate</span>{{ $payroll->daily_rate ? '₱'.number_format($payroll->daily_rate, 2) : '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">COLA</span>{{ $payroll->cola ? '₱'.number_format($payroll->cola, 2) : '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">Grocery Allowance</span>{{ $payroll->grocery_allowance ? '₱'.number_format($payroll->grocery_allowance, 2) : '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">Night Diff Factor</span>{{ $payroll->night_diff_factor ?? '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">Probi Rate</span>{{ $payroll->probi_rate ?? '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">Min Scale</span>{{ $payroll->min_scale ? '₱'.number_format($payroll->min_scale, 2) : '—' }}</div>
+                                <div><span class="block text-xs text-gray-400 font-semibold">Max Scale</span>{{ $payroll->max_scale ? '₱'.number_format($payroll->max_scale, 2) : '—' }}</div>
+                            </div>
+                        @endif
+
+                        {{-- Leave Balances --}}
+                        @if($viewLeaveBalances->isNotEmpty())
+                            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Leave Balances</p>
+                            <div class="overflow-x-auto mb-6">
+                                <table class="w-full text-sm border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50 text-xs text-gray-500 uppercase">
+                                            <th class="text-left px-3 py-2 font-semibold">Type</th>
+                                            <th class="text-center px-3 py-2 font-semibold">Total</th>
+                                            <th class="text-center px-3 py-2 font-semibold">Consumed</th>
+                                            <th class="text-center px-3 py-2 font-semibold">Remaining</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        @foreach($viewLeaveBalances as $lb)
+                                            @php $remaining = max(0, (float)$lb->total - (float)$lb->consumed); @endphp
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-3 py-2 font-medium text-gray-700">{{ $lb->leaveType->label }}</td>
+                                                <td class="px-3 py-2 text-center text-gray-600">{{ number_format($lb->total, 1) }}</td>
+                                                <td class="px-3 py-2 text-center text-gray-600">{{ number_format($lb->consumed, 1) }}</td>
+                                                <td class="px-3 py-2 text-center font-semibold {{ $remaining > 0 ? 'text-teal-700' : 'text-red-500' }}">{{ number_format($remaining, 1) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+
+                        {{-- Dependents --}}
+                        @if($viewEmployee->dependencies->isNotEmpty())
+                            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Dependents</p>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50 text-xs text-gray-500 uppercase">
+                                            <th class="text-left px-3 py-2 font-semibold">Name</th>
+                                            <th class="text-left px-3 py-2 font-semibold">Relationship</th>
+                                            <th class="text-left px-3 py-2 font-semibold">Gender</th>
+                                            <th class="text-left px-3 py-2 font-semibold">Birthday</th>
+                                            <th class="text-right px-3 py-2 font-semibold">Age</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        @foreach($viewEmployee->dependencies as $dep)
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-3 py-2 font-medium text-gray-700">
+                                                    {{ $dep->lastname }}, {{ $dep->firstname }}
+                                                    @if($dep->middlename) {{ $dep->middlename }}@endif
+                                                    @if($dep->extension) {{ $dep->extension }}@endif
+                                                </td>
+                                                <td class="px-3 py-2 text-gray-600">{{ $dep->relationship ?: '—' }}</td>
+                                                <td class="px-3 py-2 text-gray-600">{{ $dep->gender ?: '—' }}</td>
+                                                <td class="px-3 py-2 text-gray-600">{{ $dep->birthday?->format('M d, Y') ?? '—' }}</td>
+                                                <td class="px-3 py-2 text-gray-600 text-right">{{ $dep->age ?: '—' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
                         @endif
                     </div>
@@ -1123,16 +1193,7 @@
                                     @error('employee_number') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Link to System User</label>
-                                    <select wire:model="user_id"
-                                        class="brand-focus block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-white">
-                                        <option value="">— None —</option>
-                                        @foreach($users as $u)
-                                            <option value="{{ $u->id }}">{{ $u->name }} {{ $u->employee_number ? "({$u->employee_number})" : '' }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
+                                
 
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Biometric ID</label>

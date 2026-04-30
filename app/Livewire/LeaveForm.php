@@ -387,7 +387,7 @@ class LeaveForm extends Component
 
         if ($deptHead?->email) {
             try {
-                Mail::to($deptHead->email)->send(new LeaveRequestMail($loaded));
+                Mail::to($deptHead->email)->queue(new LeaveRequestMail($loaded));
             } catch (\Exception) {
             }
 
@@ -401,7 +401,7 @@ class LeaveForm extends Component
 
         foreach ($hrUsers as $hr) {
             try {
-                Mail::to($hr->email)->send(new LeaveHRNotificationMail($loaded));
+                Mail::to($hr->email)->queue(new LeaveHRNotificationMail($loaded));
             } catch (\Exception) {
             }
         }
@@ -464,8 +464,8 @@ class LeaveForm extends Component
     {
         $leave = Leave::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
 
-        if ($leave->hr_status !== 'approved') {
-            session()->flash('error', 'Only fully approved leaves can request cancellation.');
+        if ($leave->hr_status !== 'approved' || $leave->dept_head_status !== 'approved' || $leave->cancellation_status !== null) {
+            session()->flash('error', 'Only fully approved leaves with no prior cancellation request can request cancellation.');
 
             return;
         }
@@ -474,22 +474,16 @@ class LeaveForm extends Component
         $deptHead = $fresh->user?->employmentDetail?->department?->deptHead;
 
         if ($deptHead?->email) {
-            // Two-stage: notify dept head first
-            $leave->update([
-                'hr_status' => 'cancellation_requested',
-                'cancellation_dhead_status' => 'pending',
-            ]);
+            // Two-stage: dept head reviews first; dept_head_status and hr_status stay untouched
+            $leave->update(['cancellation_status' => 'pending']);
             try {
-                Mail::to($deptHead->email)->send(new LeaveCancellationDHeadMail($fresh));
+                Mail::to($deptHead->email)->queue(new LeaveCancellationDHeadMail($fresh));
             } catch (\Exception) {
             }
             session()->flash('message', 'Cancellation request submitted. Your Department Head will review it first.');
         } else {
-            // No dept head configured — go directly to HR
-            $leave->update([
-                'hr_status' => 'cancellation_requested',
-                'cancellation_dhead_status' => 'approved',
-            ]);
+            // No dept head — skip to HR
+            $leave->update(['cancellation_status' => 'dhead_approved']);
             $this->notifyHROfCancellation($fresh);
             session()->flash('message', 'Cancellation request submitted. HR will review and confirm.');
         }
@@ -513,7 +507,7 @@ class LeaveForm extends Component
 
         foreach ($hrUsers as $hr) {
             try {
-                Mail::to($hr->email)->send(new LeaveCancellationRequestMail($leave));
+                Mail::to($hr->email)->queue(new LeaveCancellationRequestMail($leave));
             } catch (\Exception) {
             }
         }

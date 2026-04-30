@@ -89,7 +89,7 @@
             $isInProgress = $asset->status === 'out_of_service';
             $needsRepair = $asset->status === 'maintenance';
         @endphp
-        <div class="bg-white rounded-xl cursor-pointer hover:shadow-md transition-shadow
+        <div wire:key="repair-asset-{{ $asset->id }}" class="bg-white rounded-xl cursor-pointer hover:shadow-md transition-shadow
                     {{ $isInProgress ? 'border border-gray-200 border-l-4 border-l-blue-500' : ($needsRepair ? 'border border-gray-200 border-l-4 border-l-red-500' : ($asset->condition_status === 'poor' ? 'border border-gray-200 border-l-4 border-l-amber-500' : 'border border-gray-200 border-l-4 border-l-yellow-400')) }}"
              wire:click="showDetails({{ $asset->id }})">
 

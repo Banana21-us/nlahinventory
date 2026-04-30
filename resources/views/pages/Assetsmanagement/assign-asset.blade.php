@@ -170,14 +170,14 @@
         <div class="p-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 @foreach($allAssets as $asset)
-                    @php 
+                    @php
                         $isAssigned = $asset->department_id && $asset->location_id;
                         $isDisposed = $asset->status === 'disposed';
                         $isLost = $asset->status === 'lost';
                         $isOutOfService = $asset->status === 'out_of_service';
                         $isUnavailable = $isDisposed || $isLost;
                     @endphp
-                    <div class="bg-white rounded-xl overflow-hidden hover:shadow-md transition-shadow relative
+                    <div wire:key="asset-{{ $asset->id }}" class="bg-white rounded-xl overflow-hidden hover:shadow-md transition-shadow relative
                                 {{ $isDisposed ? 'asset-disposed' : ($isLost ? 'asset-lost' : ($isOutOfService ? 'asset-outofservice' : '')) }}
                                 {{ $isAssigned && !$isUnavailable && !$isOutOfService
                                     ? 'border border-gray-200 border-l-4 border-l-teal-500'

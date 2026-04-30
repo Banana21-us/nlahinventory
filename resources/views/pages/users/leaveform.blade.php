@@ -311,6 +311,7 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Filed On</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Dept Head</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">HR Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cancellation</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Feedback</th>
                         <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
                     </tr>
@@ -375,18 +376,65 @@
                                 {{ $leave->date_requested?->format('M d, Y') ?? '—' }}
                             </td>
 
+                            {{-- Dept Head column --}}
                             <td class="px-6 py-4">
-                                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                      style="{{ $deptBadge[$leave->dept_head_status] ?? $deptBadge['pending'] }}">
-                                    {{ ucfirst($leave->dept_head_status) }}
-                                </span>
+                                @if($leave->cancellation_status === 'cancelled')
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;">
+                                        Canceled
+                                    </span>
+                                @elseif($leave->cancellation_status !== null)
+                                    {{-- Any cancellation in progress: underlying approval is still valid --}}
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="{{ $deptBadge['approved'] }}">
+                                        Approved
+                                    </span>
+                                @else
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                          style="{{ $deptBadge[$leave->dept_head_status] ?? $deptBadge['pending'] }}">
+                                        {{ ucfirst($leave->dept_head_status) }}
+                                    </span>
+                                @endif
                             </td>
 
+                            {{-- HR Status column --}}
                             <td class="px-6 py-4">
-                                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                      style="{{ $hrBadge[$leave->hr_status] ?? $hrBadge['pending'] }}">
-                                    {{ $leave->hr_status === 'cancellation_requested' ? 'Cancel Requested' : ucfirst($leave->hr_status) }}
-                                </span>
+                                @if($leave->cancellation_status === 'cancelled')
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="background-color:#f3f4f6;color:#374151;border:1px solid #d1d5db;">
+                                        Canceled
+                                    </span>
+                                @elseif($leave->cancellation_status !== null)
+                                    {{-- Any cancellation in progress: HR approval is still valid --}}
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="{{ $hrBadge['approved'] }}">
+                                        Approved
+                                    </span>
+                                @else
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                          style="{{ $hrBadge[$leave->hr_status] ?? $hrBadge['pending'] }}">
+                                        {{ ucfirst($leave->hr_status) }}
+                                    </span>
+                                @endif
+                            </td>
+
+                            {{-- Cancellation status column --}}
+                            <td class="px-6 py-4">
+                                @if($leave->cancellation_status === 'cancelled')
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="background-color:#dcfce7;color:#166534;border:1px solid #86efac;">
+                                        Approved
+                                    </span>
+                                @elseif($leave->cancellation_status === 'dhead_approved')
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="background-color:#e6f4f5;color:#027c8b;border:1px solid #a5d8dd;">
+                                        Waiting for HR
+                                    </span>
+                                @elseif($leave->cancellation_status === 'pending')
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="background-color:#fef3c7;color:#92400e;border:1px solid #f59e0b;">
+                                        Pending
+                                    </span>
+                                @elseif(in_array($leave->cancellation_status, ['dhead_rejected', 'hr_rejected']))
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5;">
+                                        Rejected
+                                    </span>
+                                @else
+                                    <span class="text-xs text-gray-300">—</span>
+                                @endif
                             </td>
 
                             <td class="px-6 py-4">
@@ -431,7 +479,7 @@
                                             </span>
                                         </template>
                                     </div>
-                                @elseif($leave->hr_status === 'approved')
+                                @elseif($leave->hr_status === 'approved' && $leave->dept_head_status === 'approved' && $leave->cancellation_status === null)
                                     <div x-data="{ confirm: false }" class="flex items-center justify-end gap-1">
                                         <button x-show="!confirm" @click.prevent="confirm = true"
                                                 class="px-2.5 py-1 rounded text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors whitespace-nowrap">
@@ -447,6 +495,14 @@
                                             </span>
                                         </template>
                                     </div>
+                                @elseif($leave->hr_status === 'approved' && in_array($leave->cancellation_status, ['dhead_rejected', 'hr_rejected']))
+                                    <span class="px-2.5 py-1 rounded text-xs font-bold text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed whitespace-nowrap">
+                                        Cancellation Rejected
+                                    </span>
+                                @elseif($leave->hr_status === 'approved' && in_array($leave->cancellation_status, ['pending', 'dhead_approved']))
+                                    <span class="px-2.5 py-1 rounded text-xs font-bold text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed whitespace-nowrap">
+                                        Cancellation Pending
+                                    </span>
                                 @else
                                     <span class="text-xs text-gray-300">—</span>
                                 @endif

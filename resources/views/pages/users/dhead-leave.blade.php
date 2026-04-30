@@ -358,18 +358,45 @@
                                 </td>
                                 {{-- Status --}}
                                 <td class="px-6 py-4">
-                                    @php
-                                        $statusColors = [
-                                            'pending'  => 'background:#fef8e7;color:#b45309;',
-                                            'approved' => 'background:#e6f4f5;color:#027c8b;',
-                                            'rejected' => 'background:#fef2f2;color:#dc2626;',
-                                        ];
-                                        $style = $statusColors[$leave->dept_head_status] ?? 'background:#f3f4f6;color:#6b7280;';
-                                    @endphp
-                                    <span class="px-2.5 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wide"
-                                          style="{{ $style }}">
-                                        {{ $leave->dept_head_status }}
-                                    </span>
+                                    @if($leave->cancellation_status === 'cancelled')
+                                        <span class="px-2.5 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wide"
+                                              style="background:#f3f4f6;color:#374151;">
+                                            Cancelled
+                                        </span>
+                                    @elseif($leave->cancellation_status === 'dhead_approved')
+                                        <span class="px-2.5 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wide"
+                                              style="background:#e6f4f5;color:#027c8b;">
+                                            Approved Cancel.
+                                        </span>
+                                    @elseif($leave->cancellation_status === 'dhead_rejected')
+                                        <span class="px-2.5 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wide"
+                                              style="background:#fee2e2;color:#991b1b;">
+                                            Denied Cancel.
+                                        </span>
+                                    @elseif($leave->cancellation_status === 'hr_rejected')
+                                        <span class="px-2.5 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wide"
+                                              style="background:#fee2e2;color:#991b1b;">
+                                            HR Denied Cancel.
+                                        </span>
+                                    @elseif($leave->cancellation_status === 'pending')
+                                        <span class="px-2.5 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wide"
+                                              style="background:#fef3c7;color:#92400e;">
+                                            Cancel Req.
+                                        </span>
+                                    @else
+                                        @php
+                                            $statusColors = [
+                                                'pending'  => 'background:#fef8e7;color:#b45309;',
+                                                'approved' => 'background:#e6f4f5;color:#027c8b;',
+                                                'rejected' => 'background:#fef2f2;color:#dc2626;',
+                                            ];
+                                            $style = $statusColors[$leave->dept_head_status] ?? 'background:#f3f4f6;color:#6b7280;';
+                                        @endphp
+                                        <span class="px-2.5 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wide"
+                                              style="{{ $style }}">
+                                            {{ $leave->dept_head_status }}
+                                        </span>
+                                    @endif
                                 </td>
                                 {{-- Action --}}
                                 <td class="px-6 py-4 text-right">
@@ -652,16 +679,43 @@
                                     {{ \Carbon\Carbon::parse($leave->date_requested ?? $leave->created_at)->format('M d, Y') }}
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                          style="{{ $statusColors[$leave->dept_head_status] ?? '' }}">
-                                        {{ $leave->dept_head_status }}
-                                    </span>
+                                    @if($leave->cancellation_status === 'cancelled')
+                                        <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="background:#f3f4f6;color:#374151;">
+                                            Cancelled
+                                        </span>
+                                    @elseif($leave->cancellation_status !== null)
+                                        <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="background:#e6f4f5;color:#027c8b;">
+                                            Approved
+                                        </span>
+                                    @else
+                                        @php
+                                            $dheadColors = [
+                                                'pending'  => 'background:#fef8e7;color:#b45309;',
+                                                'approved' => 'background:#e6f4f5;color:#027c8b;',
+                                                'rejected' => 'background:#fef2f2;color:#dc2626;',
+                                            ];
+                                        @endphp
+                                        <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                              style="{{ $dheadColors[$leave->dept_head_status] ?? 'background:#f3f4f6;color:#6b7280;' }}">
+                                            {{ ucfirst($leave->dept_head_status) }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                          style="{{ $hrColors[$leave->hr_status ?? 'pending'] ?? '' }}">
-                                        {{ $leave->hr_status === 'cancellation_requested' ? 'Cancel Requested' : ucfirst($leave->hr_status ?? 'pending') }}
-                                    </span>
+                                    @if($leave->cancellation_status === 'cancelled')
+                                        <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="background:#f3f4f6;color:#374151;">
+                                            Cancelled
+                                        </span>
+                                    @elseif($leave->cancellation_status !== null)
+                                        <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full" style="{{ $hrColors['approved'] ?? '' }}">
+                                            Approved
+                                        </span>
+                                    @else
+                                        <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                              style="{{ $hrColors[$leave->hr_status ?? 'pending'] ?? '' }}">
+                                            {{ ucfirst($leave->hr_status ?? 'pending') }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
                                     @if ($leave->rejection_reason)
@@ -690,7 +744,7 @@
                                                 </span>
                                             </template>
                                         </div>
-                                    @elseif($leave->hr_status === 'approved')
+                                    @elseif($leave->hr_status === 'approved' && $leave->dept_head_status === 'approved' && $leave->cancellation_status === null)
                                         <div x-data="{ confirm: false }" class="flex items-center justify-end gap-1">
                                             <button x-show="!confirm" @click.prevent="confirm = true"
                                                     class="px-2.5 py-1 rounded text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors whitespace-nowrap">
@@ -706,6 +760,14 @@
                                                 </span>
                                             </template>
                                         </div>
+                                    @elseif($leave->hr_status === 'approved' && in_array($leave->cancellation_status, ['dhead_rejected', 'hr_rejected']))
+                                        <span class="px-2.5 py-1 rounded text-xs font-bold text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed whitespace-nowrap">
+                                            Cancellation Rejected
+                                        </span>
+                                    @elseif($leave->hr_status === 'approved' && in_array($leave->cancellation_status, ['pending', 'dhead_approved']))
+                                        <span class="px-2.5 py-1 rounded text-xs font-bold text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed whitespace-nowrap">
+                                            Cancellation Pending
+                                        </span>
                                     @else
                                         <span class="text-xs text-gray-300">—</span>
                                     @endif
@@ -777,18 +839,31 @@
                                   placeholder="Add comments or rejection reason..."></textarea>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 mt-8">
-                        <button wire:click="process('rejected')"
-                                class="bg-red-50 text-red-600 font-bold py-3 rounded-lg text-sm hover:bg-red-100 transition-colors border border-red-200 uppercase tracking-widest"
-                                wire:loading.attr="disabled">
-                            Reject
-                        </button>
-                        <button wire:click="process('approved')"
-                                class="brand-bg-primary text-white font-bold py-3 rounded-lg text-sm hover:opacity-90 transition-opacity uppercase tracking-widest shadow-lg shadow-blue-900/20"
-                                wire:loading.attr="disabled">
-                            Approve
-                        </button>
-                    </div>
+                    @if($selectedLeave && $selectedLeave->cancellation_status === 'pending')
+                        <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                            <p class="text-sm font-bold text-amber-800">Cancellation Requested</p>
+                            <p class="text-xs text-amber-700 mt-1">This employee has requested to cancel this leave. Please review it from the <strong>Cancellations</strong> tab — approve to forward to HR, or reject to keep the leave active.</p>
+                        </div>
+                        <div class="mt-4">
+                            <button wire:click="closeModal"
+                                    class="w-full py-2.5 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                                Close
+                            </button>
+                        </div>
+                    @else
+                        <div class="grid grid-cols-2 gap-3 mt-8">
+                            <button wire:click="process('rejected')"
+                                    class="bg-red-50 text-red-600 font-bold py-3 rounded-lg text-sm hover:bg-red-100 transition-colors border border-red-200 uppercase tracking-widest"
+                                    wire:loading.attr="disabled">
+                                Reject
+                            </button>
+                            <button wire:click="process('approved')"
+                                    class="brand-bg-primary text-white font-bold py-3 rounded-lg text-sm hover:opacity-90 transition-opacity uppercase tracking-widest shadow-lg shadow-blue-900/20"
+                                    wire:loading.attr="disabled">
+                                Approve
+                            </button>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

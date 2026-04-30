@@ -2,62 +2,33 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        // ✅ Step 1: Fix existing values BEFORE changing ENUM
-        DB::statement("UPDATE assets SET status = 'available' WHERE status = 'active'");
-        DB::statement("UPDATE assets SET status = 'disposed' WHERE status = 'retired'");
+        // Widen ENUM → VARCHAR first so data updates can use new values
+        Schema::table('assets', function (Blueprint $table) {
+            $table->string('status')->default('available')->change();
+            $table->string('condition_status')->default('good')->change();
+        });
 
-        // ✅ Step 2: Modify columns
-        DB::statement("
-            ALTER TABLE assets
-            MODIFY status ENUM(
-                'available',
-                'in_use',
-                'out_of_service',
-                'maintenance',
-                'disposed',
-                'lost'
-            ) NOT NULL DEFAULT 'available'
-        ");
-
-        DB::statement("
-            ALTER TABLE assets
-            MODIFY condition_status ENUM(
-                'excellent',
-                'good',
-                'fair',
-                'poor',
-                'critical',
-                'damaged'
-            ) NOT NULL DEFAULT 'good'
-        ");
+        // Rename legacy ENUM values to new canonical strings
+        DB::table('assets')->where('status', 'active')->update(['status' => 'available']);
+        DB::table('assets')->where('status', 'retired')->update(['status' => 'disposed']);
     }
 
     public function down(): void
     {
-        // rollback to old ENUM (optional)
-        DB::statement("
-            ALTER TABLE assets
-            MODIFY status ENUM(
-                'active',
-                'in_use',
-                'maintenance',
-                'retired'
-            ) NOT NULL DEFAULT 'active'
-        ");
+        // Revert data values before shrinking back to ENUM
+        DB::table('assets')->where('status', 'available')->update(['status' => 'active']);
+        DB::table('assets')->where('status', 'disposed')->update(['status' => 'retired']);
 
-        DB::statement("
-            ALTER TABLE assets
-            MODIFY condition_status ENUM(
-                'good',
-                'fair',
-                'poor'
-            ) NOT NULL DEFAULT 'good'
-        ");
+        Schema::table('assets', function (Blueprint $table) {
+            $table->string('status')->default('active')->change();
+            $table->string('condition_status')->default('good')->change();
+        });
     }
 };

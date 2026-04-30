@@ -159,7 +159,7 @@
                 'disposed'      => ['bg'=>'#f3e8ff','color'=>'#6b21a8','border'=>'#d8b4fe','label'=>'Disposed'],
                 'lost'          => ['bg'=>'#f3f4f6','color'=>'#6b7280','border'=>'#d1d5db','label'=>'Lost'],
             ];
-            $sc = $statusMap[$asset->status] ?? $statusMap['active'];
+            $sc = $statusMap[$asset->status] ?? $statusMap['available'];
             $condMap = [
                 'excellent' => ['bg'=>'#dcfce7','color'=>'#166534','border'=>'#86efac','label'=>'Excellent'],
                 'good'      => ['bg'=>'#dbeafe','color'=>'#1e40af','border'=>'#93c5fd','label'=>'Good'],
@@ -170,7 +170,7 @@
             ];
             $cc = $condMap[$asset->condition_status] ?? $condMap['good'];
         @endphp
-        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer
+        <div wire:key="asset-{{ $asset->id }}" class="bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer
                     hover:shadow-md transition-shadow
                     {{ $isDisposed ? 'asset-disposed' : ($isLost ? 'asset-lost' : ($isOutOfService ? 'asset-outofservice' : '')) }}"
              wire:click="{{ !$isUnavailable ? 'showDetails(' . $asset->id . ')' : '' }}">

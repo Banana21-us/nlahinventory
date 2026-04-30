@@ -283,7 +283,7 @@
                             $cc = $condMap[$asset->condition_status] ?? $condMap['good'];
                             $isDisposed = $asset->status === 'disposed';
                         @endphp
-                        <tr class="brand-row-hover transition-colors cursor-pointer {{ $isDisposed ? 'opacity-75' : '' }} {{ $isOutOfService ? 'bg-orange-50' : '' }}" wire:click="showDetails({{ $asset->id }})">
+                        <tr wire:key="asset-{{ $asset->id }}" class="brand-row-hover transition-colors cursor-pointer {{ $isDisposed ? 'opacity-75' : '' }} {{ $isOutOfService ? 'bg-orange-50' : '' }}" wire:click="showDetails({{ $asset->id }})">
                             <td class="px-4 py-3" wire:click.stop>
                                 @if($asset->image && Storage::disk('public')->exists($asset->image))
                                     <img src="{{ Storage::url($asset->image) }}" class="w-11 h-11 object-cover rounded-lg border border-gray-200">
@@ -366,7 +366,7 @@
                                     <p class="text-xs mt-1">{{ $search ? 'Try adjusting your search.' : 'Click "Add New Asset" to get started.' }}</p>
                                 </div>
                             </td>
-                        <tr>
+                        </tr>
                     @endforelse
                 </tbody>
             </table>
@@ -569,7 +569,7 @@
                 <div class="bg-gray-50 px-5 py-3 flex justify-end gap-2 rounded-b-xl">
                     @php $isDisposed = $selectedAsset->status === 'disposed'; @endphp
                     @if(!$isDisposed)
-                        <button type="button" wire:click="edit({{ $selectedAsset->id }})" wire:click="closeDetailsModal" 
+                        <button type="button" wire:click="edit({{ $selectedAsset->id }})"
                             class="inline-flex justify-center rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-sky-700 transition-colors">
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>

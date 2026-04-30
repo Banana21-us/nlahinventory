@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Department;
 use App\Models\OvertimeApplication;
 use App\Models\PayoffApplication;
 use Illuminate\Support\Facades\Auth;
@@ -113,6 +114,8 @@ class OvertimeManagement extends Component
             return;
         }
 
+        $isDeptHead = Department::where('dept_head_id', Auth::id())->exists();
+
         OvertimeApplication::create([
             'user_id'               => Auth::id(),
             'type'                  => $this->type,
@@ -121,8 +124,9 @@ class OvertimeManagement extends Component
             'hours'                 => $this->hours,
             'lunch_break_deducted'  => $this->lunch_break_deducted,
             'reason'                => $this->reason,
-            'status'                => 'pending',
-            'dept_head_status'      => 'pending',
+            'status'                => $isDeptHead ? 'dept_approved' : 'pending',
+            'dept_head_status'      => $isDeptHead ? 'approved' : 'pending',
+            'dept_head_approved_by' => $isDeptHead ? Auth::id() : null,
         ]);
 
         $this->resetForm();
