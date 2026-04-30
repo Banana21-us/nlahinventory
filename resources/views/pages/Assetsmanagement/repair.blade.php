@@ -29,7 +29,7 @@
             <div>
                 <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400">Repair Management</p>
                 <h1 class="text-xl font-bold text-gray-800 leading-tight">{{ $userDepartmentName }} — Assets Needing Repair</h1>
-                <p class="text-xs text-gray-500 mt-1">Assets with maintenance status or poor/fair condition</p>
+                <p class="text-xs text-gray-500 mt-1">Start repairs or complete/dispose assets</p>
             </div>
         </div>
     </div>
@@ -47,14 +47,14 @@
             </div>
         </div>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center gap-3">
-            <div class="p-2 rounded-lg bg-red-50 shrink-0">
-                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <div class="p-2 rounded-lg bg-blue-50 shrink-0">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
             </div>
             <div>
-                <p class="text-xs text-gray-400 font-semibold">Poor Condition</p>
-                <p class="text-2xl font-bold text-gray-800 leading-none">{{ $assets->where('condition_status', 'poor')->count() }}</p>
+                <p class="text-xs text-gray-400 font-semibold">In Progress</p>
+                <p class="text-2xl font-bold text-gray-800 leading-none">{{ $assets->where('status', 'out_of_service')->count() }}</p>
             </div>
         </div>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center gap-3">
@@ -64,8 +64,8 @@
                 </svg>
             </div>
             <div>
-                <p class="text-xs text-gray-400 font-semibold">Fair Condition</p>
-                <p class="text-2xl font-bold text-gray-800 leading-none">{{ $assets->where('condition_status', 'fair')->count() }}</p>
+                <p class="text-xs text-gray-400 font-semibold">Poor/Fair Condition</p>
+                <p class="text-2xl font-bold text-gray-800 leading-none">{{ $assets->where('condition_status', 'poor')->count() + $assets->where('condition_status', 'fair')->count() }}</p>
             </div>
         </div>
     </div>
@@ -86,19 +86,13 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         @foreach($assets as $asset)
         @php
-            $needRepair = $asset->status === 'maintenance';
-            $statusMap = [
-                'maintenance' => ['bg'=>'#fee2e2','color'=>'#991b1b','border'=>'#fca5a5','label'=>'Needs Repair'],
-                'poor' => ['bg'=>'#fef9c3','color'=>'#854d0e','border'=>'#fde047','label'=>'Poor'],
-                'fair' => ['bg'=>'#fef3c7','color'=>'#92400e','border'=>'#fcd34d','label'=>'Fair'],
-            ];
-            $sc = $needRepair ? $statusMap['maintenance'] : ($statusMap[$asset->condition_status] ?? $statusMap['fair']);
+            $isInProgress = $asset->status === 'out_of_service';
+            $needsRepair = $asset->status === 'maintenance';
         @endphp
         <div class="bg-white rounded-xl cursor-pointer hover:shadow-md transition-shadow
-                    {{ $needRepair ? 'border border-gray-200 border-l-4 border-l-red-500' : ($asset->condition_status === 'poor' ? 'border border-gray-200 border-l-4 border-l-amber-500' : 'border border-gray-200 border-l-4 border-l-yellow-400') }}"
+                    {{ $isInProgress ? 'border border-gray-200 border-l-4 border-l-blue-500' : ($needsRepair ? 'border border-gray-200 border-l-4 border-l-red-500' : ($asset->condition_status === 'poor' ? 'border border-gray-200 border-l-4 border-l-amber-500' : 'border border-gray-200 border-l-4 border-l-yellow-400')) }}"
              wire:click="showDetails({{ $asset->id }})">
 
-            {{-- Image --}}
             <div class="h-40 bg-gray-50 flex items-center justify-center overflow-hidden">
                 @if($asset->image && Storage::disk('public')->exists($asset->image))
                     <img src="{{ Storage::url($asset->image) }}" class="w-full h-full object-contain block p-1">
@@ -110,19 +104,31 @@
                 @endif
             </div>
 
-            {{-- Body --}}
             <div class="p-3">
                 <div class="flex items-center justify-between gap-1 mb-0.5">
                     <p class="font-bold text-gray-900 text-sm truncate">{{ $asset->asset_code }}</p>
                     <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
-                          style="background-color:{{ $sc['bg'] }};color:{{ $sc['color'] }};border:1px solid {{ $sc['border'] }}">
-                        {{ $sc['label'] }}
+                          style="{{ $isInProgress ? 'background-color:#dbeafe;color:#1e40af;border:1px solid #93c5fd' : ($needsRepair ? 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5' : ($asset->condition_status === 'poor' ? 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047' : 'background-color:#fef3c7;color:#92400e;border:1px solid #fcd34d')) }}">
+                        {{ $isInProgress ? 'In Progress' : ($needsRepair ? 'Needs Repair' : ucfirst($asset->condition_status) . ' Condition') }}
                     </span>
                 </div>
                 <p class="text-xs text-gray-500 truncate">{{ $asset->name }}</p>
                 @if($asset->location)
                     <p class="text-xs text-gray-400 mt-0.5 truncate">{{ $asset->location->name }}</p>
                 @endif
+                <div class="mt-2">
+                    @if($isInProgress)
+                        <button wire:click.stop="openCompleteModal({{ $asset->id }})"
+                                class="w-full brand-btn-teal text-xs font-bold py-1.5 rounded-lg active:scale-95">
+                            Complete / Dispose
+                        </button>
+                    @else
+                        <button wire:click.stop="startRepair({{ $asset->id }})"
+                                class="w-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-1.5 rounded-lg active:scale-95">
+                            Start Repair
+                        </button>
+                    @endif
+                </div>
             </div>
         </div>
         @endforeach
@@ -185,21 +191,17 @@
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <p class="text-xs font-bold text-gray-400 uppercase mb-1">Status</p>
-                                    @php
-                                        $sm = ['maintenance'=>['#fee2e2','#991b1b','#fca5a5','Needs Repair'],'poor'=>['#fef9c3','#854d0e','#fde047','Poor'],'fair'=>['#fef3c7','#92400e','#fcd34d','Fair'],'in_use'=>['#dcfce7','#166534','#86efac','In Use'],'active'=>['#dcfce7','#166534','#86efac','Active']];
-                                        [$sb,$sc2,$sb2,$sl] = $sm[$selectedAsset->status] ?? $sm['active'];
-                                    @endphp
-                                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full"
-                                          style="background-color:{{ $sb }};color:{{ $sc2 }};border:1px solid {{ $sb2 }}">{{ $sl }}</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold"
+                                          style="{{ $selectedAsset->status === 'out_of_service' ? 'background-color:#dbeafe;color:#1e40af;border:1px solid #93c5fd' : ($selectedAsset->status === 'maintenance' ? 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5' : 'background-color:#dcfce7;color:#166534;border:1px solid #86efac') }}">
+                                        {{ ucfirst(str_replace('_', ' ', $selectedAsset->status)) }}
+                                    </span>
                                 </div>
                                 <div>
                                     <p class="text-xs font-bold text-gray-400 uppercase mb-1">Condition</p>
-                                    @php
-                                        $cm = ['good'=>['#dcfce7','#166534','#86efac','Good'],'poor'=>['#fef9c3','#854d0e','#fde047','Poor'],'fair'=>['#fef3c7','#92400e','#fcd34d','Fair']];
-                                        [$cb,$cc2,$cb2,$cl] = $cm[$selectedAsset->condition_status] ?? $cm['good'];
-                                    @endphp
-                                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full"
-                                          style="background-color:{{ $cb }};color:{{ $cc2 }};border:1px solid {{ $cb2 }}">{{ $cl }}</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold"
+                                          style="{{ $selectedAsset->condition_status === 'good' ? 'background-color:#dcfce7;color:#166534;border:1px solid #86efac' : ($selectedAsset->condition_status === 'fair' ? 'background-color:#fef9c3;color:#854d0e;border:1px solid #fde047' : 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5') }}">
+                                        {{ ucfirst($selectedAsset->condition_status) }}
+                                    </span>
                                 </div>
                             </div>
                             <div><p class="text-xs font-bold text-gray-400 uppercase">Location</p><p class="text-gray-700">{{ $selectedAsset->location?->name ?? '—' }}</p></div>
@@ -209,15 +211,24 @@
                 </div>
                 <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-xl">
                     <button wire:click="closeDetailsModal" class="px-4 py-2 text-sm font-semibold text-gray-700">Close</button>
-                    <button wire:click="openRepairModal({{ $selectedAsset->id }})"
-                            class="brand-btn-teal text-sm font-bold px-5 py-2 rounded-lg active:scale-95">Complete Repair</button>
+                    @if($selectedAsset->status === 'out_of_service')
+                        <button wire:click="openCompleteModal({{ $selectedAsset->id }})"
+                                class="brand-btn-teal text-sm font-bold px-5 py-2 rounded-lg active:scale-95">
+                            Complete / Dispose
+                        </button>
+                    @elseif($selectedAsset->status === 'maintenance')
+                        <button wire:click="startRepair({{ $selectedAsset->id }})"
+                                class="bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold px-5 py-2 rounded-lg active:scale-95">
+                            Start Repair
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
     @endif
 
-    {{-- Repair Modal --}}
+    {{-- COMPLETE REPAIR / DISPOSE MODAL --}}
     @if($showRepairModal)
     <div class="fixed inset-0 z-50 overflow-y-auto">
         <div class="fixed inset-0 bg-gray-900/50" wire:click="closeRepairModal"></div>
@@ -231,7 +242,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
-                            <h3 class="text-base font-bold text-gray-800">Complete Repair</h3>
+                            <h3 class="text-base font-bold text-gray-800">Complete Repair / Dispose</h3>
                         </div>
                         <button type="button" wire:click="closeRepairModal" class="text-gray-400 hover:text-gray-600 transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,11 +252,30 @@
                     </div>
                     <div class="px-6 py-5 space-y-4">
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Issue / Problem *</label>
-                            <textarea wire:model="repair_issue" rows="3" placeholder="Describe what was repaired…"
+                            <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Action *</label>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" wire:model="repair_action" value="fix" class="w-4 h-4 text-teal-600">
+                                    <span class="text-sm text-gray-700">Fix / Repair</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" wire:model="repair_action" value="dispose" class="w-4 h-4 text-red-600">
+                                    <span class="text-sm text-gray-700">Dispose</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                                {{ $repair_action === 'fix' ? 'Issue / Problem *' : 'Reason for Disposal *' }}
+                            </label>
+                            <textarea wire:model="repair_issue" rows="3" 
+                                      placeholder="{{ $repair_action === 'fix' ? 'Describe the issue that was fixed...' : 'Describe why the asset is being disposed...' }}"
                                       class="brand-focus w-full rounded-md border border-gray-300 p-2 text-sm"></textarea>
                             @error('repair_issue') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
+
+                        @if($repair_action === 'fix')
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Repair Cost</label>
                             <div class="relative">
@@ -254,18 +284,31 @@
                                        class="brand-focus w-full rounded-md border border-gray-300 p-2 pl-7 text-sm">
                             </div>
                         </div>
+                        @endif
+
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Additional Notes</label>
-                            <textarea wire:model="repair_notes" rows="2" placeholder="Parts replaced, technician, etc."
+                            <textarea wire:model="repair_notes" rows="2" placeholder="Parts replaced, technician details, etc."
                                       class="brand-focus w-full rounded-md border border-gray-300 p-2 text-sm"></textarea>
                         </div>
-                        <div class="p-3 brand-bg-primary-light rounded-lg">
-                            <p class="text-xs text-gray-600">After completion, asset status → <strong class="text-gray-800">In Use</strong>, condition → <strong class="text-gray-800">Good</strong></p>
+
+                        @if($repair_action === 'fix')
+                        <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+                            <p class="text-xs text-green-700">✅ After completion: Asset status → <strong>In Use</strong>, Condition → <strong>Good</strong></p>
                         </div>
+                        @else
+                        <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                            <p class="text-xs text-red-700">⚠️ After disposal: Asset status → <strong>Disposed</strong>, Condition → <strong>Poor</strong></p>
+                            <p class="text-xs text-red-600 mt-1">This asset will be marked as disposed and removed from active inventory.</p>
+                        </div>
+                        @endif
                     </div>
                     <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-xl">
                         <button type="button" wire:click="closeRepairModal" class="px-4 py-2 text-sm font-semibold text-gray-700">Cancel</button>
-                        <button type="submit" class="brand-btn-teal text-sm font-bold px-5 py-2 rounded-lg active:scale-95">Complete Repair</button>
+                        <button type="submit" 
+                                class="{{ $repair_action === 'fix' ? 'brand-btn-teal' : 'bg-red-600 hover:bg-red-700' }} text-sm font-bold px-5 py-2 rounded-lg active:scale-95 text-white">
+                            {{ $repair_action === 'fix' ? 'Complete Repair' : 'Confirm Disposal' }}
+                        </button>
                     </div>
                 </form>
             </div>

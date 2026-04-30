@@ -11,8 +11,6 @@
     .brand-bg-accent         { background-color: #f0b626; }
     .brand-btn-primary { background-color:#015581;color:#fff;transition:background-color .15s ease; }
     .brand-btn-primary:hover { background-color:#01406a; }
-    .brand-btn-teal { background-color:#027c8b;color:#fff;transition:background-color .15s ease; }
-    .brand-btn-teal:hover { background-color:#016070; }
     .brand-focus:focus { outline:none;box-shadow:0 0 0 3px rgba(1,85,129,.2);border-color:#015581; }
     .search-focus:focus { outline:none;box-shadow:0 0 0 3px rgba(2,124,139,.2);border-color:#027c8b; }
     .brand-row-hover:hover { background-color:#f0f7fc; }
@@ -33,6 +31,7 @@
             <div>
                 <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400">Assets Management</p>
                 <h1 class="text-xl font-bold text-gray-800 leading-tight">Assets Inventory</h1>
+                <p class="text-xs text-gray-500 mt-1">Click on any row to view full asset details</p>
             </div>
         </div>
         <button wire:click="openForm"
@@ -113,23 +112,53 @@
                         class="brand-focus block w-full rounded-md border border-gray-300 sm:text-sm p-2">
                 </div>
                 <div>
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Lifespan (Years)</label>
+                    <input type="number" wire:model="lifespan_years" min="1" max="50" step="1" placeholder="e.g., 5"
+                        class="brand-focus block w-full rounded-md border border-gray-300 sm:text-sm p-2">
+                    @error('lifespan_years') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">End of Life</label>
+                    <input type="text" wire:model="end_of_life" readonly
+                        class="block w-full rounded-md border border-gray-200 bg-gray-50 text-gray-500 sm:text-sm p-2">
+                    <p class="text-xs text-gray-400 mt-1">Auto-calculated</p>
+                </div>
+                <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Status</label>
                     <select wire:model="status"
                         class="brand-focus block w-full rounded-md border border-gray-300 sm:text-sm p-2 bg-white">
-                        <option value="active">Active (Available)</option>
-                        <option value="in_use">In Use (Assigned)</option>
+                        <option value="available">Available</option>
+                        <option value="in_use">In Use</option>
+                        <option value="out_of_service">Out of Service (In Repair)</option>
                         <option value="maintenance">Under Maintenance</option>
-                        <option value="retired">Retired</option>
+                        <option value="disposed">Disposed</option>
+                        <option value="lost">Lost</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Condition</label>
                     <select wire:model="condition_status"
                         class="brand-focus block w-full rounded-md border border-gray-300 sm:text-sm p-2 bg-white">
+                        <option value="excellent">Excellent</option>
                         <option value="good">Good</option>
                         <option value="fair">Fair</option>
                         <option value="poor">Poor</option>
+                        <option value="critical">Critical</option>
+                        <option value="damaged">Damaged</option>
                     </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">
+                        Maintenance Department <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model="maintenance_department_id"
+                        class="brand-focus block w-full rounded-md border border-gray-300 sm:text-sm p-2 bg-white">
+                        <option value="">-- Select Maintenance Department --</option>
+                        @foreach($departments as $department)
+                            <option value="{{ $department->id }}">{{ $department->name }} ({{ $department->code }})</option>
+                        @endforeach
+                    </select>
+                    @error('maintenance_department_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
                 <div class="md:col-span-2 xl:col-span-3">
                     <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Notes</label>
@@ -213,7 +242,7 @@
             </div>
         </div>
 
-        {{-- Table --}}
+        {{-- Table - Clickable Rows --}}
         <div class="overflow-x-auto">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -232,22 +261,30 @@
                     @forelse($assets as $asset)
                         @php
                             $isAssigned = $asset->department_id && $asset->location_id;
+                            $isOutOfService = $asset->status === 'out_of_service';
+                            $isMaintenance = $asset->status === 'maintenance';
                             $statusMap = [
-                                'active'      => ['bg'=>'#dcfce7','color'=>'#166534','border'=>'#86efac','label'=>'Active'],
-                                'in_use'      => ['bg'=>'#dbeafe','color'=>'#1e40af','border'=>'#93c5fd','label'=>'In Use'],
-                                'maintenance' => ['bg'=>'#fef9c3','color'=>'#854d0e','border'=>'#fde047','label'=>'Maintenance'],
-                                'retired'     => ['bg'=>'#fee2e2','color'=>'#991b1b','border'=>'#fca5a5','label'=>'Retired'],
+                                'available'     => ['bg'=>'#dcfce7','color'=>'#166534','border'=>'#86efac','label'=>'Available'],
+                                'in_use'        => ['bg'=>'#dbeafe','color'=>'#1e40af','border'=>'#93c5fd','label'=>'In Use'],
+                                'out_of_service'=> ['bg'=>'#fed7aa','color'=>'#9a3412','border'=>'#fdba74','label'=>'In Repair'],
+                                'maintenance'   => ['bg'=>'#fee2e2','color'=>'#991b1b','border'=>'#fca5a5','label'=>'Maintenance'],
+                                'disposed'      => ['bg'=>'#fecaca','color'=>'#7f1d1d','border'=>'#ef4444','label'=>'Disposed'],
+                                'lost'          => ['bg'=>'#f3f4f6','color'=>'#6b7280','border'=>'#d1d5db','label'=>'Lost'],
                             ];
                             $condMap = [
-                                'good' => ['bg'=>'#dcfce7','color'=>'#166534','border'=>'#86efac','label'=>'Good'],
-                                'fair' => ['bg'=>'#fef9c3','color'=>'#854d0e','border'=>'#fde047','label'=>'Fair'],
-                                'poor' => ['bg'=>'#fee2e2','color'=>'#991b1b','border'=>'#fca5a5','label'=>'Poor'],
+                                'excellent' => ['bg'=>'#dcfce7','color'=>'#166534','border'=>'#86efac','label'=>'Excellent'],
+                                'good'      => ['bg'=>'#2fc963','color'=>'#234d31','border'=>'#277340','label'=>'Good'],
+                                'fair'      => ['bg'=>'#fef9c3','color'=>'#854d0e','border'=>'#fde047','label'=>'Fair'],
+                                'poor'      => ['bg'=>'#fee2e2','color'=>'#991b1b','border'=>'#fca5a5','label'=>'Poor'],
+                                'critical'  => ['bg'=>'#fed7aa','color'=>'#9a3412','border'=>'#fdba74','label'=>'Critical'],
+                                'damaged'   => ['bg'=>'#fecaca','color'=>'#7f1d1d','border'=>'#ef4444','label'=>'Damaged'],
                             ];
-                            $sc = $statusMap[$asset->status] ?? $statusMap['active'];
+                            $sc = $statusMap[$asset->status] ?? $statusMap['available'];
                             $cc = $condMap[$asset->condition_status] ?? $condMap['good'];
+                            $isDisposed = $asset->status === 'disposed';
                         @endphp
-                        <tr class="brand-row-hover transition-colors">
-                            <td class="px-4 py-3">
+                        <tr class="brand-row-hover transition-colors cursor-pointer {{ $isDisposed ? 'opacity-75' : '' }} {{ $isOutOfService ? 'bg-orange-50' : '' }}" wire:click="showDetails({{ $asset->id }})">
+                            <td class="px-4 py-3" wire:click.stop>
                                 @if($asset->image && Storage::disk('public')->exists($asset->image))
                                     <img src="{{ Storage::url($asset->image) }}" class="w-11 h-11 object-cover rounded-lg border border-gray-200">
                                 @else
@@ -276,7 +313,13 @@
                             <td class="px-4 py-3 text-center">
                                 <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
                                       style="background-color:{{ $sc['bg'] }};color:{{ $sc['color'] }};border:1px solid {{ $sc['border'] }}">
-                                    {{ $sc['label'] }}
+                                    @if($isOutOfService)
+                                         {{ $sc['label'] }}
+                                    @elseif($isMaintenance)
+                                        ⚠️ {{ $sc['label'] }}
+                                    @else
+                                        {{ $sc['label'] }}
+                                    @endif
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-center">
@@ -294,10 +337,18 @@
                                           style="background-color:#f3f4f6;color:#6b7280;border:1px solid #d1d5db">Unassigned</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="px-4 py-3 text-right" wire:click.stop>
                                 <div class="flex items-center justify-end gap-2">
-                                    <button wire:click="edit({{ $asset->id }})"
-                                        class="brand-edit-btn text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">Edit</button>
+                                    @if(!$isDisposed)
+                                        <button wire:click="edit({{ $asset->id }})"
+                                            class="brand-edit-btn text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">Edit</button>
+                                    @else
+                                        <button disabled
+                                            class="bg-gray-100 text-gray-400 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-not-allowed"
+                                            title="Disposed assets cannot be edited">
+                                            Edit
+                                        </button>
+                                    @endif
                                     <button wire:click="confirmDelete({{ $asset->id }})"
                                         class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors">Delete</button>
                                 </div>
@@ -315,7 +366,7 @@
                                     <p class="text-xs mt-1">{{ $search ? 'Try adjusting your search.' : 'Click "Add New Asset" to get started.' }}</p>
                                 </div>
                             </td>
-                        </tr>
+                        <tr>
                     @endforelse
                 </tbody>
             </table>
@@ -324,6 +375,225 @@
             {{ $assets->links() }}
         </div>
     </div>
+
+    {{-- ASSET DETAILS MODAL --}}
+    @if($showDetailsModal && $selectedAsset)
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: true }" x-show="show" @click.away="$wire.closeDetailsModal()">
+        <div class="fixed inset-0 bg-gray-500/75 transition-opacity"></div>
+        <div class="flex h-350 items-center justify-center p-4">
+            <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl w-100 max-w-[30%]">
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-sky-600 to-sky-700 px-5 py-3 rounded-t-xl">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="p-1.5 bg-white/20 rounded-lg">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7.5 12 3l9 4.5M4.5 10.5V16L12 21l7.5-5v-5.5M12 12l9-4.5M12 12 3 7.5"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-md font-bold">Asset Details</h3>
+                                <p class="text-xs text-sky-200">{{ $selectedAsset->asset_code }}</p>
+                            </div>
+                        </div>
+                        <button type="button" wire:click="closeDetailsModal" class="text-white/80 hover:text-white transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="px-5 py-4 max-h-[40vh] overflow-y-auto">
+                    <div class="flex flex-col md:flex-row gap-5">
+                        <!-- Left Column - Image -->
+                        <div class="md:w-2/5 bg-gray-50 rounded-lg p-3 flex items-center justify-center">
+                            @if($selectedAsset->image && Storage::disk('public')->exists($selectedAsset->image))
+                                <img src="{{ Storage::url($selectedAsset->image) }}" class="w-full max-w-[30px] h-5 object-cover rounded-lg shadow-sm">
+                            @else
+                                <div class="w-full max-w-[30px] h-5 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Right Column - Details -->
+                        <div class="md:w-3/5 space-y-2 ml-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Asset Name</p>
+                                    <p class="text-sm font-semibold text-gray-800">{{ $selectedAsset->name }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Asset Code</p>
+                                    <p class="text-sm font-mono text-gray-700">{{ $selectedAsset->asset_code }}</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Brand</p>
+                                    <p class="text-sm text-gray-700">{{ $selectedAsset->brand ?: 'N/A' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Model</p>
+                                    <p class="text-sm text-gray-700">{{ $selectedAsset->model ?: 'N/A' }}</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Category</p>
+                                    <p class="text-sm text-gray-700">{{ $selectedAsset->category ?: 'N/A' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Serial #</p>
+                                    <p class="text-sm font-mono text-gray-700">{{ $selectedAsset->serial_number ?: 'N/A' }}</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Purchase Date</p>
+                                    <p class="text-sm text-gray-700">{{ $selectedAsset->purchase_date ? date('M d, Y', strtotime($selectedAsset->purchase_date)) : 'N/A' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Purchase Cost</p>
+                                    <p class="text-sm text-gray-700">₱{{ number_format($selectedAsset->purchase_cost, 2) }}</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Lifespan</p>
+                                    <p class="text-sm text-gray-700">{{ $selectedAsset->lifespan_years ? $selectedAsset->lifespan_years . ' years' : 'N/A' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">End of Life</p>
+                                    <p class="text-sm text-gray-700">{{ $selectedAsset->end_of_life ? date('M d, Y', strtotime($selectedAsset->end_of_life)) : 'N/A' }}</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Status</p>
+                                    @php
+                                        $statusColor = match($selectedAsset->status) {
+                                            'available' => 'bg-emerald-100 text-emerald-700',
+                                            'in_use' => 'bg-blue-100 text-blue-700',
+                                            'out_of_service' => 'bg-orange-100 text-orange-700',
+                                            'maintenance' => 'bg-amber-100 text-amber-700',
+                                            'disposed' => 'bg-red-100 text-red-700',
+                                            'lost' => 'bg-gray-100 text-gray-700',
+                                            default => 'bg-gray-100 text-gray-700',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $statusColor }}">
+                                        @if($selectedAsset->status === 'out_of_service')
+                                            🔧 Out of Service (In Repair)
+                                        @elseif($selectedAsset->status === 'maintenance')
+                                            ⚠️ Maintenance
+                                        @else
+                                            {{ ucfirst(str_replace('_', ' ', $selectedAsset->status)) }}
+                                        @endif
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Condition</p>
+                                    @php
+                                        $conditionColor = match($selectedAsset->condition_status) {
+                                            'excellent' => 'bg-emerald-100 text-emerald-700',
+                                            'good' => 'bg-green-100 text-green-700',
+                                            'fair' => 'bg-yellow-100 text-yellow-700',
+                                            'poor' => 'bg-orange-100 text-orange-700',
+                                            'critical' => 'bg-red-100 text-red-700',
+                                            'damaged' => 'bg-rose-100 text-rose-700',
+                                            default => 'bg-gray-100 text-gray-700',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $conditionColor }}">{{ ucfirst($selectedAsset->condition_status) }}</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Maintenance Dept</p>
+                                    <p class="text-sm text-gray-700">{{ $selectedAsset->maintenanceDepartment->name ?? 'N/A' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Assignment</p>
+                                    @php $isAssigned = $selectedAsset->department_id && $selectedAsset->location_id; @endphp
+                                    @if($isAssigned)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">Assigned</span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">Unassigned</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            @if($isAssigned)
+                                <div class="bg-gray-50 rounded-lg p-2">
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Assigned To</p>
+                                    <div class="grid grid-cols-2 gap-2 mt-1">
+                                        <div>
+                                            <span class="text-xs text-gray-500">Dept:</span>
+                                            <span class="text-xs font-medium text-gray-800">{{ $selectedAsset->department->name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-xs text-gray-500">Location:</span>
+                                            <span class="text-xs font-medium text-gray-800">{{ $selectedAsset->location->name ?? 'N/A' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if($selectedAsset->notes)
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Notes</p>
+                                    <p class="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg">{{ $selectedAsset->notes }}</p>
+                                </div>
+                            @endif
+
+                            <div class="pt-1 text-[10px] text-gray-400 border-t">
+                                <p>Created: {{ $selectedAsset->created_at ? date('M d, Y h:i A', strtotime($selectedAsset->created_at)) : 'N/A' }}</p>
+                                <p>Updated: {{ $selectedAsset->updated_at ? date('M d, Y h:i A', strtotime($selectedAsset->updated_at)) : 'N/A' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="bg-gray-50 px-5 py-3 flex justify-end gap-2 rounded-b-xl">
+                    @php $isDisposed = $selectedAsset->status === 'disposed'; @endphp
+                    @if(!$isDisposed)
+                        <button type="button" wire:click="edit({{ $selectedAsset->id }})" wire:click="closeDetailsModal" 
+                            class="inline-flex justify-center rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-sky-700 transition-colors">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Edit
+                        </button>
+                    @else
+                        <button type="button" disabled
+                            class="inline-flex justify-center rounded-lg bg-gray-400 px-3 py-1.5 text-xs font-bold text-white shadow-sm cursor-not-allowed">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Edit (Disabled)
+                        </button>
+                    @endif
+                    <button type="button" wire:click="closeDetailsModal" 
+                        class="inline-flex justify-center rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- DELETE CONFIRM MODAL --}}
     @if($confirmingDeletion)
@@ -355,7 +625,7 @@
     </div>
     @endif
 
-    {{-- TOAST --}}
+    {{-- TOAST MESSAGES --}}
     @if($toastMessage)
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
              x-transition:enter="transform ease-out duration-300 transition"
@@ -371,11 +641,16 @@
                     </svg>
                 </div>
                 <div class="flex-1 pt-0.5">
-                    <p class="text-sm font-semibold text-gray-900">Done</p>
+                    <p class="text-sm font-semibold text-gray-900">Success!</p>
                     <p class="mt-0.5 text-sm text-gray-500">{{ $toastMessage }}</p>
                 </div>
+                <button @click="show = false" class="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
+                    </svg>
+                </button>
             </div>
-            <div class="h-1" style="background-color:#f0b626;animation:shrink 4s linear forwards;"></div>
+            <div class="h-1 brand-bg-accent" style="animation:shrink 4s linear forwards;"></div>
         </div>
     @endif
 
@@ -392,9 +667,13 @@
                     <p class="text-sm font-semibold text-gray-900">Error</p>
                     <p class="mt-0.5 text-sm text-gray-500">{{ $toastError }}</p>
                 </div>
+                <button @click="show = false" class="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
+                    </svg>
+                </button>
             </div>
             <div class="h-1 bg-red-400" style="animation:shrink 5s linear forwards;"></div>
         </div>
     @endif
-
 </div>

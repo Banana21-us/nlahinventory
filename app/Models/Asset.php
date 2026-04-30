@@ -14,22 +14,26 @@ class Asset extends Model
         'name',
         'category',
         'department_id',
+        'maintenance_department_id',
         'location_id',
         'brand',
         'model',
         'serial_number',
         'purchase_date',
         'purchase_cost',
+        'lifespan_years',
+        'end_of_life',
         'status',
         'condition_status',
         'notes',
         'image',
-        'item_type_id',
     ];
 
     protected $casts = [
         'purchase_date' => 'date',
         'purchase_cost' => 'decimal:2',
+        'end_of_life' => 'date',
+        'lifespan_years' => 'integer',
     ];
 
     public function department(): BelongsTo
@@ -37,9 +41,9 @@ class Asset extends Model
         return $this->belongsTo(Department::class, 'department_id');
     }
 
-    public function itemType(): BelongsTo
+    public function maintenanceDepartment(): BelongsTo
     {
-        return $this->belongsTo(ItemType::class, 'item_type_id');
+        return $this->belongsTo(Department::class, 'maintenance_department_id');
     }
 
     public function location(): BelongsTo

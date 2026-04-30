@@ -40,6 +40,7 @@ class AssignAsset extends Component
     {
         $query = Asset::query()
             ->with(['department', 'location'])
+            // REMOVED the filter that excluded disposed/lost assets
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('asset_code', 'like', '%' . $this->search . '%')
@@ -180,7 +181,7 @@ class AssignAsset extends Component
         $asset->update([
             'department_id' => null,
             'location_id' => null,
-            'status' => 'active',
+            'status' => 'available',
         ]);
         
         AssetMovement::create([

@@ -16,6 +16,88 @@
     .search-focus:focus { outline:none;box-shadow:0 0 0 3px rgba(2,124,139,.2);border-color:#027c8b; }
     .brand-focus:focus { outline:none;box-shadow:0 0 0 3px rgba(1,85,129,.2);border-color:#015581; }
     @keyframes shrink { from { width:100% } to { width:0% } }
+    
+    /* Disposed asset styling */
+    .asset-disposed {
+        opacity: 0.7;
+        filter: grayscale(0.3);
+        position: relative;
+        background: repeating-linear-gradient(
+            45deg,
+            rgba(0,0,0,0.02) 0px,
+            rgba(0,0,0,0.02) 20px,
+            rgba(0,0,0,0.04) 20px,
+            rgba(0,0,0,0.04) 40px
+        );
+    }
+    .asset-disposed::after {
+        content: "DISPOSED";
+        position: absolute;
+        top: 10px;
+        left: -25px;
+        background-color: #6b21a8;
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 3px 30px;
+        transform: rotate(-45deg);
+        z-index: 10;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        letter-spacing: 1px;
+    }
+    .asset-lost {
+        opacity: 0.7;
+        filter: grayscale(0.3);
+        position: relative;
+        background: repeating-linear-gradient(
+            45deg,
+            rgba(0,0,0,0.02) 0px,
+            rgba(0,0,0,0.02) 20px,
+            rgba(0,0,0,0.04) 20px,
+            rgba(0,0,0,0.04) 40px
+        );
+    }
+    .asset-lost::after {
+        content: "LOST";
+        position: absolute;
+        top: 10px;
+        left: -25px;
+        background-color: #6b7280;
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 3px 30px;
+        transform: rotate(-45deg);
+        z-index: 10;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        letter-spacing: 1px;
+    }
+    .asset-outofservice {
+        opacity: 0.85;
+        position: relative;
+        background: repeating-linear-gradient(
+            45deg,
+            rgba(0,0,0,0.01) 0px,
+            rgba(0,0,0,0.01) 20px,
+            rgba(0,0,0,0.02) 20px,
+            rgba(0,0,0,0.02) 40px
+        );
+    }
+    .asset-outofservice::after {
+        content: "🔧 IN REPAIR";
+        position: absolute;
+        top: 10px;
+        left: -25px;
+        background-color: #0284c7;
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 3px 30px;
+        transform: rotate(-45deg);
+        z-index: 10;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        letter-spacing: 1px;
+    }
 </style>
 
     {{-- PAGE HEADER --}}
@@ -30,6 +112,7 @@
             <div>
                 <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-400">Assets Management</p>
                 <h1 class="text-xl font-bold text-gray-800 leading-tight">Assign Assets</h1>
+                <p class="text-xs text-gray-500 mt-1">Only available assets can be assigned</p>
             </div>
         </div>
     </div>
@@ -87,14 +170,25 @@
         <div class="p-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 @foreach($allAssets as $asset)
-                    @php $isAssigned = $asset->department_id && $asset->location_id; @endphp
-                    <div class="bg-white rounded-xl overflow-hidden hover:shadow-md transition-shadow
-                                {{ $isAssigned
+                    @php 
+                        $isAssigned = $asset->department_id && $asset->location_id;
+                        $isDisposed = $asset->status === 'disposed';
+                        $isLost = $asset->status === 'lost';
+                        $isOutOfService = $asset->status === 'out_of_service';
+                        $isUnavailable = $isDisposed || $isLost;
+                    @endphp
+                    <div class="bg-white rounded-xl overflow-hidden hover:shadow-md transition-shadow relative
+                                {{ $isDisposed ? 'asset-disposed' : ($isLost ? 'asset-lost' : ($isOutOfService ? 'asset-outofservice' : '')) }}
+                                {{ $isAssigned && !$isUnavailable && !$isOutOfService
                                     ? 'border border-gray-200 border-l-4 border-l-teal-500'
-                                    : 'border border-gray-200 border-l-4 border-l-amber-400' }}">
+                                    : ($isUnavailable 
+                                        ? 'border border-gray-200 border-l-4 border-l-gray-400'
+                                        : ($isOutOfService
+                                            ? 'border border-gray-200 border-l-4 border-l-blue-500'
+                                            : 'border border-gray-200 border-l-4 border-l-amber-400')) }}">
 
                         {{-- Image --}}
-                        <div class="h-40 bg-gray-50 flex items-center justify-center overflow-hidden">
+                        <div class="h-40 bg-gray-50 flex items-center justify-center overflow-hidden {{ $isUnavailable ? 'opacity-50' : '' }}">
                             @if($asset->image && Storage::disk('public')->exists($asset->image))
                                 <img src="{{ Storage::url($asset->image) }}"
                                      class="w-full h-full object-contain block p-1">
@@ -111,25 +205,63 @@
                             {{-- Code + badge row --}}
                             <div class="flex items-center justify-between gap-1 mb-0.5">
                                 <p class="font-bold text-gray-900 text-sm truncate">{{ $asset->asset_code }}</p>
-                                <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
-                                      style="{{ $isAssigned
-                                          ? 'background-color:#e6f4f5;color:#027c8b;border:1px solid #a5d8dd;'
-                                          : 'background-color:#fef8e7;color:#92400e;border:1px solid #fcd34d;' }}">
-                                    {{ $isAssigned ? 'Assigned' : 'Free' }}
-                                </span>
+                                @if($isDisposed)
+                                    <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
+                                          style="background-color:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe">
+                                        Disposed
+                                    </span>
+                                @elseif($isLost)
+                                    <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
+                                          style="background-color:#f3f4f6;color:#6b7280;border:1px solid #d1d5db">
+                                        Lost
+                                    </span>
+                                @elseif($isOutOfService)
+                                    <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
+                                          style="background-color:#dbeafe;color:#1e40af;border:1px solid #93c5fd">
+                                        🔧 In Repair
+                                    </span>
+                                @elseif($isAssigned)
+                                    <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
+                                          style="background-color:#e6f4f5;color:#027c8b;border:1px solid #a5d8dd;">
+                                        Assigned
+                                    </span>
+                                @else
+                                    <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
+                                          style="background-color:#fef8e7;color:#92400e;border:1px solid #fcd34d;">
+                                        Free
+                                    </span>
+                                @endif
                             </div>
                             <p class="text-xs text-gray-500 truncate mb-1.5">{{ $asset->name }}</p>
-                            @if($asset->department)
+                            @if($asset->department && !$isUnavailable && !$isOutOfService)
                                 <p class="text-xs text-gray-400 truncate mb-2">
                                     <span class="font-semibold brand-text-primary">{{ $asset->department->name }}</span>
                                 </p>
+                            @elseif($isDisposed)
+                                <p class="text-xs text-gray-400 truncate mb-2 italic">This asset has been disposed</p>
+                            @elseif($isLost)
+                                <p class="text-xs text-gray-400 truncate mb-2 italic">This asset has been lost</p>
+                            @elseif($isOutOfService)
+                                <p class="text-xs text-gray-400 truncate mb-2 italic">This asset is currently being repaired</p>
                             @else
                                 <p class="text-xs text-gray-300 mb-2">No department</p>
                             @endif
 
                             {{-- Action buttons --}}
                             <div class="pt-2 border-t border-gray-100">
-                                @if(!$isAssigned)
+                                @if($isUnavailable)
+                                    <button disabled
+                                        class="w-full bg-gray-300 text-gray-500 text-xs font-bold py-1.5 rounded-lg cursor-not-allowed"
+                                        title="Disposed/Lost assets cannot be modified">
+                                        Not Available
+                                    </button>
+                                @elseif($isOutOfService)
+                                    <button disabled
+                                        class="w-full bg-blue-300 text-white text-xs font-bold py-1.5 rounded-lg cursor-not-allowed"
+                                        title="Asset is currently being repaired">
+                                        🔧 In Repair
+                                    </button>
+                                @elseif(!$isAssigned)
                                     <button wire:click="openAssignModal({{ $asset->id }})"
                                         class="w-full brand-btn-primary text-xs font-bold py-1.5 rounded-lg active:scale-95">
                                         Assign
@@ -368,7 +500,7 @@
                 <p class="mt-0.5 text-sm text-gray-500">{{ session('message') }}</p>
             </div>
         </div>
-        <div class="h-1 brand-bg-accent" style="animation:shrink 4s linear forwards;"></div>
+        <div class="h-1 brand-bg-accent" style="animation:shrink 4s linear forwards"></div>
     </div>
     @endif
 
@@ -386,7 +518,7 @@
                 <p class="mt-0.5 text-sm text-gray-500">{{ session('error') }}</p>
             </div>
         </div>
-        <div class="h-1 bg-red-400" style="animation:shrink 5s linear forwards;"></div>
+        <div class="h-1 bg-red-400" style="animation:shrink 5s linear forwards"></div>
     </div>
     @endif
 

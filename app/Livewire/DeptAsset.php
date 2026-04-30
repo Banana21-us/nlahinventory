@@ -6,32 +6,39 @@ use App\Models\Asset;
 use App\Models\Location;
 use App\Models\Department;
 use App\Models\AssetMovement;
+use App\Models\AssetMaintenance;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class DeptAsset extends Component
 {
     use WithPagination;
 
     public $search = '';
-    public $filter = 'all';
     public $userDepartmentId;
     public $userDepartmentName;
     
     public $showDetailsModal = false;
     public $selectedAsset = null;
     
-    public $showUpdateModal = false;
-    public $update_asset_id;
-    public $update_status;
-    public $update_condition_status;
-    public $update_remarks;
+    // Repair Request Modal
+    public $showRepairRequestModal = false;
+    public $repair_asset_id;
+    public $repair_notes;
+    
+    // Lost Report Modal
+    public $showLostReportModal = false;
+    public $lost_asset_id;
+    public $lost_notes;
 
     public function mount()
     {
         $user = Auth::user();
+        
+        // Get department from user's employment detail through employee
         $employmentDetail = $user->employmentDetail;
         
         if ($employmentDetail && $employmentDetail->department_id) {
@@ -51,7 +58,7 @@ class DeptAsset extends Component
         }
         
         $query = Asset::query()
-            ->with(['location', 'department'])
+            ->with(['location', 'department', 'maintenanceDepartment'])
             ->where('department_id', $this->userDepartmentId)
             ->whereNotNull('department_id')
             ->whereNotNull('location_id');
@@ -65,20 +72,12 @@ class DeptAsset extends Component
             });
         }
 
-        if ($this->filter === 'in_use') {
-            $query->where('status', 'in_use');
-        } elseif ($this->filter === 'maintenance') {
-            $query->where('status', 'maintenance');
-        } elseif ($this->filter === 'retired') {
-            $query->where('status', 'retired');
-        }
-
         return $query->orderBy('created_at', 'desc')->paginate(12);
     }
 
     public function showDetails($id)
     {
-        $this->selectedAsset = Asset::with(['location', 'department'])->findOrFail($id);
+        $this->selectedAsset = Asset::with(['location', 'department', 'maintenanceDepartment'])->findOrFail($id);
         
         if ($this->selectedAsset->department_id != $this->userDepartmentId) {
             session()->flash('error', 'You are not authorized to view this asset.');
@@ -94,46 +93,76 @@ class DeptAsset extends Component
         $this->selectedAsset = null;
     }
 
-    public function openUpdateModal($id)
+    public function openRepairRequestModal($id)
     {
         $asset = Asset::findOrFail($id);
         
         if ($asset->department_id != $this->userDepartmentId) {
-            session()->flash('error', 'You are not authorized to update this asset.');
+            session()->flash('error', 'You are not authorized to request repair for this asset.');
             return;
         }
         
-        $this->update_asset_id = $asset->id;
-        $this->update_status = $asset->status;
-        $this->update_condition_status = $asset->condition_status;
-        $this->update_remarks = '';
-        $this->showUpdateModal = true;
+        $this->repair_asset_id = $asset->id;
+        $this->repair_notes = '';
+        $this->showRepairRequestModal = true;
     }
 
-    public function closeUpdateModal()
+    public function closeRepairRequestModal()
     {
-        $this->showUpdateModal = false;
-        $this->reset(['update_asset_id', 'update_status', 'update_condition_status', 'update_remarks']);
+        $this->showRepairRequestModal = false;
+        $this->reset(['repair_asset_id', 'repair_notes']);
     }
-
-    public function updateAssetStatus()
+    
+    public function openLostReportModal($id)
     {
-        $asset = Asset::findOrFail($this->update_asset_id);
+        $asset = Asset::findOrFail($id);
         
         if ($asset->department_id != $this->userDepartmentId) {
-            session()->flash('error', 'You are not authorized to update this asset.');
-            $this->closeUpdateModal();
+            session()->flash('error', 'You are not authorized to report this asset as lost.');
             return;
         }
         
-        $old_status = $asset->status;
-        $old_condition = $asset->condition_status;
+        $this->lost_asset_id = $asset->id;
+        $this->lost_notes = '';
+        $this->showLostReportModal = true;
+    }
+    
+    public function closeLostReportModal()
+    {
+        $this->showLostReportModal = false;
+        $this->reset(['lost_asset_id', 'lost_notes']);
+    }
+
+    public function submitRepairRequest()
+    {
+        $this->validate([
+            'repair_notes' => 'required|string|min:5',
+        ]);
+
+        $asset = Asset::findOrFail($this->repair_asset_id);
         
+        if ($asset->department_id != $this->userDepartmentId) {
+            session()->flash('error', 'You are not authorized to request repair for this asset.');
+            $this->closeRepairRequestModal();
+            return;
+        }
+        
+        // Update asset status to maintenance and condition to poor
         $asset->update([
-            'status' => $this->update_status,
-            'condition_status' => $this->update_condition_status,
+            'status' => 'maintenance',
+            'condition_status' => 'poor',
         ]);
         
+        // Create record in asset_maintenance table
+        AssetMaintenance::create([
+            'asset_id' => $asset->id,
+            'issue_description' => $this->repair_notes,
+            'status' => 'pending',
+            'maintenance_department_id' => $asset->maintenance_department_id,
+            'reported_at' => Carbon::now(),
+        ]);
+        
+        // Record the repair request in movements
         AssetMovement::create([
             'asset_id' => $asset->id,
             'from_department_id' => $asset->department_id,
@@ -141,17 +170,56 @@ class DeptAsset extends Component
             'from_location_id' => $asset->location_id,
             'to_location_id' => $asset->location_id,
             'moved_by' => Auth::id(),
-            'remarks' => "Status changed from {$old_status} to {$this->update_status}. Condition changed from {$old_condition} to {$this->update_condition_status}. " . $this->update_remarks,
+            'remarks' => "REPAIR REQUESTED: {$this->repair_notes}",
         ]);
         
-        session()->flash('message', 'Asset status and condition updated successfully!');
-        $this->closeUpdateModal();
+        session()->flash('message', 'Repair request submitted successfully! Maintenance department has been notified.');
+        $this->closeRepairRequestModal();
     }
-
-    public function clearFilters()
+    
+    public function submitLostReport()
     {
-        $this->reset(['search', 'filter']);
-        $this->resetPage();
+        $this->validate([
+            'lost_notes' => 'required|string|min:5',
+        ]);
+
+        $asset = Asset::findOrFail($this->lost_asset_id);
+        
+        if ($asset->department_id != $this->userDepartmentId) {
+            session()->flash('error', 'You are not authorized to report this asset as lost.');
+            $this->closeLostReportModal();
+            return;
+        }
+        
+        // Update asset status to lost
+        $asset->update([
+            'status' => 'lost',
+            'condition_status' => 'critical',
+        ]);
+        
+        // Create record in asset_maintenance table
+        AssetMaintenance::create([
+            'asset_id' => $asset->id,
+            'issue_description' => $this->lost_notes,
+            'repair_action' => 'Asset reported as lost',
+            'status' => 'cancelled',
+            'maintenance_department_id' => $asset->maintenance_department_id,
+            'reported_at' => Carbon::now(),
+        ]);
+        
+        // Record the lost report in movements
+        AssetMovement::create([
+            'asset_id' => $asset->id,
+            'from_department_id' => $asset->department_id,
+            'to_department_id' => $asset->department_id,
+            'from_location_id' => $asset->location_id,
+            'to_location_id' => $asset->location_id,
+            'moved_by' => Auth::id(),
+            'remarks' => "ASSET REPORTED AS LOST: {$this->lost_notes}",
+        ]);
+        
+        session()->flash('message', 'Asset has been marked as lost. This will be recorded in the asset history.');
+        $this->closeLostReportModal();
     }
 
     public function render()
