@@ -12,7 +12,7 @@ class ProcessLeaveAnniversaries extends Command
 {
     protected $signature = 'leave:process-anniversaries';
 
-    protected $description = 'Process VL anniversary increments for employees whose hiring date matches today';
+    protected $description = 'Process anniversary SL proration for employees whose hiring anniversary is today';
 
     public function handle(LeaveAccrualService $service): void
     {

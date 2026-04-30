@@ -9,6 +9,8 @@ use App\Mail\LeaveRequestMail;
 use App\Models\Leave;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\PayoffCreditConsumption;
+use App\Models\PayoffLeaveCredit;
 use App\Models\User;
 use App\Services\LeaveAccrualService;
 use Carbon\Carbon;
@@ -45,14 +47,20 @@ class LeaveForm extends Component
 
     public float $availableCredits = 0;
 
+    // POL-specific: hours to redeem (stored in total_days for POL leaves)
+    public ?float $pol_hours = null;
+
     protected function rules(): array
     {
+        $isPOL = $this->leave_type === 'POL';
+
         return [
             'leave_type' => 'required|string',
             'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'required|string|min:5',
-            'day_part' => 'required|in:Full,AM,PM',
+            'end_date'   => 'required|date|after_or_equal:start_date',
+            'reason'     => 'required|string|min:5',
+            'day_part'   => $isPOL ? 'nullable' : 'required|in:Full,AM,PM',
+            'pol_hours'  => $isPOL ? 'required|numeric|min:0.5' : 'nullable',
             'attachment' => 'nullable|file|max:5120',
         ];
     }
@@ -172,6 +180,10 @@ class LeaveForm extends Component
             return -1; // unlimited — no cap
         }
 
+        if ($lt->isPOL()) {
+            return PayoffLeaveCredit::availableHours(Auth::id());
+        }
+
         if (! $lt->getPayrollKey()) {
             return 0; // no tracked balance for this type
         }
@@ -280,28 +292,53 @@ class LeaveForm extends Component
             }
         }
 
+        // POL: validate hours against available balance
+        if ($lt?->isPOL()) {
+            $available = PayoffLeaveCredit::availableHours(Auth::id());
+            if ((float) $this->pol_hours > $available) {
+                $this->addError('pol_hours', "You only have {$available} payoff hour(s) available.");
+
+                return;
+            }
+        }
+
         $filePath = null;
         if ($this->attachment) {
             $filePath = $this->attachment->store('leave_attachments', 'public');
         }
 
         $leave = DB::transaction(function () use ($filePath, $lt) {
+            $isPOL     = $lt?->isPOL() ?? false;
+            $totalDays = $isPOL ? (float) $this->pol_hours : $this->total_days;
+
             $leave = Leave::create([
-                'user_id' => auth()->id(),
-                'leave_type' => $this->leave_type,
-                'is_paid' => $lt?->is_paid ?? true,
-                'start_date' => $this->start_date,
-                'end_date' => $this->end_date,
-                'day_part' => $this->day_part,
-                'total_days' => $this->total_days,
-                'reason' => $this->reason,
-                'attachment' => $filePath,
-                'date_requested' => now()->toDateString(),
+                'user_id'          => auth()->id(),
+                'leave_type'       => $this->leave_type,
+                'is_paid'          => $lt?->is_paid ?? true,
+                'start_date'       => $this->start_date,
+                'end_date'         => $this->end_date,
+                'day_part'         => $isPOL ? 'Full' : $this->day_part,
+                'total_days'       => $totalDays,
+                'reason'           => $this->reason,
+                'attachment'       => $filePath,
+                'date_requested'   => now()->toDateString(),
                 'dept_head_status' => 'pending',
-                'hr_status' => 'pending',
+                'hr_status'        => 'pending',
             ]);
 
-            $this->adjustConsumed(auth()->id(), $lt, $this->total_days, 'increment');
+            if ($isPOL) {
+                // FIFO consume payoff credits and record the consumption trail
+                $map = PayoffLeaveCredit::consumeFifo(auth()->id(), $totalDays);
+                foreach ($map as $creditId => $hours) {
+                    PayoffCreditConsumption::create([
+                        'leave_id'               => $leave->id,
+                        'payoff_leave_credit_id' => $creditId,
+                        'hours_consumed'         => $hours,
+                    ]);
+                }
+            } else {
+                $this->adjustConsumed(auth()->id(), $lt, $totalDays, 'increment');
+            }
 
             return $leave;
         });
@@ -374,7 +411,7 @@ class LeaveForm extends Component
     {
         $this->reset([
             'leave_type', 'start_date', 'end_date', 'day_part',
-            'total_days', 'reason', 'attachment', 'showForm',
+            'total_days', 'reason', 'attachment', 'showForm', 'pol_hours',
         ]);
         $this->day_part = 'Full';
         $this->total_days = 0;
@@ -394,7 +431,15 @@ class LeaveForm extends Component
         }
 
         DB::transaction(function () use ($leave) {
-            $this->adjustConsumedByRawType($leave->user_id, $leave->leave_type, (float) $leave->total_days, 'decrement');
+            $lt = LeaveType::resolve($leave->leave_type);
+            if ($lt?->isPOL()) {
+                $map = PayoffCreditConsumption::where('leave_id', $leave->id)
+                    ->pluck('hours_consumed', 'payoff_leave_credit_id')
+                    ->toArray();
+                PayoffLeaveCredit::restoreFromMap($map);
+            } else {
+                $this->adjustConsumedByRawType($leave->user_id, $leave->leave_type, (float) $leave->total_days, 'decrement');
+            }
             $leave->delete();
         });
 
@@ -482,8 +527,11 @@ class LeaveForm extends Component
         $payrollKey = $lt?->getPayrollKey();
         $isLWOP = $lt?->isLWOP() ?? false;
 
+        $isPOL = $lt?->isPOL() ?? false;
+
         $creditLabel = match (true) {
             $isLWOP => 'Leave Without Pay',
+            $isPOL  => 'Available Payoff Hours',
             $payrollKey !== null => 'Available '.strtoupper($payrollKey).' Credits',
             default => 'No Credit Cap',
         };

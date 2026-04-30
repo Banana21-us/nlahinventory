@@ -33,7 +33,7 @@ return new class extends Migration
             $table->unsignedBigInteger('dept_head_id')->nullable(); // Who signed off first
 
             // Step 2: HR Final Approval
-            $table->enum('hr_status', ['pending', 'approved', 'rejected', 'cancelled'])->default('pending');
+            $table->enum('hr_status', ['pending', 'approved', 'rejected', 'cancelled', 'cancellation_requested'])->default('pending');
             $table->timestamp('hr_approved_at')->nullable();
             $table->unsignedBigInteger('approved_by')->nullable();
 

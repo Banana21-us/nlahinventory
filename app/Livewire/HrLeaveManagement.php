@@ -8,6 +8,8 @@ use App\Mail\LeaveStatusUpdateMail;
 use App\Models\Leave;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\PayoffCreditConsumption;
+use App\Models\PayoffLeaveCredit;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -254,7 +256,31 @@ class HrLeaveManagement extends Component
 
         $lt = LeaveType::resolve($leaveType);
 
-        if (! $lt || ! $lt->getPayrollKey()) {
+        if (! $lt) {
+            return;
+        }
+
+        // POL: restore FIFO credits from the consumption trail
+        if ($lt->isPOL()) {
+            // Leave ID is not directly available here — resolve via the leave record
+            $leave = Leave::where('user_id', $userId)
+                ->where('leave_type', $leaveType)
+                ->where('total_days', $days)
+                ->where('hr_status', 'rejected')
+                ->latest()
+                ->first();
+
+            if ($leave) {
+                $map = PayoffCreditConsumption::where('leave_id', $leave->id)
+                    ->pluck('hours_consumed', 'payoff_leave_credit_id')
+                    ->toArray();
+                PayoffLeaveCredit::restoreFromMap($map);
+            }
+
+            return;
+        }
+
+        if (! $lt->getPayrollKey()) {
             return;
         }
 

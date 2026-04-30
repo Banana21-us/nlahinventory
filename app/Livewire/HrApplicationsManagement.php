@@ -4,7 +4,9 @@ namespace App\Livewire;
 
 use App\Models\OvertimeApplication;
 use App\Models\PayoffApplication;
+use App\Models\PayoffLeaveCredit;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -162,22 +164,55 @@ class HrApplicationsManagement extends Component
 
     public function approveOvertime(int $id): void
     {
-        OvertimeApplication::findOrFail($id)->update([
-            'hr_status' => 'approved',
+        $app = OvertimeApplication::where('dept_head_status', 'approved')
+            ->where('status', 'dept_approved')
+            ->findOrFail($id);
+
+        $app->update([
+            'hr_status'      => 'approved',
             'hr_approved_by' => Auth::id(),
-            'status' => 'hr_approved',
+            'status'         => 'hr_approved',
         ]);
         session()->flash('message', 'Overtime approved by HR — forwarded to Accounting.');
     }
 
     public function rejectOvertime(int $id): void
     {
-        OvertimeApplication::findOrFail($id)->update([
-            'hr_status' => 'rejected',
-            'hr_approved_by' => Auth::id(),
-            'status' => 'rejected',
-        ]);
+        OvertimeApplication::where('status', 'dept_approved')
+            ->findOrFail($id)
+            ->update([
+                'hr_status'      => 'rejected',
+                'hr_approved_by' => Auth::id(),
+                'status'         => 'rejected',
+            ]);
         session()->flash('message', 'Overtime rejected.');
+    }
+
+    public function accountingApproveOvertime(int $id): void
+    {
+        OvertimeApplication::where('status', 'hr_approved')
+            ->findOrFail($id)
+            ->update([
+                'accounting_status'      => 'approved',
+                'accounting_approved_by' => Auth::id(),
+                'status'                 => 'approved',
+            ]);
+        session()->flash('message', 'Overtime tagged as approved for payroll.');
+    }
+
+    public function deductLunchBreakOvertime(int $id): void
+    {
+        $app = OvertimeApplication::findOrFail($id);
+
+        if ($app->lunch_break_deducted || $app->hours <= 1) {
+            return;
+        }
+
+        $app->update([
+            'hours'                => round($app->hours - 1, 2),
+            'lunch_break_deducted' => true,
+        ]);
+        session()->flash('message', 'Lunch break (-1 hr) deducted.');
     }
 
     public function editOvertime(int $id): void
@@ -234,28 +269,77 @@ class HrApplicationsManagement extends Component
     {
         $app = PayoffApplication::where('status', 'dept_approved')->findOrFail($id);
 
-        // Cash type forwards to Accounting; leave type is fully approved here
-        $newStatus = $app->redemption_type === 'cash' ? 'hr_approved' : 'approved';
-        $flashMsg = $app->redemption_type === 'cash'
-            ? 'Pay-off approved by HR — forwarded to Accounting.'
-            : 'Pay-off (Leave) approved by HR.';
+        $earnedAt  = Carbon::now()->toDateString();
+        $expiresAt = Carbon::now()->addMonths(6)->toDateString();
 
         $app->update([
-            'hr_status' => 'approved',
+            'hr_status'      => 'approved',
             'hr_approved_by' => Auth::id(),
-            'status' => $newStatus,
+            'status'         => 'hr_approved', // forwarded to Accounting for tagging
         ]);
-        session()->flash('message', $flashMsg);
+
+        // Credit the employee's payoff leave balance immediately
+        PayoffLeaveCredit::create([
+            'user_id'                => $app->user_id,
+            'payoff_application_id'  => $app->id,
+            'hours_earned'           => $app->hours,
+            'hours_remaining'        => $app->hours,
+            'earned_at'              => $earnedAt,
+            'expires_at'             => $expiresAt,
+        ]);
+
+        session()->flash('message', 'Pay-off approved — '.$app->hours.' hrs credited to employee. Forwarded to Accounting.');
     }
 
     public function rejectPayoff(int $id): void
     {
-        PayoffApplication::where('status', 'dept_approved')->findOrFail($id)->update([
-            'hr_status' => 'rejected',
-            'hr_approved_by' => Auth::id(),
-            'status' => 'rejected',
-        ]);
+        PayoffApplication::where('status', 'dept_approved')
+            ->findOrFail($id)
+            ->update([
+                'hr_status'      => 'rejected',
+                'hr_approved_by' => Auth::id(),
+                'status'         => 'rejected',
+            ]);
         session()->flash('message', 'Pay-off rejected.');
+    }
+
+    public function accountingTagPayoff(int $id): void
+    {
+        PayoffApplication::where('status', 'hr_approved')
+            ->findOrFail($id)
+            ->update([
+                'accounting_status'      => 'approved',
+                'accounting_approved_by' => Auth::id(),
+                'status'                 => 'approved',
+            ]);
+        session()->flash('message', 'Pay-off tagged by Accounting.');
+    }
+
+    public function deductLunchBreakPayoff(int $id): void
+    {
+        $app = PayoffApplication::findOrFail($id);
+
+        if ($app->lunch_break_deducted || $app->hours <= 1) {
+            return;
+        }
+
+        $newHours = round($app->hours - 1, 2);
+        $app->update([
+            'hours'                => $newHours,
+            'lunch_break_deducted' => true,
+        ]);
+
+        // If a credit was already created for this payoff, adjust it too
+        $credit = PayoffLeaveCredit::where('payoff_application_id', $id)->first();
+        if ($credit) {
+            $diff = $credit->hours_earned - $newHours;
+            $credit->update([
+                'hours_earned'    => $newHours,
+                'hours_remaining' => max(0, $credit->hours_remaining - $diff),
+            ]);
+        }
+
+        session()->flash('message', 'Lunch break (-1 hr) deducted.');
     }
 
     public function editPayoff(int $id): void

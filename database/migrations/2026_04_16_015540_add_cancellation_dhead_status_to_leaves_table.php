@@ -12,11 +12,17 @@ return new class extends Migration
         // pending  = staff requested, awaiting dept head review
         // approved = dept head signed off, forwarded to HR
         // rejected = dept head denied, leave restored to approved
-        DB::statement("ALTER TABLE leaves ADD COLUMN cancellation_dhead_status ENUM('pending','approved','rejected') NULL DEFAULT NULL AFTER hr_status");
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement("ALTER TABLE leaves ADD COLUMN cancellation_dhead_status TEXT NULL DEFAULT NULL");
+        } else {
+            DB::statement("ALTER TABLE leaves ADD COLUMN cancellation_dhead_status ENUM('pending','approved','rejected') NULL DEFAULT NULL AFTER hr_status");
+        }
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE leaves DROP COLUMN cancellation_dhead_status');
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE leaves DROP COLUMN cancellation_dhead_status');
+        }
     }
 };

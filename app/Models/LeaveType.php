@@ -55,6 +55,11 @@ class LeaveType extends Model
         return $this->code === 'LWOP';
     }
 
+    public function isPOL(): bool
+    {
+        return $this->code === 'POL';
+    }
+
     /**
      * Some sub-types share a balance row with their parent type.
      * e.g. SL_X (Extended) and SL_M (Maternity-linked SL) draw from the SL bucket.

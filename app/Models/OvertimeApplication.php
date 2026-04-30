@@ -13,9 +13,12 @@ class OvertimeApplication extends Model
         'start_datetime',
         'end_datetime',
         'hours',
+        'lunch_break_deducted',
         'reason',
         'status',
         'approved_by',
+        'dept_head_status',
+        'dept_head_approved_by',
         'hr_status',
         'hr_approved_by',
         'accounting_status',
@@ -40,6 +43,11 @@ class OvertimeApplication extends Model
     public function hrApprover(): BelongsTo
     {
         return $this->belongsTo(User::class, 'hr_approved_by');
+    }
+
+    public function deptHeadApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dept_head_approved_by');
     }
 
     public function accountingApprover(): BelongsTo

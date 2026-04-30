@@ -37,6 +37,7 @@ class Leave extends Model
         'approved_by',
         'remarks',
         'rejection_reason',
+        'cancellation_dhead_status',
     ];
 
     protected $casts = [

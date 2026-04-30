@@ -81,15 +81,70 @@ class LeaveAccrualService
     }
 
     /**
-     * VL increments are now calendar-year based (processed every Jan 1 by
-     * processAnnualReset). This method is kept for backwards compatibility
-     * but does nothing.
+     * Called on the employee's hiring anniversary (Feb 19 each year).
+     * Grants SL prorated from the anniversary date to Dec 31 of that year.
+     * Only applies on the FIRST anniversary after hiring.
      */
     public function processAnniversary(User $user): void
     {
-        Log::info('LeaveAccrualService::processAnniversary — skipped, VL is now calendar-year based', [
-            'user_id' => $user->id,
-        ]);
+        $employeeId = DB::table('employee')->where('user_id', $user->id)->value('id');
+
+        $detail = $employeeId
+            ? DB::table('employment_details')->where('employee_id', $employeeId)->first()
+            : null;
+
+        $hiringDate = $detail?->hiring_date ? Carbon::parse($detail->hiring_date) : null;
+
+        if (! $hiringDate) {
+            return;
+        }
+
+        $today = now()->startOfDay();
+        $anniversaryThisYear = $hiringDate->copy()->year($today->year);
+
+        // Only run on the actual anniversary date
+        if (! $today->is($anniversaryThisYear)) {
+            return;
+        }
+
+        $firstAnniversary = $hiringDate->copy()->addYear();
+
+        // Only grant on the FIRST anniversary
+        if (! $today->is($firstAnniversary)) {
+            return;
+        }
+
+        DB::transaction(function () use ($user, $hiringDate) {
+            $slType = LeaveType::where('code', 'SL')->first();
+
+            if (! $slType) {
+                return;
+            }
+
+            // SL proration based on hiring date (table-driven)
+            $m = $hiringDate->month;
+            $d = $hiringDate->day;
+
+            $slProrated = match (true) {
+                ($m === 1) || ($m === 2) || ($m === 3 && $d <= 14) => 5,
+                ($m === 3 && $d >= 15) || ($m === 4) || ($m === 5 && $d <= 27) => 4,
+                ($m === 5 && $d >= 28) || ($m === 6) || ($m === 7) || ($m === 8 && $d <= 9) => 3,
+                ($m === 8 && $d >= 10) || ($m === 9) || ($m === 10 && $d <= 22) => 2,
+                default => 1, // Oct 23 – Dec 31
+            };
+
+            LeaveBalance::updateOrCreate(
+                ['user_id' => $user->id, 'leave_type_id' => $slType->id],
+                ['total' => $slProrated, 'consumed' => 0],
+            );
+
+            Log::info('LeaveAccrualService::processAnniversary — SL prorated on first anniversary', [
+                'user_id' => $user->id,
+                'hiring_date' => $hiringDate->toDateString(),
+                'anniversary' => $hiringDate->copy()->addYear()->toDateString(),
+                'sl_granted' => $slProrated,
+            ]);
+        });
     }
 
     /**
@@ -97,13 +152,15 @@ class LeaveAccrualService
      *
      * 1. VL annual grant (calendar-year based):
      *    - First Jan 1 after regularization:
-     *        floor(completed_full_months_as_regular_in_reg_year × 10 / 12)
+     *        Table-based proration using regularization_date
      *    - Subsequent Jan 1s:
-     *        +10 VL if < 8 completed years since regularization
-     *        +15 VL if >= 8 completed years since regularization
-     *    Unused VL carries over automatically (we increment total, never reset it).
+     *        +10 VL if < 7 years of service
+     *        +15 VL if 7–14 years of service
+     *        +20 VL if 15+ years of service
+     *    Years of service use the NLAH AWY formula: pre-2023 period (4 AWY = 1 yr), 2023+ (1 AWY = 1 yr).
+     *    Unused VL carries over, capped at 20 total remaining.
      *
-     * 2. Annual reset for SL, BL, and SPL (reset to standard allocation).
+     * 2. Annual reset for SL, BL, SYL, and SPL (reset to standard allocation).
      */
     public function processAnnualReset(User $user): void
     {
@@ -119,7 +176,9 @@ class LeaveAccrualService
             ? Carbon::parse($detail->regularization_date)
             : null;
 
-        DB::transaction(function () use ($user, $employeeId, $regDate) {
+        $hiringDate = $detail?->hiring_date ? Carbon::parse($detail->hiring_date) : null;
+
+        DB::transaction(function () use ($user, $employeeId, $regDate, $hiringDate) {
             // ── VL grant ──────────────────────────────────────────────────────
             if ($regDate) {
                 $currentYear = now()->year;
@@ -127,24 +186,29 @@ class LeaveAccrualService
                 $vlGrant = 0;
 
                 if ($yearDiff === 1) {
-                    // First Jan 1 after regularization — prorate for the months
-                    // the employee was already regular last year.
-                    // Only full calendar months count: if regularized on the 1st,
-                    // that month counts; otherwise the first full month is the next.
-                    $firstFullMonth = ($regDate->day === 1)
-                        ? $regDate->month
-                        : $regDate->month + 1;
-
-                    $fullMonths = max(0, 12 - $firstFullMonth + 1);
-                    $vlGrant = (int) floor($fullMonths * 10 / 12);
-                } elseif ($yearDiff >= 2) {
-                    // Completed full years of regular service as of Jan 1.
-                    $completedYears = (int) $regDate->diffInYears(Carbon::create($currentYear, 1, 1));
+                    // First Jan 1 after regularization — table-based proration
+                    // based on regularization_date
+                    $m = $regDate->month;
+                    $d = $regDate->day;
 
                     $vlGrant = match (true) {
-                        $completedYears >= 15 => 20, // 15+ years
-                        $completedYears >= 7 => 15, // 7–14 years
-                        default => 10, // 1–6 years
+                        ($m === 1) || ($m === 2) || ($m === 3 && $d <= 14) => 5,
+                        ($m === 3 && $d >= 15) || ($m === 4) || ($m === 5 && $d <= 26) => 4,
+                        ($m === 5 && $d >= 27) || ($m === 6) || ($m === 7) || ($m === 8 && $d <= 7) => 3,
+                        ($m === 8 && $d >= 8) || ($m === 9) || ($m === 10 && $d <= 19) => 2,
+                        default => 1, // Oct 20 – Dec 31
+                    };
+                } elseif ($yearDiff >= 2) {
+                    // Use NLAH AWY formula: pre-2023 period is 4 AWY = 1 yr of service;
+                    // 2023 onwards is 1 AWY = 1 yr. Falls back to calendar diff if no hiring date.
+                    $serviceYears = $hiringDate
+                        ? $this->computeYearsOfService($hiringDate, Carbon::create($currentYear, 1, 1))
+                        : (int) $regDate->diffInYears(Carbon::create($currentYear, 1, 1));
+
+                    $vlGrant = match (true) {
+                        $serviceYears >= 15 => 20,
+                        $serviceYears >= 7 => 15,
+                        default => 10,
                     };
                 }
                 // yearDiff === 0: regularized this year — no Jan 1 VL yet.
@@ -153,32 +217,73 @@ class LeaveAccrualService
                     $vlType = LeaveType::where('code', 'VL')->first();
 
                     if ($vlType) {
-                        LeaveBalance::firstOrCreate(
+                        $balance = LeaveBalance::firstOrCreate(
                             ['user_id' => $user->id, 'leave_type_id' => $vlType->id],
                             ['total' => 0, 'consumed' => 0],
-                        )->increment('total', $vlGrant);
+                        );
+
+                        // Cap remaining at 20; add only enough to reach the cap.
+                        $remaining = max(0, (float) $balance->total - (float) $balance->consumed);
+                        $toAdd = max(0, min(20, $remaining + $vlGrant) - $remaining);
+
+                        if ($toAdd > 0) {
+                            $balance->increment('total', $toAdd);
+                        }
+
+                        $excess = max(0, ($remaining + $vlGrant) - 20);
 
                         Log::info('LeaveAccrualService::processAnnualReset — VL granted', [
                             'user_id' => $user->id,
                             'year' => $currentYear,
                             'grant' => $vlGrant,
-                            'year_diff' => $yearDiff,
-                            'completed_years' => $yearDiff >= 2
-                                ? (int) $regDate->diffInYears(Carbon::create($currentYear, 1, 1))
-                                : 0,
+                            'added' => $toAdd,
+                            'excess_for_cash' => $excess,
+                            'new_remaining' => min(20, $remaining + $vlGrant),
                         ]);
                     }
                 }
             }
 
-            // ── SL / BL / SPL reset ───────────────────────────────────────────
+            // ── SL reset (Jan 1 grant for years after first anniversary) ─────
+            $slGrant = 0;
+
+            if ($regDate && $hiringDate) {
+                $firstAnniversary = $hiringDate->copy()->addYear();
+                $currentYear = now()->year;
+
+                if ($firstAnniversary->year < $currentYear) {
+                    // First anniversary was before this year: full 5 SL
+                    $slGrant = 5;
+                } else {
+                    // First anniversary is this year or later: 0 (granted on anniversary)
+                    $slGrant = 0;
+                }
+            }
+
+            $slType = LeaveType::where('code', 'SL')->first();
+            if ($slType) {
+                LeaveBalance::updateOrCreate(
+                    ['user_id' => $user->id, 'leave_type_id' => $slType->id],
+                    ['total' => $slGrant, 'consumed' => 0],
+                );
+            }
+
+            // ── SYL reset (3 days every Jan 1) ────────────────────────────
+            $sylType = LeaveType::where('code', 'SYL')->first();
+            if ($sylType) {
+                LeaveBalance::updateOrCreate(
+                    ['user_id' => $user->id, 'leave_type_id' => $sylType->id],
+                    ['total' => 3, 'consumed' => 0],
+                );
+            }
+
+            // ── BL / SPL reset ────────────────────────────────────────────────
             $isSoloParent = $employeeId
                 ? (bool) DB::table('employee')->where('id', $employeeId)->value('is_solo_parent')
                 : false;
 
             $resets = [
-                'SL' => ['total' => 10, 'consumed' => 0],
-                'BL' => ['total' => 1,  'consumed' => 0],
+                'BL' => ['total' => 1, 'consumed' => 0],
             ];
 
             if ($isSoloParent) {
@@ -201,6 +306,37 @@ class LeaveAccrualService
             'user_id' => $user->id,
             'name' => $user->name,
         ]);
+    }
+
+    /**
+     * NLAH AWY (Actual Working Years) formula for years of service.
+     *
+     * Pre-2023 period: 4 AWY = 1 year of service (hospital-specific policy).
+     * 2023 onwards: 1 AWY = 1 year of service.
+     *
+     * Each "AWY" is counted by hiring-date anniversary completions within each period.
+     * Example: Hired Jan 2014, asOf Jan 2025 →
+     *   pre-2023 anniversaries (Jan2015–Jan2022) = 8 → floor(8/4) = 2 service years
+     *   post-2022 anniversaries (Jan2023–Jan2024) = 2 service years
+     *   Total = 4 years of service
+     */
+    public function computeYearsOfService(Carbon $hiringDate, Carbon $asOf): int
+    {
+        $cutoff = Carbon::create(2023, 1, 1);
+        $pre2023Count = 0;
+        $post2022Count = 0;
+
+        $anniversary = $hiringDate->copy()->addYear();
+        while ($anniversary->lt($asOf)) {
+            if ($anniversary->lt($cutoff)) {
+                $pre2023Count++;
+            } else {
+                $post2022Count++;
+            }
+            $anniversary->addYear();
+        }
+
+        return (int) floor($pre2023Count / 4) + $post2022Count;
     }
 
     /**

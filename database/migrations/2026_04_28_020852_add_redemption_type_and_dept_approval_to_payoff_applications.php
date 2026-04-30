@@ -15,12 +15,16 @@ return new class extends Migration
             $table->foreignId('dept_head_approved_by')->nullable()->constrained('users')->nullOnDelete()->after('dept_head_status');
         });
 
-        DB::statement("ALTER TABLE payoff_applications MODIFY COLUMN status ENUM('pending','dept_approved','hr_approved','approved','rejected') NOT NULL DEFAULT 'pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE payoff_applications MODIFY COLUMN status ENUM('pending','dept_approved','hr_approved','approved','rejected') NOT NULL DEFAULT 'pending'");
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE payoff_applications MODIFY COLUMN status ENUM('pending','hr_approved','approved','rejected') NOT NULL DEFAULT 'pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE payoff_applications MODIFY COLUMN status ENUM('pending','hr_approved','approved','rejected') NOT NULL DEFAULT 'pending'");
+        }
 
         Schema::table('payoff_applications', function (Blueprint $table) {
             $table->dropForeign(['dept_head_approved_by']);

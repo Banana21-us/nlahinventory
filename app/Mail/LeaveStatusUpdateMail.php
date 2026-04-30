@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Leave;
+use App\Models\LeaveBalance;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -29,8 +30,29 @@ class LeaveStatusUpdateMail extends Mailable
         return new Content(
             view: 'emails.leave-status-update',
             with: [
-                'leave' => $this->leave,
+                'leave'       => $this->leave,
+                'balanceRows' => $this->buildBalanceRows(),
             ],
         );
+    }
+
+    private function buildBalanceRows(): array
+    {
+        $rows = [];
+
+        foreach (LeaveBalance::with('leaveType')->where('user_id', $this->leave->user_id)->whereNull('deleted_at')->get() as $balance) {
+            $lt = $balance->leaveType;
+            if (! $lt) {
+                continue;
+            }
+            $rows[] = [
+                'label'     => $lt->label,
+                'total'     => (float) $balance->total,
+                'consumed'  => (float) $balance->consumed,
+                'remaining' => max(0, (float) $balance->total - (float) $balance->consumed),
+            ];
+        }
+
+        return $rows;
     }
 }

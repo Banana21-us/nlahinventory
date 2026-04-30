@@ -9,6 +9,7 @@ use App\Mail\LeaveHRNotificationMail;
 use App\Models\Leave;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use App\Models\OvertimeApplication;
 use App\Models\PayoffApplication;
 use App\Models\User;
 use Carbon\Carbon;
@@ -524,18 +525,62 @@ class DHead extends Component
         }
     }
 
+    // ─── Overtime Approval Queue ──────────────────────────────────────────────
+
+    public function approveOvertime(int $id): void
+    {
+        $deptId = Auth::user()->employmentDetail?->department_id;
+
+        $app = OvertimeApplication::where('dept_head_status', 'pending')
+            ->where('status', 'pending')
+            ->whereHas('user.employmentDetail', fn ($q) => $q->where('department_id', $deptId))
+            ->where('user_id', '!=', Auth::id())
+            ->findOrFail($id);
+
+        $app->update([
+            'dept_head_status'      => 'approved',
+            'dept_head_approved_by' => Auth::id(),
+            'status'                => 'dept_approved',
+        ]);
+
+        session()->flash('message', 'Overtime approved — forwarded to HR.');
+    }
+
+    public function rejectOvertime(int $id): void
+    {
+        $deptId = Auth::user()->employmentDetail?->department_id;
+
+        $app = OvertimeApplication::where('dept_head_status', 'pending')
+            ->where('status', 'pending')
+            ->whereHas('user.employmentDetail', fn ($q) => $q->where('department_id', $deptId))
+            ->where('user_id', '!=', Auth::id())
+            ->findOrFail($id);
+
+        $app->update([
+            'dept_head_status'      => 'rejected',
+            'dept_head_approved_by' => Auth::id(),
+            'status'                => 'rejected',
+        ]);
+
+        session()->flash('message', 'Overtime rejected.');
+    }
+
     // ─── Payoff Approval Queue ────────────────────────────────────────────────
 
     public function approvePayoff(int $id): void
     {
+        $deptId = Auth::user()->employmentDetail?->department_id;
+
         $app = PayoffApplication::where('dept_head_status', 'pending')
             ->where('status', 'pending')
+            ->whereHas('user.employmentDetail', fn ($q) => $q->where('department_id', $deptId))
+            ->where('user_id', '!=', Auth::id())
             ->findOrFail($id);
 
         $app->update([
-            'dept_head_status' => 'approved',
+            'dept_head_status'      => 'approved',
             'dept_head_approved_by' => Auth::id(),
-            'status' => 'dept_approved',
+            'status'                => 'dept_approved',
         ]);
 
         session()->flash('message', 'Pay-off approved — forwarded to HR.');
@@ -543,14 +588,18 @@ class DHead extends Component
 
     public function rejectPayoff(int $id): void
     {
+        $deptId = Auth::user()->employmentDetail?->department_id;
+
         $app = PayoffApplication::where('dept_head_status', 'pending')
             ->where('status', 'pending')
+            ->whereHas('user.employmentDetail', fn ($q) => $q->where('department_id', $deptId))
+            ->where('user_id', '!=', Auth::id())
             ->findOrFail($id);
 
         $app->update([
-            'dept_head_status' => 'rejected',
+            'dept_head_status'      => 'rejected',
             'dept_head_approved_by' => Auth::id(),
-            'status' => 'rejected',
+            'status'                => 'rejected',
         ]);
 
         session()->flash('message', 'Pay-off rejected.');
@@ -619,8 +668,18 @@ class DHead extends Component
             ->latest()
             ->get();
 
-        // Payoff queue — from employees in the dept head's department
         $deptId = Auth::user()->employmentDetail?->department_id;
+
+        // Overtime queue — dept-scoped
+        $pendingOvertimes = OvertimeApplication::with('user')
+            ->where('status', 'pending')
+            ->where('dept_head_status', 'pending')
+            ->whereHas('user.employmentDetail', fn ($q) => $q->where('department_id', $deptId))
+            ->where('user_id', '!=', Auth::id())
+            ->orderByDesc('created_at')
+            ->get();
+
+        // Payoff queue — dept-scoped
         $pendingPayoffs = PayoffApplication::with('user')
             ->where('status', 'pending')
             ->where('dept_head_status', 'pending')
@@ -649,6 +708,7 @@ class DHead extends Component
             'leaves' => $leaves,
             'myLeaves' => $myLeaves,
             'cancellationLeaves' => $cancellationLeaves,
+            'pendingOvertimes' => $pendingOvertimes,
             'pendingPayoffs' => $pendingPayoffs,
             'pendingCount' => $this->pendingCount,
             'cancellationPendingCount' => $this->cancellationPendingCount,

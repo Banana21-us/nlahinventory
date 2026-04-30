@@ -100,21 +100,33 @@
                         @error('reason') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
                 </div>
-                <div class="flex justify-end items-center gap-3 pt-5 border-t border-gray-100 mt-5">
-                    <button type="button" @click="open = false"
-                        class="text-sm text-gray-500 hover:text-gray-700 font-semibold px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-                        Cancel
+                <div class="flex justify-between items-center pt-5 border-t border-gray-100 mt-5">
+                    <button type="button" wire:click="deductLunchBreak"
+                        @class(['flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg border transition-colors',
+                            'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100' => !$lunch_break_deducted,
+                            'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' => $lunch_break_deducted])
+                        @disabled($lunch_break_deducted)>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ $lunch_break_deducted ? 'Lunch Break Deducted' : '− Lunch Break (−1 hr)' }}
                     </button>
-                    <button type="submit" class="brand-btn-primary text-sm font-bold py-2.5 px-8 rounded-lg shadow active:scale-95 flex items-center gap-2">
-                        <span wire:loading.remove wire:target="save">Submit Application</span>
-                        <span wire:loading wire:target="save" class="flex items-center gap-2">
-                            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                            </svg>
-                            Submitting…
-                        </span>
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <button type="button" @click="open = false"
+                            class="text-sm text-gray-500 hover:text-gray-700 font-semibold px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" class="brand-btn-primary text-sm font-bold py-2.5 px-8 rounded-lg shadow active:scale-95 flex items-center gap-2">
+                            <span wire:loading.remove wire:target="save">Submit Application</span>
+                            <span wire:loading wire:target="save" class="flex items-center gap-2">
+                                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                </svg>
+                                Submitting…
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -153,24 +165,13 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">End</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hours</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reviewed By</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Approval Progress</th>
                         <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     @forelse($applications as $app)
                         @php
-                            $statusStyles = match($app->status) {
-                                'approved'    => 'background-color:#dcfce7;color:#166534;border:1px solid #86efac;',
-                                'rejected'    => 'background-color:#fee2e2;color:#991b1b;border:1px solid #fca5a5;',
-                                'hr_approved' => 'background-color:#e0f2fe;color:#075985;border:1px solid #7dd3fc;',
-                                default       => 'background-color:#fef3c7;color:#92400e;border:1px solid #fcd34d;',
-                            };
-                            $statusLabel = match($app->status) {
-                                'hr_approved' => 'HR Approved',
-                                default       => ucfirst($app->status),
-                            };
                             $typeStyles = $app->type === 'overtime'
                                 ? 'background-color:#dbeafe;color:#1e40af;border:1px solid #93c5fd;'
                                 : 'background-color:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;';
@@ -189,13 +190,67 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{{ $app->reason ?? '—' }}</td>
                             <td class="px-6 py-4">
-                                <span class="px-2.5 py-0.5 text-xs font-bold rounded-full"
-                                      style="{{ $statusStyles }}">
-                                    {{ $statusLabel }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $app->accountingApprover?->name ?? $app->hrApprover?->name ?? '—' }}
+                                @php
+                                    $steps = [
+                                        [
+                                            'label'    => 'Dept Head',
+                                            'status'   => $app->dept_head_status ?? 'pending',
+                                            'approver' => $app->deptHeadApprover?->name,
+                                        ],
+                                        [
+                                            'label'    => 'HR',
+                                            'status'   => $app->hr_status ?? 'pending',
+                                            'approver' => $app->hrApprover?->name,
+                                        ],
+                                        [
+                                            'label'    => 'Accounting',
+                                            'status'   => $app->accounting_status ?? 'pending',
+                                            'approver' => $app->accountingApprover?->name,
+                                        ],
+                                    ];
+                                    $rejected = $app->status === 'rejected';
+                                @endphp
+                                <div class="flex items-center gap-1">
+                                    @foreach($steps as $i => $step)
+                                        @php
+                                            $s = $step['status'];
+                                            if ($rejected && $s === 'pending') {
+                                                $dot  = 'bg-gray-200 text-gray-400';
+                                                $icon = '—';
+                                                $tip  = 'Skipped';
+                                            } elseif ($s === 'approved') {
+                                                $dot  = 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300';
+                                                $icon = '✓';
+                                                $tip  = $step['approver'] ?? 'Approved';
+                                            } elseif ($s === 'rejected') {
+                                                $dot  = 'bg-red-100 text-red-600 ring-1 ring-red-300';
+                                                $icon = '✗';
+                                                $tip  = $step['approver'] ?? 'Rejected';
+                                            } else {
+                                                $dot  = 'bg-amber-50 text-amber-500 ring-1 ring-amber-300';
+                                                $icon = '⏳';
+                                                $tip  = 'Awaiting '.$step['label'];
+                                            }
+                                        @endphp
+                                        <div class="flex items-center gap-1">
+                                            <div title="{{ $tip }}"
+                                                 class="flex flex-col items-center cursor-default group relative">
+                                                <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold {{ $dot }}">
+                                                    {{ $icon }}
+                                                </span>
+                                                <span class="text-[9px] font-semibold text-gray-400 mt-0.5 leading-none">{{ $step['label'] }}</span>
+                                                @if($step['approver'])
+                                                    <div class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow">
+                                                        {{ $step['approver'] }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            @if(!$loop->last)
+                                                <span class="text-gray-300 text-xs font-bold mb-3">›</span>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
                             </td>
                             <td class="px-6 py-4 text-right text-sm font-medium">
                                 @if($app->status === 'pending')
@@ -316,7 +371,15 @@
                                     class="brand-focus block w-full rounded-lg border border-gray-300 text-sm p-2.5"/>
                             </div>
                         </div>
-                        <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-xl">
+                        <div class="bg-gray-50 px-6 py-4 flex justify-between items-center gap-3 rounded-b-xl">
+                            <button type="button" wire:click="deductLunchBreak"
+                                @class(['flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-lg border transition-colors',
+                                    'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100' => !$lunch_break_deducted,
+                                    'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' => $lunch_break_deducted])
+                                @disabled($lunch_break_deducted)>
+                                {{ $lunch_break_deducted ? '✓ Lunch Deducted' : '− Lunch (−1 hr)' }}
+                            </button>
+                            <div class="flex gap-3">
                             <button type="button" wire:click="$set('isEditing', false)"
                                 class="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                                 Cancel
@@ -331,6 +394,7 @@
                                     Saving…
                                 </span>
                             </button>
+                            </div>
                         </div>
                     </form>
                 </div>

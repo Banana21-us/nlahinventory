@@ -9,6 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('assets', function (Blueprint $table) {
+            // Drop unique index before dropping the column (required for SQLite)
+            $table->dropUnique('assets_sku_unique');
             // Drop old columns
             $table->dropColumn(['item_type_id', 'sku']);
 

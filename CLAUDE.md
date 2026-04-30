@@ -30,8 +30,10 @@ npm run build
 
 # Leave-related artisan commands
 php artisan leave:process-anniversaries   # VL on hiring anniversary
-php artisan leave:process-annual-reset    # SL/BL/SPL reset on Jan 1
+php artisan leave:annual-reset            # VL grant + SL/BL/SPL reset on Jan 1 (--force to run outside Jan 1)
 ```
+
+> **Mail delivery requires the queue worker.** All mailables use `Queueable` — run `php artisan queue:listen` alongside the server, or use `composer dev` which starts it automatically.
 
 ## Architecture
 
@@ -75,13 +77,18 @@ The `/` root route still does a position-based redirect for convenience (Houseke
 - `nurse_schedule_entries` — `(schedule_date, section, slot, period, employee_id, custom_name)`; section = `ward|dr_or|head_nurse`; slot = `1st|2nd|3rd|4th|5th|OPD`; period = `am|pm`
 - `records` — maintenance checklist entries joined via `location_area_parts → location_areas → locations`
 - `sales` + `sales_items` — POS transactions; `customers` tracks credit `balance`/`charges`
-- `overtime_applications` / `payoff_applications` — employee self-service overtime and cash payoff requests
+- `overtime_applications` — `dept_head_status` + `status` (enum includes `dept_approved`, `hr_approved`, `approved`) + `accounting_status`; `lunch_break_deducted` bool; `start_datetime`/`end_datetime` for overlap detection
+- `payoff_applications` — same approval columns; payoff always converts to leave (no cash option); `lunch_break_deducted` bool
+- `payoff_leave_credits` — FIFO credit pool: `(user_id, payoff_application_id, hours_earned, hours_remaining, earned_at, expires_at)`; credited immediately on HR approval; expire 6 months from `earned_at`
+- `payoff_credit_consumptions` — restoration trail: `(leave_id, payoff_leave_credit_id, hours_consumed)`; used to restore FIFO credits when a POL leave is rejected/cancelled
 
 ### Leave System
 
 Two-stage approval: **Staff → Dept Head → HR**. Dept Heads bypass dept_head step for their own leaves (auto-approved, sent to HR directly).
 
-**Balance lookup** — `LeaveType->getPayrollKey()` returns `'vl'|'sl'|'bl'|'spl'|'el'|'ml'|'pl'|'syl'|'cal'|'stl'|'mwl'|null`. Sub-types `SL_X` / `SL_M` share the `sl` bucket via `getCanonicalCode()`. LWOP returns `null` and `isLWOP()` returns `true`.
+**Balance lookup** — `LeaveType->getPayrollKey()` returns `'vl'|'sl'|'bl'|'spl'|'el'|'ml'|'pl'|'syl'|'cal'|'stl'|'mwl'|null`. Sub-types `SL_X` / `SL_M` share the `sl` bucket via `getCanonicalCode()`. LWOP returns `null` and `isLWOP()` returns `true`. `$lt->isPOL()` returns `true` for the special `POL` (Payoff Leave) type.
+
+**POL (Payoff Leave)** — a special leave type backed by `payoff_leave_credits` FIFO pool, not `leave_balances`. `total_days` in `leaves` stores **hours** (not days) for POL. Balance read via `PayoffLeaveCredit::availableHours($userId)`; consumption via `consumeFifo()` which writes to `payoff_credit_consumptions`. Restoration on rejection/cancellation via `PayoffLeaveCredit::restoreFromMap($map)` using the consumption trail. `HrLeaveManagement::restoreConsumed()` checks `isPOL()` and branches accordingly.
 
 **Probationary employees** (no `regularization_date`) cannot apply for VL, SL, or BL. Expected regularization = `hiring_date + 6 months` (`LeaveAccrualService::computeExpectedRegularizationDate()`).
 
@@ -94,6 +101,20 @@ Two-stage approval: **Staff → Dept Head → HR**. Dept Heads bypass dept_head 
 - Dept head decides → `LeaveDHeadDecisionMail` to staff; if approved: `LeaveHRNotificationMail` to HR
 - HR decides → `LeaveStatusUpdateMail` to staff + `LeaveHRResultMail` to dept head
 - Cancellation: `LeaveCancellationDHeadMail` to dept head → `LeaveCancellationDHeadDecisionMail` to staff; HR result → `LeaveCancellationResultMail`
+
+### Overtime & Payoff System
+
+**Three-stage approval: Staff → DeptHead → HR → Accounting.** Dept Heads' own applications skip their approval step (handled in `DHead.php`).
+
+**Overtime** — pure salary conversion. Accounting is the final approver. Status flow: `pending` → `dept_approved` → `hr_approved` → `approved`. `accounting_status` is tagged separately.
+
+**Payoff** — converts to leave only (no cash). On HR approval, `HrApplicationsManagement::approvePayoff()` immediately creates a `PayoffLeaveCredit` row (`earned_at=today`, `expires_at=+6 months`). Accounting step is informational only (tags for payroll awareness). FIFO expiry: credits expire 6 months from `earned_at`; `PayoffLeaveCredit::consumeFifo()` deducts oldest-first and returns a `[credit_id => hours_consumed]` map stored in `payoff_credit_consumptions`.
+
+**Lunch break deduction** — `lunch_break_deducted` bool flag; `deductLunchBreak()` applies a one-time solid −1 hour and sets the flag. Available on both the employee form and HR edit modal. Idempotent; button is disabled after use.
+
+**Overlap detection** — `checkOverlap(?int $excludeId)` in both `OvertimeManagement` and `PayoffManagement` checks half-open interval `start_datetime < $end AND end_datetime > $start` against **both** `overtime_applications` and `payoff_applications` simultaneously. Same calendar period is allowed across the two types; identical datetime ranges are not.
+
+**Approval progress UI** — the employee-facing tables (`resources/views/pages/users/overtime.blade.php` and `payoff.blade.php`) show a 3-step visual chain (DHead → HR → Accounting) with colored circles (green ✓/red ✗/amber ⏳/gray —) and hover tooltips for approver names instead of a plain status badge.
 
 ### Attendance
 
@@ -119,10 +140,10 @@ Late alerts sent via `LateAlertMail`. Import biometric logs via `AttendanceManag
 - `app/Livewire/PositionManagement.php` — HR manages positions table
 - `app/Livewire/AccessKeyManagement.php` — HR creates/assigns access keys (controls all gate permissions)
 - `app/Livewire/DepartmentManagement.php` — manages departments and dept head assignments
-- `app/Livewire/HrApplicationsManagement.php` — HR overview of overtime/payoff applications
+- `app/Livewire/HrApplicationsManagement.php` — HR + Accounting approval of overtime/payoff; `approvePayoff()` creates `PayoffLeaveCredit` on HR approval; `accountingTagPayoff/Overtime()` for final accounting step
 - `app/Livewire/PayrollCompliance.php` — payroll compliance view
-- `app/Livewire/OvertimeManagement.php` / `HrOvertimeManagement.php` — overtime application workflow
-- `app/Livewire/PayoffManagement.php` / `HrPayoffManagement.php` — cash payoff application workflow
+- `app/Livewire/OvertimeManagement.php` — staff overtime filing; 3-stage (DHead→HR→Accounting); `deductLunchBreak()` one-time −1h; cross-table overlap detection against both `overtime_applications` and `payoff_applications`
+- `app/Livewire/PayoffManagement.php` — staff payoff filing; payoff-to-leave only (no cash); same lunch break + overlap logic
 
 **Operations:**
 - `app/Livewire/NurseSchedule.php` — date-based nurse scheduler; `assignEmployee()`, `assignCustom()`, `removeEntry()`
